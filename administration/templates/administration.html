@@ -1,0 +1,9 @@
+{% extends "index.html" %}
+{% load static %}
+
+{% block admin %}
+    <section id="administration-section">
+        <h2>Administración</h2>
+        <p> {{ request.path }} </p>
+    </section>
+{% endblock admin %}

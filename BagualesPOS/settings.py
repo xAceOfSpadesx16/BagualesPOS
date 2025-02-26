@@ -38,6 +38,11 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'sales',
+    'records',
+    'inventory',
+    'products',
+    'clients',
+    'administration',
 ]
 
 
@@ -56,7 +61,7 @@ ROOT_URLCONF = 'BagualesPOS.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates'],
+        'DIRS': [BASE_DIR / 'templates', BASE_DIR / '**/templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
