@@ -24,17 +24,17 @@
         <div id="sales-tab" class="tab-content {% if request.path == '/ventas/' %}active{% endif %}">
 
             {% block sales %}{% endblock %}
-            
+
         </div>
         
         <div id="record-tab" class="tab-content {% if request.path == '/registros/' %}active{% endif %}">
-            
+
             {% block sale_records %}{% endblock %}
-            
+
         </div>
         
         <div id="inventory-tab" class="tab-content {% if request.path == '/inventario/' %}active{% endif %}">
-            
+
             {% block inventory %}{% endblock %}
 
         </div>
