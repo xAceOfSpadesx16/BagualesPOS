@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 from django.db.models import Model, SET_NULL
 from django.db.models.fields import CharField, IntegerField, BooleanField, DateTimeField, EmailField
+from django.db.models.fields.files import ImageField
 from django.db.models.fields.related import ForeignKey
 from utils import PhoneNumberField
 
@@ -80,6 +81,7 @@ class Product(Model):
     cost_price = IntegerField()
     sale_price = IntegerField()
     details = CharField(max_length=64, null=True)
+    image = ImageField(upload_to='products/', null=True)
     is_active = BooleanField()
     created_at = DateTimeField(auto_now_add=True)
     updated_at = DateTimeField(auto_now=True)
