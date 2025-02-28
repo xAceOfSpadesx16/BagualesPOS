@@ -1,54 +1,59 @@
 <!DOCTYPE html>
 {% load static %}
 <html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Los Baguales - Punto de Venta</title>
-    <link rel="icon" type="image/x-icon" href="{% static 'images/logo.ico' %}" >
-    <link rel="stylesheet" href="{% static 'style/index.css' %}" >
-    {% block head_css %}{% endblock %}
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Los Baguales - Punto de Venta</title>
+        <link
+            rel="icon"
+            type="image/x-icon"
+            href="{% static 'images/logo.ico' %}"
+        />
+        <link rel="stylesheet" href="{% static 'style/navbar.css' %}" />
+        {% block head_css %}{% endblock %} {% block head_js %}{% endblock %}
+    </head>
+    <body>
+        <div class="page-wrapper">
+            <div class="nav-wrapper">
+                <div class="grad-bar"></div>
+                <nav class="navbar">
+                    <img
+                        src="{% static 'images/banner2.png' %}"
+                        alt="Company Logo"
+                    />
+                    <div class="menu-toggle" id="mobile-menu">
+                        <span class="bar"></span>
+                        <span class="bar"></span>
+                        <span class="bar"></span>
+                    </div>
+                    <ul class="nav">
+                        <li class="nav-item"><a href= {% url 'sales' %}>Ventas</a></li>
+                        <li class="nav-item"><a href= {% url 'records' %}>Registros</a></li>
+                        <li class="nav-item"><a href= {% url 'inventory' %}>Inventario</a></li>
+                        <li class="nav-item"><a href= {% url 'administration' %}>Administración</a></li>
+                        <form action="{% url 'logout' %}" method="post">
+                            {% csrf_token %}
+                            <button type="submit" title="Desconectarse" class="logout-btn">
+                                <img src="{% static 'images/logout.png' %}" alt="Logout">
+                            </button>
+                        </form>
+                    </ul>
+                </nav>
+            </div>
 
-    {% block head_js %}{% endblock %}    
-    
-</head>
-<body>
-    <div class="tabs">
-        <div class="tab-buttons">
-            <a href="{% url 'sales' %}" class="tab-button {% if request.path == '/ventas/' %}active{% endif %}"> Venta </a>
-            <a href="{% url 'records' %}" class="tab-button {% if request.path == '/registros/' %}active{% endif %}"> Registros </a>
-            <a href="{% url 'inventory' %}" class="tab-button {% if request.path == '/inventario/' %}active{% endif %}"> Inventario </a>
-            <a href="{% url 'administration' %}" class="tab-button {% if request.path == '/administracion/' %}active{% endif %}"> Administración </a>
+            <section class="features">
+                <div class="feature-container">
+                    {% block content %}{% endblock %}
+                </div>
+            </section>
         </div>
 
-        <div id="sales-tab" class="tab-content {% if request.path == '/ventas/' %}active{% endif %}">
-
-            {% block sales %}{% endblock %}
-
-        </div>
+        <footer></footer>
         
-        <div id="record-tab" class="tab-content {% if request.path == '/registros/' %}active{% endif %}">
-
-            {% block sale_records %}{% endblock %}
-
-        </div>
         
-        <div id="inventory-tab" class="tab-content {% if request.path == '/inventario/' %}active{% endif %}">
+        <script src="{% static 'js/navbar.js' %}"> </script>
 
-            {% block inventory %}{% endblock %}
-
-        </div>
-
-
-        <div id="admin-tab" class="tab-content {% if request.path == '/administracion/' %}active{% endif %}">
-            
-            {% block admin %}{% endblock %}
-            
-        </div>
-        
-    </div>
-    
-    {% block body_scripts %}{% endblock %}
-    
-</body>
+        {% block body_scripts %}{% endblock %}
+    </body>
 </html>
