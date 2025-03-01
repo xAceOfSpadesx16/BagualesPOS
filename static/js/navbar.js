@@ -5,3 +5,10 @@ menuToggle.addEventListener("click", () => {
     nav.classList.toggle("mobile-nav");
     menuToggle.classList.toggle("is-active");
 });
+
+const logoutButton = document.querySelector("#logout-text");
+
+logoutButton.addEventListener("click", (e) => {
+    e.preventDefault();
+    document.querySelector("#logout-form").submit();
+});

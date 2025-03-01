@@ -32,11 +32,12 @@
                         <li class="nav-item"><a href= {% url 'records' %}>Registros</a></li>
                         <li class="nav-item"><a href= {% url 'inventory' %}>Inventario</a></li>
                         <li class="nav-item"><a href= {% url 'administration' %}>Administración</a></li>
-                        <form action="{% url 'logout' %}" method="post">
+                        <form action="{% url 'logout' %}" method="post" id="logout-form">
                             {% csrf_token %}
-                            <button type="submit" title="Desconectarse" class="logout-btn">
+                            <button type="submit" title="Cerrar Sesión" class="logout-btn">
                                 <img src="{% static 'images/logout.png' %}" alt="Logout">
                             </button>
+                            <li class="nav-item" id="logout-text"><a href=#>Cerrar Sesión</a></li>
                         </form>
                     </ul>
                 </nav>
