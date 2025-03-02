@@ -1,12 +1,70 @@
 {% extends "index.html" %}
 {% load static %}
 
+{% block head_css %}
+    <link rel="stylesheet" href="{% static 'style/sales.css' %}">
+{% endblock head_css %}
+{% block title %} Ventas {% endblock title %}
+
 
 {% block content %}
 
-    <section id="sales_section">
-        <h2>Ventas</h2>
-        <p> {{ request.path }} </p>
+    <section id="sales-section">
+        <div class="form-container">
+            <form>
+                    <input type="text" id="product" name="customer", placeholder="Producto">
+                    <input type="number" id="quantity" name="quantity", placeholder="Cantidad">
+                    <button type="submit">Agregar</button>
+            </form>
+
+        </div>
+        <div class="table-container">
+
+            <table class="responsive-table scroll">
+
+                <thead>
+
+                <tr class="table-header">
+
+                    <th>Cant.</th>
+
+                    <th>Producto</th>
+
+                    <th>Precio Unit.</th>
+
+                    <th>Subtotal</th>
+
+                    <th>Acciones</th>
+
+                </tr>
+
+                </thead>
+
+                <tbody>
+
+                    {% if sale.details.all %}
+                        {% for detail in sale.details.all %}
+                        <tr>
+                            <td>{{ detail.quantity }}</td>
+                            <td>{{ detail.product.name }}</td>
+                            <td>${{ detail.sale_price }}</td>
+                            <td>${{ detail.get_total_price }}</td>
+                            <td><a href="{% url 'sale-detail-delete' detail.id %}">Eliminar</a></td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="4">No hay productos en la venta</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
     </section>
 {% endblock content %}
 

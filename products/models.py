@@ -81,8 +81,8 @@ class Product(Model):
     cost_price = IntegerField()
     sale_price = IntegerField()
     details = CharField(max_length=64, null=True)
-    image = ImageField(upload_to='products/', null=True)
-    is_active = BooleanField()
+    image = ImageField(upload_to='products/', null=True, blank=True)
+    is_active = BooleanField(default=True)
     created_at = DateTimeField(auto_now_add=True)
     updated_at = DateTimeField(auto_now=True)
 
