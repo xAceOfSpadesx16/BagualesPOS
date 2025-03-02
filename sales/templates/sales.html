@@ -1,29 +1,73 @@
 {% extends "index.html" %}
 {% load static %}
 
-{% block sales %}
+{% block head_css %}
+    <link rel="stylesheet" href="{% static 'style/sales.css' %}">
+{% endblock head_css %}
+{% block title %} Ventas {% endblock title %}
+
+
+{% block content %}
+
     <section id="sales-section">
-        <p> {{ request.path }} </p>
-        <h2>Venta</h2>
-        <form id="formulario-venta">
-            <label for="producto">Producto:</label>
-            <input type="text" id="producto" name="producto">
+        <div class="form-container">
+            <form>
+                    <input type="text" id="product" name="customer", placeholder="Producto">
+                    <input type="number" id="quantity" name="quantity", placeholder="Cantidad">
+                    <button type="submit">Agregar</button>
+            </form>
 
-            <label for="cantidad">Cantidad:</label>
-            <input type="number" id="cantidad" name="cantidad">
-
-            <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" type="submit">Agregar al carrito</button>
-        </form>
-        <div id="carrito">
-            <h3>Carrito</h3>
-            <ul id="lista-carrito">
-                </ul>
-            <p>Total: <span id="total">0.00</span></p>
-            <button id="finalizar-compra">Finalizar compra</button>
         </div>
+        <div class="table-container">
+
+            <table class="responsive-table scroll">
+
+                <thead>
+
+                <tr class="table-header">
+
+                    <th>Cant.</th>
+
+                    <th>Producto</th>
+
+                    <th>Precio Unit.</th>
+
+                    <th>Subtotal</th>
+
+                    <th>Acciones</th>
+
+                </tr>
+
+                </thead>
+
+                <tbody>
+
+                    {% if sale.details.all %}
+                        {% for detail in sale.details.all %}
+                        <tr>
+                            <td>{{ detail.quantity }}</td>
+                            <td>{{ detail.product.name }}</td>
+                            <td>${{ detail.sale_price }}</td>
+                            <td>${{ detail.get_total_price }}</td>
+                            <td><a href="{% url 'sale-detail-delete' detail.id %}">Eliminar</a></td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="4">No hay productos en la venta</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
     </section>
-{% endblock sales %}
+{% endblock content %}
 
 {% block body_scripts %}
-<script src="{% static 'js/sales.js' %}"></script>
+{% comment %} <script src="{% static 'js/sales.js' %}"></script> {% endcomment %}
 {% endblock body_scripts %}
