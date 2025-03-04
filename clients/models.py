@@ -2,6 +2,7 @@ from django.db.models import Model
 from django.db.models.fields import CharField, DateTimeField, DecimalField, BooleanField
 from django.db.models.fields.related import ForeignKey
 from django.db.models.deletion import CASCADE
+from django.core.validators import RegexValidator
 from utils import PhoneNumberField
 
 class Client(Model):
@@ -19,12 +20,13 @@ class Client(Model):
     last_name = CharField(max_length=50)
     phone = PhoneNumberField()
     dni = CharField(max_length=9)
+    cuit = CharField(max_length=11, null=True, validators=[RegexValidator(r'^\d{2}-\d{8}-\d{1}$', 'Ingrese un CUIT válido.')], unique=True)
     email = CharField(max_length=50)
     address = CharField(max_length=100)
     city = CharField(max_length=50)
     postal_code = CharField(max_length=10)
     country = CharField(max_length=50)
-    billing_type = CharField(max_length= 1, choices=BILLING_TYPES)
+    billing_type = CharField(max_length= 1, choices=BILLING_TYPES, default='C')
     balance = DecimalField(max_digits=10, decimal_places=2, default=0)
     created_at = DateTimeField(auto_now_add=True)
     updated_at = DateTimeField(auto_now=True)

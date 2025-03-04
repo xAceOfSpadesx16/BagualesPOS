@@ -22,26 +22,29 @@
 }
 
 table {
-    font-size: 14px;
+    font-size: 12px;
     width: 100vh;
     table-layout: fixed;
-    border: 1px solid #060606;
+    border: 1px solid #aaaaaa;
     border-radius: 10px;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
     background-color: #f0f0f0;
     min-height: 400px;
 }
 
-
 .scroll tr {
     display: flex;
     height: 30px;
 }
 
-.scroll td {
+.scroll td,
+.scroll th {
     flex: 1;
-    align-content: center;
     text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
 }
 
 .scroll thead tr:after {
@@ -50,14 +53,8 @@ table {
     height: 0;
 }
 
-.scroll thead th {
-    flex: 1;
-    display: block;
-}
-
 .scroll tbody {
     display: block;
-
     overflow-y: auto;
     height: 100%;
 }

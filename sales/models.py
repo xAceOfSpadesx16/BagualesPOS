@@ -44,7 +44,7 @@ class Sale(Model):
 class SaleDetail(Model):
     order = ForeignKey(Sale, on_delete=CASCADE, related_name='details')
     product = ForeignKey(Product, on_delete= SET_NULL, null=True)
-    quantity = DecimalField(max_digits=10, decimal_places=2)
+    quantity = DecimalField(max_digits=10, decimal_places=2, default=1)
     sale_price = DecimalField(max_digits=10, decimal_places=2)
     created_at = DateTimeField(auto_now_add=True)
 

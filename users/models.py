@@ -1,3 +1,4 @@
+from __future__ import annotations
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.models import BaseUserManager
 from django.contrib.auth import get_user_model
@@ -17,6 +18,7 @@ class CustomUserManager(BaseUserManager):
         return user
 
 class CustomUser(AbstractUser):
+    profile: Profile
     email = EmailField(null=True)
 
     USERNAME_FIELD = 'username'
@@ -31,13 +33,13 @@ class CustomUser(AbstractUser):
 
 class Profile(Model):
     user = OneToOneField(get_user_model(), on_delete=CASCADE, related_name='profile')
-    phone_number = PhoneNumberField(null=True)
-    dni = CharField(max_length=9)
-    address = CharField(max_length=100)
-    city = CharField(max_length=50)
-    province = CharField(max_length=50)
-    postal_code = CharField(max_length=10)
-    country = CharField(max_length=50)
+    phone_number = PhoneNumberField(null=True, blank=True)
+    dni = CharField(max_length=9, null=True, blank=True, unique=True)
+    address = CharField(max_length=100, null=True, blank=True)
+    city = CharField(max_length=50, null=True, blank=True)
+    province = CharField(max_length=50, null=True, blank=True)
+    postal_code = CharField(max_length=10, null=True, blank=True)
+    country = CharField(max_length=50, null=True, blank=True)
     created_at = DateTimeField(auto_now_add=True)
     updated_at = DateTimeField(auto_now=True)
 
