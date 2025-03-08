@@ -17,6 +17,7 @@ class SearchProductForm(ModelForm):
                 url="product-autocomplete",
                 attrs={
                     "data-placeholder": "Buscar un producto",
+                    "data-ajax--delay": 250,
                 },
             ),
         }
@@ -29,17 +30,15 @@ class SearchProductForm(ModelForm):
         )
 
     def save(self, *args, **kwargs):
-        # Get the sale
         sale = Sale.objects.get_table_active_sale(self.request.user)
         if not sale:
             sale = Sale.objects.create(seller=self.request.user)
-        self.instance.sale = sale  # Assign sale to instance of SaleDetail
+
+        self.instance.order = sale
+
+        # if SaleDetail.objects.filter(product=self.cleaned_data.get("product"), order=sale).exists():
+            # raise forms.ValidationError("El producto ya existe en la venta.")
         
-        # check if exist product
-        if SaleDetail.objects.filter(product=self.cleaned_data.get("product"), sale=sale).exists():
-            raise forms.ValidationError("El producto ya existe en la venta.")
-        
-        # save the instance
         return super().save(*args, **kwargs)
         
 

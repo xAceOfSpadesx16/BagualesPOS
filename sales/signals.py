@@ -3,20 +3,19 @@ from django.dispatch import receiver
 
 from sales.models import SaleDetail
 
-receiver(post_save, sender=SaleDetail)
+@receiver(post_save, sender=SaleDetail)
 def update_stock(sender, instance: SaleDetail, created: bool, **kwargs):
-    product_stock = instance.product.inventory.quantity
+    stock = instance.product.inventory
     if created:
-        product_stock -= instance.quantity
+        stock.quantity -= instance.quantity
     else:
-
         old_record = SaleDetail.objects.get(pk=instance.pk)
-        product_stock -= instance.quantity - old_record.quantity
+        stock.quantity -= instance.quantity - old_record.quantity
+    stock.save()
 
-    product_stock.save()
 
 
-receiver(post_delete, sender=SaleDetail)
+@receiver(post_delete, sender=SaleDetail)
 def update_stock(sender, instance: SaleDetail, **kwargs):
     instance.product.inventory.quantity += instance.quantity
     instance.product.inventory.save()

@@ -1,5 +1,5 @@
 from django.db.models import Model
-from django.db.models.fields import DateTimeField, DecimalField, BooleanField, CharField
+from django.db.models.fields import DateTimeField, DecimalField, BooleanField, CharField, IntegerField
 from django.db.models.fields.related import ForeignKey
 from django.db.models.deletion import CASCADE, SET_NULL
 from decimal import Decimal, ROUND_HALF_UP
@@ -44,7 +44,7 @@ class Sale(Model):
 class SaleDetail(Model):
     order = ForeignKey(Sale, on_delete=CASCADE, related_name='details')
     product = ForeignKey(Product, on_delete= SET_NULL, null=True)
-    quantity = DecimalField(max_digits=10, decimal_places=2, default=1)
+    quantity = IntegerField(default=1, help_text='Cantidad')
     sale_price = DecimalField(max_digits=10, decimal_places=2)
     created_at = DateTimeField(auto_now_add=True)
 
@@ -59,6 +59,7 @@ class SaleDetail(Model):
         return (self.quantity * self.sale_price).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
     
     def save(self, *args, **kwargs):
+        self.sale_price = self.product.sale_price
         self.order.total_amount += self.get_total_price()
         self.order.save()
         super().save(*args, **kwargs)

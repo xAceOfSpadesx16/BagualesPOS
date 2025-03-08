@@ -149,3 +149,6 @@ AUTH_USER_MODEL = 'users.CustomUser'
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/ventas/'
 LOGOUT_REDIRECT_URL = '/login/'
+
+if DEBUG:
+    SECURE_CROSS_ORIGIN_OPENER_POLICY = None

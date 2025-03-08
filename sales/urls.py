@@ -5,8 +5,8 @@ from sales.views import SaleDetailDelete, SaleDetailCreate, SaleDetailUpdate, Sa
 
 urlpatterns = [
     path('', SalesIndex.as_view(), name='sales'),
-    path('delete-detail/<int:pk>/', SaleDetailDelete.as_view(), name='sale-detail-delete'),
     path('create-detail/', SaleDetailCreate.as_view(), name='sale-detail-create'),
     path('update-detail/<int:pk>/', SaleDetailUpdate.as_view(), name='sale-detail-update'),
+    path('delete-detail/<int:pk>/', SaleDetailDelete.as_view(), name='sale-detail-delete'),
     path('product-autocomplete/', ProductAutocomplete.as_view(), name='product-autocomplete'),
 ]

@@ -154,12 +154,6 @@ class Product(Model):
     def __str__(self):
         return f'{self.name} - {self.gender}'
     
-    def save(self, *args, **kwargs):
-        if not self.internal_code:
-            category_prefix = slugify(self.category.name[:3]).upper()
-            self.internal_code = f"{category_prefix}-{self.pk}"
-        super().save(*args, **kwargs)
-    
     class Meta:
         verbose_name = 'Producto'
         verbose_name_plural = 'Productos'
