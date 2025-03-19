@@ -1,8 +1,5 @@
-const formularioVenta = document.getElementById('product-form');
-const listaCarrito = document.getElementById('sale-table');
-const bodyCarrito = listaCarrito.querySelector('tbody');
-const totalElement = document.getElementById('total');
-const dalInput = formularioVenta.querySelector('select[name="product"]');
+import { setInputQuantity } from "./sale_quant.js";
+import { SalesFetcher } from "./requests/fetchers.js";
 
 
 const trashIconSVG = `
@@ -12,72 +9,64 @@ const trashIconSVG = `
     </svg>
 `;
 
-let total = 0; //sacar y debe venir del back
 
-formularioVenta.addEventListener('submit', function(event) {
-    event.preventDefault();
-    let csrfToken = getCookie('csrftoken');
+document.addEventListener('submit', function (event) {
 
-    let formData = new FormData(formularioVenta);
-    formData.append('csrfmiddlewaretoken', csrfToken);
+    if (event.target.id === 'product-form') {
+        event.preventDefault();
+        const formularioVenta = event.target;
+        const totalElement = document.getElementById('total-value');
+        const listaCarrito = document.getElementById('sale-table');
+        const bodyCarrito = listaCarrito.querySelector('tbody');
+        const dalInput = formularioVenta.querySelector('select[name="product"]');
+        const quantityInput = formularioVenta.querySelector('input[name="quantity"]');
 
-    fetch(formularioVenta.action, {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => {
-        if (response.ok) {
-            return response.json();
-        } else {
-            throw new Error('Error en la solicitud');
-        }
-    })
-    .then(data => {
-        no_products = document.getElementById('no-products');
-        if (no_products && data.product.name.length > 0) {
-            bodyCarrito.removeChild(no_products);
-        };
+        SalesFetcher.createSaleDetail(dalInput.value, quantityInput.value).then(data => {
 
-        let newRow = bodyCarrito.insertRow(-1);
-        newRow.innerHTML = `
-            <td>${data.quantity}</td>
+            if (document.getElementById('no-products') && data.product.name.length > 0) {
+                bodyCarrito.removeChild(no_products);
+            };
+
+            let newRow = bodyCarrito.insertRow(-1);
+            newRow.innerHTML = `
+            <td class="editable-cell quantity-cell" data-saledetail-id="${data.id}" ondblclick="setInputQuantity(this)">${data.quantity}</td>
             <td>${data.product.name}</td>
-            <td>${data.sale_price}</td>
-            <td>${data.total_price}</td>
-            <td><button class="eliminar-sale-detail" data-sale-detail-id="${data.id}" type="button" onclick="deleteSaleDetail.call(this)">${trashIconSVG}</button></td>
-        `;
-    })
-    .catch(error => {
-        console.error(error);
-    });
-    formularioVenta.reset();
-    if (dalInput) {
-        $(dalInput).val(null).trigger('change');
+            <td>$${data.sale_price}</td>
+            <td>$${data.total_price}</td>
+            <td><button class="eliminar-sale-detail" data-sale-detail-id="${data.id}" type="button">${trashIconSVG}</button></td>`;
+
+            totalElement.textContent = `$${data.total_sale_amount}`;
+        }).catch(error => {
+            alert(error.message);
+        });
+
+        formularioVenta.reset();
+        if (dalInput) {
+            dalInput.value = null;
+            dalInput.dispatchEvent(new Event('change'));
+        }
     }
 });
 
-//data-sale-detail-id
-function deleteSaleDetail() {
-    let saleDetailId = this.getAttribute('data-sale-detail-id');
-    let csrfToken = getCookie('csrftoken');
-    fetch(`/ventas/delete-detail/${saleDetailId}/`, {
-        method: 'DELETE',
-        headers: {
-            'X-CSRFToken': csrfToken,
-        }
-    })
-    .then(response => {
-        if (response.ok) {
-            return response.json();
-        } else {
-            throw new Error('Error en la solicitud');
-        }
-    })
-    .then(data => {
-        let row = this.parentNode.parentNode;
-        bodyCarrito.removeChild(row);
-    })
-    .catch(error => {
-        console.error(error);
-    });
-}
+document.addEventListener('click', function (event) {
+
+    if (event.target.closest('.eliminar-sale-detail')) {
+        const totalElement = document.getElementById('total-value')
+        const button = event.target.closest('.eliminar-sale-detail');
+        const saleDetailId = button.getAttribute('data-sale-detail-id');
+        SalesFetcher.deleteSaleDetail(saleDetailId).then(data => {
+            const row = button.closest('tr');
+            row.remove();
+            totalElement.textContent = `$${data.total_sale_amount}`;
+        }).catch(error => {
+            console.error(error);
+        });
+    }
+});
+
+document.getElementById('sale-table').querySelector('tbody').addEventListener('dblclick', function (event) {
+    const target = event.target;
+    if (target.classList.contains('quantity-cell')) {
+        setInputQuantity(target);
+    }
+});

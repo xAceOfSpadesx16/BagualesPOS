@@ -1,5 +1,5 @@
 from django.db.models import Model
-from django.db.models.fields import CharField, DateTimeField, DecimalField, BooleanField
+from django.db.models.fields import CharField, DateTimeField, BooleanField, IntegerField
 from django.db.models.fields.related import ForeignKey
 from django.db.models.deletion import CASCADE
 from django.core.validators import RegexValidator
@@ -27,7 +27,7 @@ class Client(Model):
     postal_code = CharField(max_length=10)
     country = CharField(max_length=50)
     billing_type = CharField(max_length= 1, choices=BILLING_TYPES, default='C')
-    balance = DecimalField(max_digits=10, decimal_places=2, default=0)
+    balance = IntegerField(default=0)
     created_at = DateTimeField(auto_now_add=True)
     updated_at = DateTimeField(auto_now=True)
     approved_customer_account = BooleanField(default=False)
@@ -44,6 +44,6 @@ class Client(Model):
 
 class CustomerBalanceRecord(Model):
     client = ForeignKey(Client, on_delete=CASCADE)
-    amount = DecimalField(max_digits=10, decimal_places=2)
+    amount = IntegerField()
     created_at = DateTimeField(auto_now_add=True)
 

@@ -1,13 +1,14 @@
 from django.db.models import Model
-from django.db.models.fields import DateTimeField, DecimalField, BooleanField, CharField, IntegerField
+from django.db.models.fields import DateTimeField, BooleanField, CharField, IntegerField
 from django.db.models.fields.related import ForeignKey
 from django.db.models.deletion import CASCADE, SET_NULL
-from decimal import Decimal, ROUND_HALF_UP
 from django.contrib.auth import get_user_model
 
 from sales.managers import SalesManager
 from products.models import Product
 from clients.models import Client
+
+from utils.formats import formatted_integer
 
 class PayMethod(Model):
     name = CharField(max_length=50)
@@ -24,7 +25,7 @@ class PayMethod(Model):
 class Sale(Model):
     seller = ForeignKey(get_user_model(), on_delete=SET_NULL, null=True)
     client = ForeignKey(Client, on_delete=SET_NULL, null=True)
-    total_amount = DecimalField(max_digits=10, decimal_places=2, default=0)
+    total_amount = IntegerField(default=0)
     pay_method = ForeignKey(PayMethod, on_delete=SET_NULL, null=True)
     canceled = BooleanField(default=False)
     closed = BooleanField(default=False)
@@ -40,12 +41,17 @@ class Sale(Model):
 
     def __str__(self):
         return f'Venta {self.pk} - {self.seller.get_full_name()} - {self.created_at} {f"- {self.client.name}" if self.client else ""}'
+    
+    @property
+    def formatted_total_amount(self):
+        return formatted_integer(self.total_amount)
+    
 
 class SaleDetail(Model):
     order = ForeignKey(Sale, on_delete=CASCADE, related_name='details')
     product = ForeignKey(Product, on_delete= SET_NULL, null=True)
     quantity = IntegerField(default=1, help_text='Cantidad')
-    sale_price = DecimalField(max_digits=10, decimal_places=2)
+    sale_price = IntegerField()
     created_at = DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -55,11 +61,19 @@ class SaleDetail(Model):
     def __str__(self):
         return f'{self.product} - {self.quantity} - {self.sale_price}'
     
+    @property
     def get_total_price(self):
-        return (self.quantity * self.sale_price).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        return self.quantity * self.sale_price
+    
+    @property
+    def formatted_total_price(self):
+        return formatted_integer(self.get_total_price)
+    
+    @property
+    def formatted_sale_price(self):
+        return formatted_integer(self.sale_price)
+
     
     def save(self, *args, **kwargs):
         self.sale_price = self.product.sale_price
-        self.order.total_amount += self.get_total_price()
-        self.order.save()
         super().save(*args, **kwargs)

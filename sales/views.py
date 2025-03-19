@@ -1,9 +1,13 @@
-from django.views.generic import TemplateView, CreateView, UpdateView, View
+from django.views.generic import TemplateView, CreateView, View
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
-from sales.models import Sale, SaleDetail
-from dal import autocomplete
 from django.db.models import Q
+from django.http import HttpRequest
+from dal import autocomplete
+
+from json import loads
+
+from sales.models import Sale, SaleDetail
 
 from sales.forms import SearchProductForm
 from products.models import Product
@@ -23,45 +27,65 @@ class SalesIndex(TemplateView):
 class SaleDetailDelete(View):
     http_method_names = ['delete']
 
-    def delete(self, request, pk, *args, **kwargs):
+    def delete(self, request: HttpRequest, pk, *args, **kwargs):
         
         sale_detail = get_object_or_404(SaleDetail, id=pk)
         sale_detail.delete()
-        return JsonResponse({"message": "Registro eliminado con éxito"}, status=200)
+        
+        return JsonResponse({"message": "Registro eliminado con éxito", "total_sale_amount": sale_detail.order.formatted_total_amount}, status=200)
         
 class SaleDetailCreate(CreateView):
     model = SaleDetail
 
-    def post(self, request, *args, **kwargs):
-        form = SearchProductForm(request.POST, request=self.request)
+    http_method_names = ['post']
 
+
+    def post(self, request: HttpRequest, *args, **kwargs):
+        form = SearchProductForm(loads(request.body), request=self.request)
         if form.is_valid():
-            instance = form.save()
+            instance: SaleDetail = form.save()
             product = instance.product
             quantity = instance.quantity
-            sale_price = instance.sale_price
-            total_price = instance.get_total_price()
+            sale_price = instance.formatted_sale_price
+            total_price = instance.formatted_total_price
 
 
             return JsonResponse({
                 'product': {
                     'name': product.name,
                 },
-                'sale_price': sale_price,
                 'quantity': quantity,
+                'sale_price': sale_price,
                 'total_price': total_price,
-                'id': instance.id,
+                'total_sale_amount': instance.order.formatted_total_amount,
+                'id': instance.pk,
             })
         else:
-            return JsonResponse({'error': form.errors}, status=400) # Return errors if form is invalid
+            print(form.errors)
+            return JsonResponse({'error': form.errors}, status=400)
 
 
 
-class SaleDetailUpdate(UpdateView):
-    model = SaleDetail
-    fields = ['product', 'quantity']
+class SaleQuantityDetailUpdate(View):
 
+    def dispatch(self, request, *args, **kwargs):
+        if request.method.lower() == 'patch':
+            return self.patch(request, *args, **kwargs)
+        return super().dispatch(request, *args, **kwargs)
 
+    def patch(self, request: HttpRequest, pk, *args, **kwargs):
+        body = loads(request.body)
+        quantity = body.get('quantity')
+        sale_detail = get_object_or_404(SaleDetail, id=pk)
+        sale_detail.quantity = int(quantity)
+        sale_detail.save()
+        data = {
+            'quantity': sale_detail.quantity,
+            'sale_price': sale_detail.formatted_sale_price,
+            'total_price': sale_detail.formatted_total_price,
+            'total_sale_amount': sale_detail.order.formatted_total_amount,
+        }
+        return JsonResponse(data)
 
 
 class ProductAutocomplete(autocomplete.Select2QuerySetView):

@@ -25,9 +25,7 @@ class SearchProductForm(ModelForm):
     def __init__(self, *args, **kwargs):
         self.request = kwargs.pop("request", None)
         super().__init__(*args, **kwargs)
-        self.fields["submit"] = forms.CharField(
-            widget=forms.HiddenInput(), required=False
-        )
+
 
     def save(self, *args, **kwargs):
         sale = Sale.objects.get_table_active_sale(self.request.user)

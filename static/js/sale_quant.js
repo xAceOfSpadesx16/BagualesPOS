@@ -1,3 +1,5 @@
+import { SalesFetcher } from "./requests/fetchers.js";
+
 class QuantityInput extends HTMLInputElement {
     constructor(initialValue, saledetailId) {
         super();
@@ -6,36 +8,31 @@ class QuantityInput extends HTMLInputElement {
         this.value = initialValue;
         this.saledetailId = saledetailId;
         this.escapePressed = false;
-    }
+    };
 
     connectedCallback() {
         this.addEventListener('blur', this.handleBlur);
         this.addEventListener('keydown', this.handleKeyDown);
-    }
+    };
 
     disconnectedCallback() {
         this.removeEventListener('blur', this.handleBlur);
         this.removeEventListener('keydown', this.handleKeyDown);
-    }
+    };
 
     handleBlur = () => {
+        const Cell = this.parentElement;
+        const Row = Cell.parentElement;
         if (this.escapePressed) {
+            Cell.textContent = this.originalValue;
             this.escapePressed = false;
-            return;
         }
         else {
-            simularEnvioBackend(this.saledetailId, this.value)
-                .then(respuestaBackend => {
-                    console.log("Respuesta del backend:", respuestaBackend);
-                    // cambiar precios acorde a respuesta de Backend
-                })
-                .catch(error => {
-                    console.error("Error al actualizar la cantidad:", error);
-                    this.parentElement.textContent = this.originalValue;
-                    alert("Error al actualizar la cantidad del producto.");
-                })
-        }
-    }
+            Cell.textContent = this.value;
+            this.UpdateQuantityFetch(this.saledetailId, this.value, Cell, Row);
+        };
+        this.remove();
+    };
 
     handleKeyDown = (event) => {
         switch (event.key) {
@@ -45,37 +42,46 @@ class QuantityInput extends HTMLInputElement {
             case 'Escape':
                 this.onEscapePress();
                 break;
-        }
-    }
+        };
+    };
 
     onEnterPress = () => {
-        this.parentElement.textContent = this.value;
         this.blur();
-    }
+    };
 
     onEscapePress = () => {
-        this.parentElement.textContent = this.originalValue;
+        this.escapePressed = true;
         this.blur();
-    }
+    };
 
-}
+
+    UpdateQuantityFetch = (saledetailId, newQuantity, Cell, Row) => {
+        SalesFetcher.updateSaleDetailQuantity(saledetailId, newQuantity).then(data => {
+
+            Cell.textContent = data.quantity;
+            Row.querySelector('.price-cell').textContent = `$${data.sale_price}`;
+            Row.querySelector('.subtotal-cell').textContent = `$${data.total_price}`;
+            const totalSalePrice = document.getElementById('total-value');
+            totalSalePrice.textContent = `$${data.total_sale_amount}`;
+
+        }).catch(error => {
+            Cell.textContent = this.originalValue;
+        });
+    };
+
+};
 
 customElements.define('quantity-input', QuantityInput, { extends: 'input' });
 
-
-
-
-function simularEnvioBackend(saledetailId, nuevaCantidad) {
-    return new Promise((resolve, reject) => {
-        // Aquí iría tu llamada real al backend (fetch, axios, etc.)
-        // Simulación de respuesta exitosa después de 1 segundo
-        setTimeout(() => {
-            const exito = true; // Simula éxito o fallo del backend
-            if (exito) {
-                resolve({ saledetailId: saledetailId, nuevaCantidad: nuevaCantidad });
-            } else {
-                reject("Error en el backend");
-            }
-        }, 1000); // Simula un segundo de espera para la respuesta del backend
-    });
+function setInputQuantity(cellElement) {
+    if (!cellElement.querySelector('input')) {
+        const originalValue = cellElement.textContent;
+        cellElement.textContent = '';
+        const saledetailId = cellElement.getAttribute('data-sale-detail-id');
+        const inputElement = new QuantityInput(originalValue, saledetailId);
+        cellElement.appendChild(inputElement);
+        inputElement.focus();
+    }
 }
+
+export { setInputQuantity };

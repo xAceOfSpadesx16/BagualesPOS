@@ -1,12 +1,19 @@
 {% extends "index.html" %}
 {% load static %}
 
-{% block inventory %}
+{% block title %} Inventario {% endblock title %}
+{% block head_css %}
+    <link rel="stylesheet" href="{% static 'style/inventory.css' %}">
+{% endblock head_css %}
+
+{% block content %}
+    <p> {{ request.path }} </p>
 
     <section id="inventory_section">
-        <h2>Inventario</h2>
-        <p> {{ request.path }} </p>
+        {% for inventory in inventories %}
+            <p> {{ inventory.product }} </p>
+        {% endfor %}
     </section>
 
-{% endblock inventory %}
+{% endblock content %}
 

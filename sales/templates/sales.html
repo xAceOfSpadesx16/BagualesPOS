@@ -8,7 +8,6 @@
 
 {% block head_js %}
 <script type="text/javascript" src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
-<script src="{% static 'js/utils.js' %}"></script>
 {% endblock head_js %}
 
 
@@ -16,7 +15,7 @@
 
     <section id="sales-section" style="display: none;">
         <div class="form-container">
-            <form action="{% url 'sale-detail-create' %}" method="post" id="product-form">
+            <form id="product-form">
                 {% csrf_token %}
                 {% for field in form %}
                         {{ field.errors }}
@@ -53,12 +52,12 @@
                     {% if sale.details.all %}
                         {% for detail in sale.details.all %}
                         <tr>
-                            <td class="editable-cell" data-saledetail-id="{{ detail.id }}">{{ detail.quantity }}</td>
-                            <td>{{ detail.product.name }}</td>
-                            <td>${{ detail.sale_price }}</td>
-                            <td>${{ detail.get_total_price }}</td>
-                            <td>
-                                <button class="eliminar-sale-detail" data-sale-detail-id="{{ detail.id }}" type="button" onclick="deleteSaleDetail.call(this)">
+                            <td class="editable-cell quantity-cell" data-sale-detail-id="{{ detail.id }}" >{{ detail.quantity }}</td>
+                            <td class= "product-cell">{{ detail.product.name }}</td>
+                            <td class= "price-cell">${{ detail.formatted_sale_price }}</td>
+                            <td class= "subtotal-cell">${{ detail.formatted_total_price }}</td>
+                            <td class="actions-cell">
+                                <button class="eliminar-sale-detail" data-sale-detail-id="{{ detail.id }}" type="button">
                                     <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                                         <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
                                         <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/>
@@ -76,6 +75,11 @@
 
             </table>
 
+            <div id="total-container">
+                <span class="total-label">Total:</span>
+                <span id="total-value">${{ sale.formatted_total_amount }}</span>
+            </div>
+
         </div>
 
     </div>
@@ -85,13 +89,22 @@
 
 {% block body_scripts %}
 
-<script src="{% static 'js/sales.js' %}"></script>
-<script src="{% static 'js/sale_quant.js' %}"></script>
+<script type="module" src="{% static 'js/sales.js' %}"></script>
 
 {{ form.media.js }}
 <script>
-    $(window).on('load', function() {
-        $('#sales-section').fadeIn(150);
+    window.addEventListener('load', function() {
+        const salesSection = document.getElementById('sales-section');
+        salesSection.style.opacity = 0;
+        salesSection.style.display = 'flex';
+        let opacity = 0;
+        const intervalId = setInterval(function() {
+            opacity += 0.1;
+            salesSection.style.opacity = opacity;
+            if (opacity >= 1) {
+                clearInterval(intervalId);
+            }
+        }, 15);
     });
 </script>
 {% endblock body_scripts %}
