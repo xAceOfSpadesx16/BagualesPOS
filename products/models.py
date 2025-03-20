@@ -152,7 +152,7 @@ class Product(Model):
     updated_at = DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f'{self.name} - {self.gender}'
+        return f'{self.name} - {self.brand.name}'
     
     class Meta:
         verbose_name = 'Producto'

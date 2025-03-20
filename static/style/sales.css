@@ -29,54 +29,6 @@
     height: 30px;
 }
 
-.table-container {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-}
-
-table {
-    font-size: 12px;
-    width: 100vh;
-    table-layout: fixed;
-    border: 1px solid #aaaaaa;
-    border-radius: 10px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-    background-color: #f0f0f0;
-    min-height: 400px;
-}
-
-.scroll tr {
-    display: flex;
-    height: 30px;
-}
-
-.scroll td,
-.scroll th {
-    flex: 1;
-    text-align: center;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-sizing: border-box;
-}
-
-.scroll thead tr:after {
-    overflow-y: scroll;
-    visibility: hidden;
-    height: 0;
-}
-
-.scroll tbody {
-    display: block;
-    overflow-y: auto;
-    height: 100%;
-}
-
-.table-header {
-    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-}
 
 .eliminar-sale-detail {
     background-color: transparent;

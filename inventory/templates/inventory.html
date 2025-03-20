@@ -4,15 +4,55 @@
 {% block title %} Inventario {% endblock title %}
 {% block head_css %}
     <link rel="stylesheet" href="{% static 'style/inventory.css' %}">
+    <link rel="stylesheet" href="{% static 'style/table.css' %}">
 {% endblock head_css %}
 
 {% block content %}
-    <p> {{ request.path }} </p>
 
     <section id="inventory_section">
-        {% for inventory in inventories %}
-            <p> {{ inventory.product }} </p>
-        {% endfor %}
+        <table id="sale-table" class="responsive-table scroll">
+
+            <thead>
+
+            <tr class="table-header">
+
+                <th>Producto</th>
+
+                <th>Marca</th>
+
+                <th>Color</th>
+
+                <th>Genero</th>
+
+                <th>Categoria</th>
+
+                <th>Cantidad</th>
+
+            </tr>
+
+            </thead>
+
+            <tbody>
+
+                {% if inventories %}
+                    {% for inventory in inventories %}
+                    <tr>
+                        <td>{{ inventory.product.name }}</td>
+                        <td>{{ inventory.product.brand.name }}</td>
+                        <td>{{ inventory.product.color.name }}</td>
+                        <td>{{ inventory.product.gender.name }}</td>
+                        <td>{{ inventory.product.category.name }}</td>
+                        <td>{{ inventory.quantity }}</td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr id="no-products">
+                        <td colspan="4" >No hay productos en la venta</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+
+        </table>
     </section>
 
 {% endblock content %}
