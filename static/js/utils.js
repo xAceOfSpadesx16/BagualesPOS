@@ -13,4 +13,6 @@ function getCookie(name) {
     return cookieValue;
 }
 
-export { getCookie }
+
+
+export { getCookie };

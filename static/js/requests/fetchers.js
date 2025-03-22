@@ -118,5 +118,28 @@ class SalesFetcher extends Fetcher {
     };
 }
 
+class ProductsFetcher extends Fetcher {
+    // static getProducts() {
+    //     return this.request(
+    //         ProductEndpoints.PRODUCTS_LIST.url,
+    //         {
+    //             method: ProductEndpoints.PRODUCTS_LIST.method,
+    //         }
+    //     );
+    // }
 
-export { SalesFetcher };
+    static productFormGET() {
+        return this.request(
+            ProductEndpoints.PRODUCT_CREATE_FORM.url,
+            {
+                method: ProductEndpoints.PRODUCT_CREATE_FORM.method,
+            }
+        );
+    }
+}
+
+
+
+
+
+export { SalesFetcher, ProductsFetcher };

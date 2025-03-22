@@ -1,9 +1,24 @@
 {% extends "index.html" %}
 {% load static %}
 
-{% block admin %}
+{% block title %} Administración {% endblock title %}
+{% block head_css %}
+    <link rel="stylesheet" href="{% static 'style/administration.css' %}">
+    <link rel="stylesheet" href="{% static 'style/modal.css' %}">
+{% endblock head_css %}
+
+{% block content %}
     <section id="administration-section">
         <h2>Administración</h2>
-        <p> {{ request.path }} </p>
+        <button id='abrir_modal'> Abrir modal </button>
     </section>
-{% endblock admin %}
+    {% include "modal.html" %}
+{% endblock content %}
+
+{% block body_scripts %}
+
+
+<script type="module" src="{% static 'js/product_admin.js' %}"></script>
+
+
+{% endblock body_scripts %}

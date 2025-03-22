@@ -61,8 +61,7 @@ class SaleDetailCreate(CreateView):
                 'id': instance.pk,
             })
         else:
-            print(form.errors)
-            return JsonResponse({'error': form.errors}, status=400)
+            return JsonResponse({'error': form.errors.as_json()}, status=400)
 
 
 

@@ -1,4 +1,9 @@
-const ProductEndpoints = Object.freeze({})
+const ProductEndpoints = Object.freeze({
+    PRODUCT_CREATE_FORM: Object.freeze({
+        method: 'GET',
+        url: '/productos/create/'
+    })
+});
 
 const SaleEndpoints = Object.freeze(
     {

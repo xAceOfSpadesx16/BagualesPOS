@@ -15,6 +15,11 @@ class Inventory(Model):
     def __str__(self):
         return f'{self.product} - {self.quantity}'
     
+    def update_quantity(self, quantity: int) -> None:
+        """ Quantity += new quantity """
+        self.quantity += quantity
+        self.save()
+        
     class Meta:
         verbose_name = 'Inventario'
         verbose_name_plural = 'Inventarios'
