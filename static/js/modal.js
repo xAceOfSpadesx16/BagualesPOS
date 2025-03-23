@@ -1,10 +1,27 @@
+
+
+
 class Modal {
+    static isOpen = false;
+
+    /**
+     * @param {string} [title='Titulo por defecto'] - Título del modal.
+     * @param {string} [content='Contenido por defecto'] - Contenido del modal en formato HTML.
+     * @param {Function} [onSubmitCallback=() => {}] - Callback al confirmar el modal.
+     * @param {Function} [onCloseCallback=() => {}] - Callback al cerrar el modal.
+     * @param {string} [modalSelector='#modal'] - Selector del modal en el DOM.
+     * @param {string} [titleSelector='.modal-container-title'] - Selector del título del modal.
+     * @param {string} [contentSelector='.modal-container-body'] - Selector del contenido del modal.
+     * @param {string} [submitSelector='#confirm_modal'] - Selector del botón de confirmación.
+     * @param {string} [closeSelector='#close_modal'] - Selector del botón de cierre.
+     * @param {string} [modalXCloseSelector='#modal_x_close'] - Selector del botón "X" para cerrar.
+     */
 
     constructor({
-        title = 'Titulo por defecto',
-        content = 'Contenido por defecto',
-        onSubmitCallback = () => console.log('submit de modal'),
-        onCloseCallback = () => console.log('close de modal'),
+        title = '',
+        content = '',
+        onSubmitCallback = () => { },
+        onCloseCallback = () => { },
         modalSelector = '#modal',
         titleSelector = '.modal-container-title',
         contentSelector = '.modal-container-body',
@@ -12,7 +29,6 @@ class Modal {
         closeSelector = '#close_modal',
         modalXCloseSelector = '#modal_x_close',
     } = {}) {
-
         this.modalElement = document.querySelector(modalSelector);
 
         if (!this.modalElement) {
@@ -36,6 +52,7 @@ class Modal {
 
         this.submitListener = this.closeModal.bind(this, this.onSubmitCallback);
         this.closeListener = this.closeModal.bind(this, this.onCloseCallback);
+        this.boundBackdropListener = this.#backdropListener.bind(this);
 
         this.addOnSubmitClick();
 
@@ -57,9 +74,8 @@ class Modal {
     }
 
     openModal() {
-        // actualización de contenido del modal
-        this.titleElement.textContent = this.title;
-        this.contentElement.innerHTML = this.content;
+        if (Modal.isOpen) return;
+        Modal.isOpen = true;
 
         // se añade la clase show y lo que produce un transition de css
         this.modalElement.classList.add('show');
@@ -67,6 +83,7 @@ class Modal {
     };
 
     closeModal(callback = null) {
+        if (!Modal.isOpen) return;
 
         // se ejecuta el callback si existe
         callback?.();
@@ -84,6 +101,8 @@ class Modal {
             this.#clearModal();
 
         }, { once: true }); // once true para que se ejecute una sola vez y luego se elimine el listener
+
+        Modal.isOpen = false;
     };
 
 
@@ -95,6 +114,7 @@ class Modal {
     addOnCloseClick() {
         this.cancelButton.addEventListener('click', this.closeListener);
         this.closeXButton.addEventListener('click', this.closeListener);
+        this.modalElement.addEventListener('click', this.boundBackdropListener);
     };
 
 
@@ -102,6 +122,7 @@ class Modal {
         this.submitButton.removeEventListener('click', this.submitListener);
         this.cancelButton.removeEventListener('click', this.closeListener);
         this.closeXButton.removeEventListener('click', this.closeListener);
+        this.modalElement.removeEventListener('click', this.boundBackdropListener);
     };
 
 
@@ -110,6 +131,52 @@ class Modal {
         this.titleElement.textContent = '';
         this.contentElement.innerHTML = '';
     };
+
+    #backdropListener(event) {
+        if (event.target === this.modalElement) {
+            this.closeListener();
+        }
+    }
+
+    /**
+     * 
+     * @param {string} title Titulo
+     * @param {string} content Contenido en formato HTML
+     * 
+     */
+    #updateContent(title, content) {
+        this.title = title;
+        this.content = content;
+
+        // actualización de contenido del modal
+        this.titleElement.textContent = this.title;
+        this.contentElement.innerHTML = this.content;
+    }
+
+    /**
+     * 
+     * @param {Function} onSubmitCallback Callback al confirmar el modal
+     * @param {Function} onCloseCallback Callback al cerrar el modal
+     */
+    #updateCallbacks(onSubmitCallback, onCloseCallback) {
+        this.onSubmitCallback = onSubmitCallback;
+        this.onCloseCallback = onCloseCallback;
+
+        this.addOnSubmitClick();
+        this.addOnCloseClick();
+    }
+
+    /**
+     * 
+     * @param {string} title Titulo
+     * @param {string} content Contenido en formato HTML
+     * @param {Function} onSubmitCallback Callback al confirmar el modal
+     * @param {Function} onCloseCallback Callback al cerrar el modal
+     */
+    updateModal(title, content, onSubmitCallback, onCloseCallback) {
+        this.#updateContent(title, content);
+        this.#updateCallbacks(onSubmitCallback, onCloseCallback);
+    }
 
 };
 

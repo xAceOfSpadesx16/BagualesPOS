@@ -24,7 +24,7 @@
     z-index: 1000;
     display: flex;
     opacity: 0;
-    transition: opacity 1s ease;
+    transition: opacity 0.3s ease;
     pointer-events: none;
 }
 
