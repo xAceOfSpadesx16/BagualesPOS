@@ -174,8 +174,11 @@ class Modal {
      * @param {Function} onCloseCallback Callback al cerrar el modal
      */
     updateModal(title, content, onSubmitCallback, onCloseCallback) {
+        let submitCallback = onSubmitCallback ? onSubmitCallback : () => { };
+        let CloseCallback = onCloseCallback ? onCloseCallback : () => { };
+
         this.#updateContent(title, content);
-        this.#updateCallbacks(onSubmitCallback, onCloseCallback);
+        this.#updateCallbacks(submitCallback, CloseCallback);
     }
 
 };

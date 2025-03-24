@@ -36,7 +36,15 @@ class Fetcher {
                         };
                     });
                 }
-                return response.json();
+                const contentType = response.headers.get('Content-Type');
+
+                if (contentType && contentType.includes('application/json')) {
+                    return response.json();
+                } else if (contentType && contentType.includes('text/html')) {
+                    return response.text();
+                } else {
+                    throw new Error('Unsupported response format');
+                }
             })
             .catch(error => {
                 console.error(error);
@@ -119,15 +127,12 @@ class SalesFetcher extends Fetcher {
 }
 
 class ProductsFetcher extends Fetcher {
-    // static getProducts() {
-    //     return this.request(
-    //         ProductEndpoints.PRODUCTS_LIST.url,
-    //         {
-    //             method: ProductEndpoints.PRODUCTS_LIST.method,
-    //         }
-    //     );
-    // }
 
+    /**
+     * Obtiene el formulario para crear un producto.
+     * 
+     * @returns {Promise}
+     */
     static productFormGET() {
         return this.request(
             ProductEndpoints.PRODUCT_CREATE_FORM.url,
