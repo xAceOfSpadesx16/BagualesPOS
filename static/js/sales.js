@@ -9,6 +9,61 @@ const trashIconSVG = `
     </svg>
 `;
 
+const buildRow = (row, data) => {
+    const cellsConfig = [
+        {
+            value: data.quantity,
+            class: 'editable-cell quantity-cell',
+            attributes: {
+                'data-saledetail-id': data.id,
+                'ondblclick': 'setInputQuantity(this)'
+            }
+        },
+        {
+            value: data.product.name
+        },
+        {
+            value: `$${data.sale_price}`
+        },
+        {
+            value: `$${data.total_price}`
+        },
+        {
+            value: trashIconSVG,
+            class: 'eliminar-sale-detail',
+            attributes: {
+                'data-sale-detail-id': data.id,
+                'type': 'button'
+            },
+            isHTML: true
+        }
+    ];
+
+    cellsConfig.forEach(config => {
+        const cell = document.createElement('td');
+
+        // Establecer contenido
+        if (config.isHTML) {
+            cell.innerHTML = config.value;
+        } else {
+            cell.textContent = config.value;
+        }
+
+        // Añadir clases
+        if (config.class) {
+            cell.classList.add(...config.class.split(' '));
+        }
+
+        // Añadir atributos
+        if (config.attributes) {
+            Object.entries(config.attributes).forEach(([key, value]) => {
+                cell.setAttribute(key, value);
+            });
+        }
+
+        row.appendChild(cell);
+    });
+};
 
 document.addEventListener('submit', function (event) {
 
@@ -28,12 +83,7 @@ document.addEventListener('submit', function (event) {
             };
 
             let newRow = bodyCarrito.insertRow(-1);
-            newRow.innerHTML = `
-            <td class="editable-cell quantity-cell" data-saledetail-id="${data.id}" ondblclick="setInputQuantity(this)">${data.quantity}</td>
-            <td>${data.product.name}</td>
-            <td>$${data.sale_price}</td>
-            <td>$${data.total_price}</td>
-            <td><button class="eliminar-sale-detail" data-sale-detail-id="${data.id}" type="button">${trashIconSVG}</button></td>`;
+            buildRow(newRow, data);
 
             totalElement.textContent = `$${data.total_sale_amount}`;
         }).catch(error => {

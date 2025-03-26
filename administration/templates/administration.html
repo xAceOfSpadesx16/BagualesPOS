@@ -3,7 +3,7 @@
 
 {% block title %} Administración {% endblock title %}
 {% block head_css %}
-    <link rel="stylesheet" href="{% static 'style/administration.css' %}">
+    {% comment %} <link rel="stylesheet" href="{% static 'style/administration.css' %}"> {% endcomment %}
     <link rel="stylesheet" href="{% static 'style/modal.css' %}">
 {% endblock head_css %}
 
@@ -12,7 +12,7 @@
         <h2>Administración</h2>
         <button id='abrir_modal'> Abrir modal </button>
     </section>
-    {% include "modal.html" %}
+    {% comment %} {% include "modal.html" %} {% endcomment %}
 {% endblock content %}
 
 {% block body_scripts %}

@@ -2,6 +2,8 @@ from dal import autocomplete
 from django import forms
 from django.forms import ModelForm
 from django.forms.fields import IntegerField
+from django.utils.translation import gettext_lazy as _
+
 from sales.models import SaleDetail, Sale
 from products.models import Product
 
@@ -16,7 +18,7 @@ class SearchProductForm(ModelForm):
             "product": autocomplete.ModelSelect2(
                 url="product-autocomplete",
                 attrs={
-                    "data-placeholder": "Buscar un producto",
+                    "data-placeholder": _('Search a product...'),
                     "data-ajax--delay": 250,
                 },
             ),
@@ -43,5 +45,5 @@ class SearchProductForm(ModelForm):
     def clean_product(self):
         product = self.cleaned_data.get("product")
         if not product:
-            raise forms.ValidationError("El campo producto es obligatorio")
+            raise forms.ValidationError(_('Product is required.'))
         return product

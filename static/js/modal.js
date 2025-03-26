@@ -1,186 +1,166 @@
+class BaseButton extends HTMLButtonElement {
+    constructor(idName, onClick, textContent, innerHTML, classList) {
+        super();
+        this.id = idName;
+        this.onClick = onClick;
+        this.classList.add(...classList);
+        if (innerHTML && innerHTML.trim() !== '') {
+            this.innerHTML = innerHTML;
+        } else {
+            this.textContent = textContent || '';
+        }
+    }
+    connectedCallback() {
+        this.addEventListener('click', this.onClick);
+    }
+    disconnectedCallback() {
+        this.removeEventListener('click', this.onClick);
+    }
+}
+
+class XIconButton extends BaseButton {
+    constructor(idName, onClick) {
+        const svgCode = `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+            <path fill="none" d="M0 0h24v24H0z" />
+            <path fill="currentColor" d="M12 10.586l4.95-4.95 1.414 1.414-4.95 4.95 4.95 4.95-1.414 1.414-4.95-4.95-4.95 4.95-1.414-1.414 4.95-4.95-4.95-4.95L7.05 5.636z" />
+        </svg>
+        `;
+        let classList = ['icon-button'];
+        super(idName, onClick, '', svgCode, classList);
+    }
+}
 
 
+customElements.define('base-button', BaseButton, { extends: 'button' });
+customElements.define('close-button', XIconButton, { extends: 'button' });
 
-class Modal {
+class Modal extends HTMLElement {
     static isOpen = false;
 
     /**
-     * @param {string} [title='Titulo por defecto'] - Título del modal.
-     * @param {string} [content='Contenido por defecto'] - Contenido del modal en formato HTML.
-     * @param {Function} [onSubmitCallback=() => {}] - Callback al confirmar el modal.
-     * @param {Function} [onCloseCallback=() => {}] - Callback al cerrar el modal.
-     * @param {string} [modalSelector='#modal'] - Selector del modal en el DOM.
-     * @param {string} [titleSelector='.modal-container-title'] - Selector del título del modal.
-     * @param {string} [contentSelector='.modal-container-body'] - Selector del contenido del modal.
-     * @param {string} [submitSelector='#confirm_modal'] - Selector del botón de confirmación.
-     * @param {string} [closeSelector='#close_modal'] - Selector del botón de cierre.
-     * @param {string} [modalXCloseSelector='#modal_x_close'] - Selector del botón "X" para cerrar.
+     * @param {string} [title=''] - Título del modal.
+     * @param {string} [content=''] - Contenido del modal en formato HTML.
+     * @param {Function} [onSubmit=() => {}] - Callback al confirmar el modal.
+     * @param {Function} [onClose=() => {}] - Callback al cerrar el modal.
+     * @param {string} [modalIdSelector='modal'] - Selector del modal en el DOM.
+     * @param {Array} [titleClassSelector='modal-container-title'] - Selector del título del modal.
+     * @param {Array} [contentclassSelector='modal-container-body'] - Selector del contenido del modal.
+     * @param {string} [submitIdSelector='confirm_modal'] - Selector del botón de confirmación.
+     * @param {string} [closeIdSelector='close_modal'] - Selector del botón de cierre.
+     * @param {string} [modalXCloseIdSelector='modal_x_close'] - Selector del botón "X" para cerrar.
      */
 
     constructor({
         title = '',
         content = '',
-        onSubmitCallback = () => { },
-        onCloseCallback = () => { },
-        modalSelector = '#modal',
-        titleSelector = '.modal-container-title',
-        contentSelector = '.modal-container-body',
-        submitSelector = '#confirm_modal',
-        closeSelector = '#close_modal',
-        modalXCloseSelector = '#modal_x_close',
+        onSubmit = () => { },
+        onClose = () => { },
+        modalIdSelector = 'modal',
+
+        titleClassSelector = ['modal-container-title'],
+        contentclassSelector = ['modal-container-body', 'rtf'],
+
+        submitIdSelector = 'confirm_modal',
+        closeIdSelector = 'close_modal',
+        modalXCloseIdSelector = 'modal_x_close',
+
     } = {}) {
-        this.modalElement = document.querySelector(modalSelector);
+        super();
+        this.onSubmit = onSubmit;
+        this.onClose = onClose;
 
-        if (!this.modalElement) {
-            throw new Error('No se encuentró el modal en el DOM');
-        }
-
-        this.titleElement = this.modalElement.querySelector(titleSelector);
-        this.contentElement = this.modalElement.querySelector(contentSelector);
-
-        this.submitButton = this.modalElement.querySelector(submitSelector);
-        this.cancelButton = this.modalElement.querySelector(closeSelector);
-        this.closeXButton = this.modalElement.querySelector(modalXCloseSelector);
-
-        this.#validateElements();
-
+        this.id = modalIdSelector;
         this.title = title;
         this.content = content;
 
-        this.onSubmitCallback = onSubmitCallback;
-        this.onCloseCallback = onCloseCallback;
+        this.titleSelector = titleClassSelector;
+        this.contentSelector = contentclassSelector;
 
-        this.submitListener = this.closeModal.bind(this, this.onSubmitCallback);
-        this.closeListener = this.closeModal.bind(this, this.onCloseCallback);
-        this.boundBackdropListener = this.#backdropListener.bind(this);
+        this.submitSelector = submitIdSelector;
+        this.closeSelector = closeIdSelector;
+        this.modalXCloseSelector = modalXCloseIdSelector;
 
-        this.addOnSubmitClick();
+        this.#setUpModalContent();
+    }
 
-        this.addOnCloseClick();
-    };
+    #setUpModalContent() {
+        const article = document.createElement('article');
+        article.classList.add('modal-container');
 
-    #validateElements() {
-        const missingElements = [];
+        // Cabecera
+        const header = document.createElement('header');
+        header.classList.add('modal-container-header');
 
-        if (!this.titleElement) missingElements.push('titleElement');
-        if (!this.contentElement) missingElements.push('contentElement');
-        if (!this.submitButton) missingElements.push('submitButton');
-        if (!this.cancelButton) missingElements.push('cancelButton');
-        if (!this.closeXButton) missingElements.push('closeXButton');
+        const titleElem = document.createElement('h1');
+        titleElem.classList.add(...this.titleSelector);
+        titleElem.textContent = this.title;
 
-        if (missingElements.length > 0) {
-            throw new Error(`No se encontraron los siguientes elementos dentro del modal: ${missingElements.join(', ')}`);
-        }
+        const closeBtn = new XIconButton(this.modalXCloseSelector, this.#closeModal.bind(this));
+
+        header.appendChild(titleElem);
+        header.appendChild(closeBtn);
+
+        const section = document.createElement('section');
+        section.classList.add(...this.contentSelector);
+        section.innerHTML = this.content;
+
+        const footer = document.createElement('footer');
+        footer.classList.add('modal-container-footer');
+
+        const cancelBtn = new BaseButton(this.closeSelector, this.#closeModal.bind(this), 'Cancelar', '', ['button', 'is-ghost']);
+        const confirmBtn = new BaseButton(this.submitSelector, this.confirmAction.bind(this), 'Confirmar', '', ['button', 'is-primary']);
+
+        footer.appendChild(cancelBtn);
+        footer.appendChild(confirmBtn);
+
+        article.appendChild(header);
+        article.appendChild(section);
+        article.appendChild(footer);
+
+        this.appendChild(article);
     }
 
     openModal() {
         if (Modal.isOpen) return;
         Modal.isOpen = true;
+        document.querySelector('.page-wrapper').appendChild(this);
+        setTimeout(() => this.classList.add('show'), 10);
+    }
 
-        // se añade la clase show y lo que produce un transition de css
-        this.modalElement.classList.add('show');
 
-    };
-
-    closeModal(callback = null) {
+    #closeModal() {
         if (!Modal.isOpen) return;
+        this.classList.remove('show');
+        this.onClose();
+        this.addEventListener('transitionend', () => {
+            this.remove();
+            Modal.isOpen = false;
+        }, { once: true });
+    }
 
-        // se ejecuta el callback si existe
-        callback?.();
+    confirmAction() {
+        this.onSubmit();
+        this.#closeModal();
+    }
 
-        // fadeout del modal
-        this.modalElement.classList.remove('show');
-
-        // se agrega un listener para cuando termine la transicion de fadeOut
-        this.modalElement.addEventListener('transitionend', () => {
-
-            // limpieza de eventos
-            this.removeEvents();
-
-            // limpieza de modal
-            this.#clearModal();
-
-        }, { once: true }); // once true para que se ejecute una sola vez y luego se elimine el listener
-
-        Modal.isOpen = false;
-    };
-
-
-    addOnSubmitClick() {
-        this.submitButton.addEventListener('click', this.submitListener);
-    };
-
-
-    addOnCloseClick() {
-        this.cancelButton.addEventListener('click', this.closeListener);
-        this.closeXButton.addEventListener('click', this.closeListener);
-        this.modalElement.addEventListener('click', this.boundBackdropListener);
-    };
-
-
-    removeEvents() {
-        this.submitButton.removeEventListener('click', this.submitListener);
-        this.cancelButton.removeEventListener('click', this.closeListener);
-        this.closeXButton.removeEventListener('click', this.closeListener);
-        this.modalElement.removeEventListener('click', this.boundBackdropListener);
-    };
-
-
-    #clearModal() {
-        // limpieza de modal
-        this.titleElement.textContent = '';
-        this.contentElement.innerHTML = '';
-    };
-
-    #backdropListener(event) {
-        if (event.target === this.modalElement) {
-            this.closeListener();
+    backdropListener(event) {
+        if (event.target === this) {
+            this.#closeModal();
         }
     }
 
-    /**
-     * 
-     * @param {string} title Titulo
-     * @param {string} content Contenido en formato HTML
-     * 
-     */
-    #updateContent(title, content) {
-        this.title = title;
-        this.content = content;
-
-        // actualización de contenido del modal
-        this.titleElement.textContent = this.title;
-        this.contentElement.innerHTML = this.content;
+    connectedCallback() {
+        // Asegurarse de que si el modal se desconecta, se limpien sus listeners de backdrop.
+        this.boundBackdropListener = this.backdropListener.bind(this);
+        this.addEventListener('click', this.boundBackdropListener);
     }
 
-    /**
-     * 
-     * @param {Function} onSubmitCallback Callback al confirmar el modal
-     * @param {Function} onCloseCallback Callback al cerrar el modal
-     */
-    #updateCallbacks(onSubmitCallback, onCloseCallback) {
-        this.onSubmitCallback = onSubmitCallback;
-        this.onCloseCallback = onCloseCallback;
-
-        this.addOnSubmitClick();
-        this.addOnCloseClick();
+    disconnectedCallback() {
+        this.removeEventListener('click', this.boundBackdropListener);
     }
+}
 
-    /**
-     * 
-     * @param {string} title Titulo
-     * @param {string} content Contenido en formato HTML
-     * @param {Function} onSubmitCallback Callback al confirmar el modal
-     * @param {Function} onCloseCallback Callback al cerrar el modal
-     */
-    updateModal(title, content, onSubmitCallback, onCloseCallback) {
-        let submitCallback = onSubmitCallback ? onSubmitCallback : () => { };
-        let CloseCallback = onCloseCallback ? onCloseCallback : () => { };
-
-        this.#updateContent(title, content);
-        this.#updateCallbacks(submitCallback, CloseCallback);
-    }
-
-};
+customElements.define('custom-modal', Modal);
 
 export { Modal };

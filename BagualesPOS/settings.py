@@ -150,5 +150,10 @@ LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/ventas/'
 LOGOUT_REDIRECT_URL = '/login/'
 
+LOCALE_PATHS = [
+    BASE_DIR / 'locale',
+]
+
+
 if DEBUG:
     SECURE_CROSS_ORIGIN_OPENER_POLICY = None

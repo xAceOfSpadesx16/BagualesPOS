@@ -5,6 +5,7 @@ from django.contrib.auth import get_user_model
 from django.db.models import Model, CASCADE
 from django.db.models.fields import CharField, EmailField, DateTimeField
 from django.db.models.fields.related import OneToOneField
+from django.utils.translation import gettext_lazy as _
 
 from utils import PhoneNumberField
 
@@ -19,7 +20,7 @@ class CustomUserManager(BaseUserManager):
 
 class CustomUser(AbstractUser):
     profile: Profile
-    email = EmailField(null=True)
+    email = EmailField(null=True, verbose_name= _('email'))
 
     USERNAME_FIELD = 'username'
     REQUIRED_FIELDS = ['password']
@@ -28,21 +29,21 @@ class CustomUser(AbstractUser):
         return self.username
 
     class Meta:
-        verbose_name = 'Usuario'
-        verbose_name_plural = 'Usuarios'
+        verbose_name = _('user')
+        verbose_name_plural = _('users')
 
 class Profile(Model):
-    user = OneToOneField(get_user_model(), on_delete=CASCADE, related_name='profile')
-    phone_number = PhoneNumberField(null=True, blank=True)
-    dni = CharField(max_length=9, null=True, blank=True, unique=True)
-    address = CharField(max_length=100, null=True, blank=True)
-    city = CharField(max_length=50, null=True, blank=True)
-    province = CharField(max_length=50, null=True, blank=True)
-    postal_code = CharField(max_length=10, null=True, blank=True)
-    country = CharField(max_length=50, null=True, blank=True)
-    created_at = DateTimeField(auto_now_add=True)
-    updated_at = DateTimeField(auto_now=True)
+    user = OneToOneField(get_user_model(), on_delete=CASCADE, related_name='profile', verbose_name= _('profile'))
+    phone_number = PhoneNumberField(null=True, blank=True, verbose_name= _('phone number'))
+    dni = CharField(max_length=9, null=True, blank=True, unique=True, verbose_name= _('dni'))
+    address = CharField(max_length=100, null=True, blank=True, verbose_name= _('address'))
+    city = CharField(max_length=50, null=True, blank=True, verbose_name= _('city'))
+    province = CharField(max_length=50, null=True, blank=True, verbose_name= _('province'))
+    postal_code = CharField(max_length=10, null=True, blank=True, verbose_name= _('postal code'))
+    country = CharField(max_length=50, null=True, blank=True, verbose_name= _('country'))
+    created_at = DateTimeField(auto_now_add=True, verbose_name= _('created at'))
+    updated_at = DateTimeField(auto_now=True, verbose_name= _('updated at'))
 
     class Meta:
-        verbose_name = 'Perfil'
-        verbose_name_plural = 'Perfiles'
+        verbose_name = _('profile')
+        verbose_name_plural = _('profiles')

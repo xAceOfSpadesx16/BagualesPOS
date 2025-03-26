@@ -3,6 +3,8 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
 from django.http import HttpRequest
+from django.utils.translation import gettext_lazy as _
+
 from dal import autocomplete
 
 from json import loads
@@ -32,7 +34,7 @@ class SaleDetailDelete(View):
         sale_detail = get_object_or_404(SaleDetail, id=pk)
         sale_detail.delete()
         
-        return JsonResponse({"message": "Registro eliminado con éxito", "total_sale_amount": sale_detail.order.formatted_total_amount}, status=200)
+        return JsonResponse({"message": _('Record deleted successfully'), "total_sale_amount": sale_detail.order.formatted_total_amount}, status=200)
         
 class SaleDetailCreate(CreateView):
     model = SaleDetail
