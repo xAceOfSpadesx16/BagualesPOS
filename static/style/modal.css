@@ -14,7 +14,9 @@
 }
 
 #modal {
-    position: absolute;
+    position: fixed;
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.5);
     top: 0;
     left: 0;
     right: 0;
@@ -70,6 +72,7 @@
 .modal-container-body {
     padding: 24px 32px 51px;
     overflow-y: auto;
+    max-height: calc(90vh - 130px);
 }
 
 

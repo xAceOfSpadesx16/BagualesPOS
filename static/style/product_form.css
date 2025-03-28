@@ -1,0 +1,170 @@
+/* ===== ESTRUCTURA PRINCIPAL ===== */
+#product-form {
+    padding: 0;
+    max-width: 100%;
+}
+
+.form-columns-container {
+    display: flex;
+    gap: 30px;
+    margin-bottom: 25px;
+}
+
+.form-column {
+    width: 50%;
+}
+
+/* ===== GRUPOS DE CAMPOS ===== */
+.form-group {
+    margin-bottom: 1.5rem;
+    position: relative;
+}
+
+.form-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    color: #2d3748;
+    font-size: 0.95rem;
+}
+
+.required {
+    color: #dc3545;
+    margin-left: 0.25rem;
+}
+
+/* Errores */
+.field-errors {
+    color: #dc2626;
+    font-size: 0.8rem;
+    margin-top: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    background-color: #fef2f2;
+    border-radius: 0.25rem;
+}
+
+/* Campos requeridos */
+.form-group label:has(+ input:required)::after {
+    content: "*";
+    color: #dc2626;
+    margin-left: 0.25rem;
+}
+
+.form-group input:not([type="file"]),
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 0.9rem;
+    border: 1px solid #cbd5e0;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    transition: border-color 0.2s;
+    background-color: transparent;
+    /* Fondo transparente para todos */
+    border: 1px solid #cbd5e0;
+    color: #2d3748;
+    /* Color de texto consistente */
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: #4299e1;
+    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+}
+
+/* ===== COMPONENTES ESPECIALES ===== */
+
+
+/* Select Personalizado */
+.form-group select {
+    /* background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%234a5568"><path d="M7 10l5 5 5-5z"/></svg>') no-repeat right 12px center/18px 18px; */
+    /* appearance: none; */
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%234a5568"><path d="M7 10l5 5 5-5z"/></svg>');
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 18px 18px;
+}
+
+/* Textarea Personalizada */
+#id_details {
+    resize: vertical;
+    height: 100px;
+    min-height: 100px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+/* Campos de precio con $ */
+.form-group.currency::after {
+    content: "$";
+    position: absolute;
+    right: 15px;
+    bottom: 13px;
+    color: #4a5568;
+    font-weight: 500;
+    pointer-events: none;
+}
+
+.form-group.currency input {
+    padding-right: 35px !important;
+}
+
+
+/* ===== Imagenes ===== */
+
+/* Estilos para el input de archivo nativo */
+.custom-file-input {
+    border: 2px dashed #cbd5e0;
+    border-radius: 8px;
+    padding: 1rem;
+    width: 100%;
+    background: #f8fafc;
+    color: #4a5568;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+/* Parte del botón "Seleccionar archivo" */
+.custom-file-input::file-selector-button {
+    background-color: #4299e1;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    margin-right: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+/* Hover states */
+.custom-file-input:hover {
+    border-color: #4299e1;
+    background: #ebf8ff;
+}
+
+.custom-file-input::file-selector-button:hover {
+    background-color: #3182ce;
+}
+
+/* Texto del nombre de archivo */
+.custom-file-input::file-selector-text {
+    color: #718096;
+    font-style: italic;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+    .form-columns-container {
+        flex-direction: column;
+    }
+
+    .form-column {
+        width: 100%;
+    }
+}

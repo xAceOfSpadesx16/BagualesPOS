@@ -27,10 +27,8 @@ msgid "name"
 msgstr "nombre"
 
 #: clients/models.py:21
-#, fuzzy
-#| msgid "name"
 msgid "last_name"
-msgstr "nombre"
+msgstr "apellido"
 
 #: clients/models.py:22 products/models.py:104 users/models.py:37
 msgid "phone number"

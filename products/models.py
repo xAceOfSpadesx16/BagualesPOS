@@ -138,7 +138,7 @@ class Product(Model):
     cost_price = IntegerField(_('cost price'))
     sale_price = IntegerField(_('sale price'))
     internal_code = CharField(_('internal code'), max_length=50, editable=False, null=True, blank=True)
-    details = CharField(_('details'),max_length=64, null=True)
+    details = CharField(_('details'),max_length=64, null=True, blank=True)
     image = ImageField(_('image'),upload_to='products/', null=True, blank=True)
     is_active = BooleanField(_('active'),default=True)
     gender = ForeignKey(Gender, on_delete=SET_NULL, null=True, verbose_name=_('gender'))

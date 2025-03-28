@@ -71,7 +71,7 @@ class Modal extends HTMLElement {
         this.onClose = onClose;
 
         this.id = modalIdSelector;
-        this.title = title;
+        this._title = title;
         this.content = content;
 
         this.titleSelector = titleClassSelector;
@@ -88,13 +88,12 @@ class Modal extends HTMLElement {
         const article = document.createElement('article');
         article.classList.add('modal-container');
 
-        // Cabecera
         const header = document.createElement('header');
         header.classList.add('modal-container-header');
 
         const titleElem = document.createElement('h1');
         titleElem.classList.add(...this.titleSelector);
-        titleElem.textContent = this.title;
+        titleElem.textContent = this._title;
 
         const closeBtn = new XIconButton(this.modalXCloseSelector, this.#closeModal.bind(this));
 
@@ -151,7 +150,6 @@ class Modal extends HTMLElement {
     }
 
     connectedCallback() {
-        // Asegurarse de que si el modal se desconecta, se limpien sus listeners de backdrop.
         this.boundBackdropListener = this.backdropListener.bind(this);
         this.addEventListener('click', this.boundBackdropListener);
     }

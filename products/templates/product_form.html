@@ -1,1 +1,91 @@
-{{ form }}
+<form method="post" id="product-form" enctype="multipart/form-data">
+    {% csrf_token %}
+    
+    <div class="form-columns-container">
+        <!-- Columna Izquierda -->
+        <div class="form-column">
+            <div class="form-group">
+                <label class="required" for="{{ form.name.id_for_label }}">Nombre del Producto</label>
+                {{ form.name }}
+                {{ form.name.errors }}
+            </div>
+
+            <div class="form-group">
+                <label class="required" for="{{ form.brand.id_for_label }}">Marca</label>
+                {{ form.brand }}
+                {{ form.brand.errors }}
+            </div>
+
+            <div class="form-group">
+                <label class="required" for="{{ form.category.id_for_label }}">Categoría</label>
+                {{ form.category }}
+                {{ form.category.errors }}
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.material.id_for_label }}">Material</label>
+                {{ form.material }}
+                {{ form.material.errors }}
+            </div>
+        </div>
+
+        <!-- Columna Derecha -->
+        <div class="form-column">
+            <div class="form-group">
+                <label for="{{ form.numeric_size.id_for_label }}">Talla Numérica</label>
+                {{ form.numeric_size }}
+                {{ form.numeric_size.errors }}
+            </div>
+
+            <div class="form-group">
+                <label for="{{ form.letter_size.id_for_label }}">Talla Letra</label>
+                {{ form.letter_size }}
+                {{ form.letter_size.errors }}
+            </div>
+
+            <div class="form-group currency">
+                <label class="required" for="{{ form.cost_price.id_for_label }}">Precio de Costo</label>
+                {{ form.cost_price }}
+                {{ form.cost_price.errors }}
+            </div>
+
+            <div class="form-group currency">
+                <label class="required" for="{{ form.sale_price.id_for_label }}">Precio de Venta</label>
+                {{ form.sale_price }}
+                {{ form.sale_price.errors }}
+            </div>
+        </div>
+    </div>
+
+    <!-- Campos Full-Width -->
+    <div class="form-group">
+        <label class="required" for="{{ form.gender.id_for_label }}">Género</label>
+        {{ form.gender }}
+        {{ form.gender.errors }}
+    </div>
+
+    <div class="form-group">
+        <label class="required" for="{{ form.color.id_for_label }}">Color</label>
+        {{ form.color }}
+        {{ form.color.errors }}
+    </div>
+
+    <div class="form-group">
+        <label class="required" for="{{ form.season.id_for_label }}">Temporada</label>
+        {{ form.season }}
+        {{ form.season.errors }}
+    </div>
+
+    <div class="form-group">
+        <label for="{{ form.details.id_for_label }}">Detalles Adicionales</label>
+        {{ form.details }}
+        {{ form.details.errors }}
+    </div>
+
+    <div class="form-group">
+
+            {{ form.image }}
+
+        {{ form.image.errors }}
+    </div>
+</form>
