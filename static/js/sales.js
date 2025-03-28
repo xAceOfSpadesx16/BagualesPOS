@@ -30,7 +30,7 @@ const buildRow = (row, data) => {
         },
         {
             value: trashIconSVG,
-            class: 'eliminar-sale-detail',
+            class: 'delete-btn"',
             attributes: {
                 'data-sale-detail-id': data.id,
                 'type': 'button'

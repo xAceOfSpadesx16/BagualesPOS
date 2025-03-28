@@ -82,8 +82,6 @@
 
 /* Select Personalizado */
 .form-group select {
-    /* background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%234a5568"><path d="M7 10l5 5 5-5z"/></svg>') no-repeat right 12px center/18px 18px; */
-    /* appearance: none; */
     background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%234a5568"><path d="M7 10l5 5 5-5z"/></svg>');
     background-repeat: no-repeat;
     background-position: right 12px center;

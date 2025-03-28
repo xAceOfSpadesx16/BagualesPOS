@@ -30,21 +30,8 @@
 }
 
 
-.eliminar-sale-detail {
-    background-color: transparent;
-    border: none;
-    cursor: pointer;
-    padding: 0;
-    color: #d9534f;
-}
-
-.eliminar-sale-detail:hover {
-    color: #c9302c;
-}
-
 .editable-cell {
     cursor: pointer;
-    /* Indica que la celda es interactiva */
 }
 
 .editable-cell input[type="number"] {

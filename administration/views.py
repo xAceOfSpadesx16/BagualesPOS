@@ -1,4 +1,9 @@
-from django.views.generic import TemplateView
+from django.views.generic.list import ListView
 
-class AdministrationView(TemplateView):
-    template_name = 'administration.html'
+
+from products.models import Product
+
+class ProductsAdminView(ListView):
+    template_name = 'product_administration.html'
+    model = Product
+    context_object_name = 'products'

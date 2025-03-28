@@ -5,20 +5,7 @@
 {% block head_css %}
     <link rel="stylesheet" href="{% static 'style/administration.css' %}">
     <link rel="stylesheet" href="{% static 'style/modal.css' %}">
-    <link rel="stylesheet" href="{% static 'style/product_form.css' %}">
+    {% block head_admin_css %}{% endblock head_admin_css %}
 {% endblock head_css %}
 
-{% block content %}
-    <section id="administration-section">
-        <h2>Administración</h2>
-        <button id='abrir_modal'> Abrir modal </button>
-    </section>
-{% endblock content %}
 
-{% block body_scripts %}
-
-
-<script type="module" src="{% static 'js/product_admin.js' %}"></script>
-
-
-{% endblock body_scripts %}

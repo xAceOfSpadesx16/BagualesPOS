@@ -10,49 +10,51 @@
 {% block content %}
 
     <section id="inventory_section">
-        <table id="sale-table" class="responsive-table scroll">
+        <div class="table-container">
+            <table id="sale-table" class="responsive-table scroll">
 
-            <thead>
+                <thead>
 
-            <tr class="table-header">
+                <tr class="table-header">
 
-                <th>Producto</th>
+                    <th>Producto</th>
 
-                <th>Marca</th>
+                    <th>Marca</th>
 
-                <th>Color</th>
+                    <th>Color</th>
 
-                <th>Genero</th>
+                    <th>Genero</th>
 
-                <th>Categoria</th>
+                    <th>Categoria</th>
 
-                <th>Cantidad</th>
+                    <th>Cantidad</th>
 
-            </tr>
+                </tr>
 
-            </thead>
+                </thead>
 
-            <tbody>
+                <tbody>
 
-                {% if inventories %}
-                    {% for inventory in inventories %}
-                    <tr>
-                        <td>{{ inventory.product.name }}</td>
-                        <td>{{ inventory.product.brand.name }}</td>
-                        <td>{{ inventory.product.color.name }}</td>
-                        <td>{{ inventory.product.gender.name }}</td>
-                        <td>{{ inventory.product.category.name }}</td>
-                        <td>{{ inventory.quantity }}</td>
-                    </tr>
-                    {% endfor %}
-                {% else %}
-                    <tr id="no-products">
-                        <td colspan="4" >No hay productos en la venta</td>
-                    </tr>
-                {% endif %}
-            </tbody>
+                    {% if inventories %}
+                        {% for inventory in inventories %}
+                        <tr>
+                            <td>{{ inventory.product.name }}</td>
+                            <td>{{ inventory.product.brand.name }}</td>
+                            <td>{{ inventory.product.color.name }}</td>
+                            <td>{{ inventory.product.gender.name }}</td>
+                            <td>{{ inventory.product.category.name }}</td>
+                            <td>{{ inventory.quantity }}</td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr id="no-products">
+                            <td colspan="4" >No hay productos en la venta</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
 
-        </table>
+            </table>
+        </div>
     </section>
 
 {% endblock content %}

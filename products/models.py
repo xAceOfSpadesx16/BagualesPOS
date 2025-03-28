@@ -9,6 +9,7 @@ from django.db.models.indexes import Index
 from django.utils.translation import gettext_lazy as _
 
 from utils import PhoneNumberField
+from utils.formats import formatted_integer
 
 if TYPE_CHECKING:
     from inventory.models import Inventory
@@ -153,6 +154,14 @@ class Product(Model):
 
     def __str__(self):
         return f'{self.name} - {self.brand.name}'
+    
+    @property
+    def formatted_cost_price(self):
+        return formatted_integer(self.cost_price)
+        
+    @property
+    def formatted_sale_price(self):
+        return formatted_integer(self.sale_price)
     
     class Meta:
         verbose_name = _('product')
