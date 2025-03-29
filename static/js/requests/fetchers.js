@@ -12,20 +12,24 @@ class Fetcher {
      * @returns {Promise} - Se retorna una promesa.
      */
     static request(url, { method = 'GET', data = null, csrfToken = false } = {}) {
-        const headers = {
-            'Content-Type': 'application/json',
-        };
+
+        const headers = new Headers();
+        let body = data;
+
+        if (data && !(data instanceof FormData)) {
+            headers.append('Content-Type', 'application/json');
+            body = JSON.stringify(data);
+        }
 
         if (csrfToken) {
-            headers['X-CSRFToken'] = getCookie('csrftoken');
+            headers.append('X-CSRFToken', getCookie('csrftoken'));
         }
 
         const options = {
             method,
             headers,
-            ...(data && { body: JSON.stringify(data) })
+            ...(body && { body })
         };
-
         return fetch(url, options)
             .then(response => {
                 if (!response.ok) {
@@ -138,6 +142,17 @@ class ProductsFetcher extends Fetcher {
             ProductEndpoints.PRODUCT_CREATE_FORM.url,
             {
                 method: ProductEndpoints.PRODUCT_CREATE_FORM.method,
+            }
+        );
+    }
+
+    static productCreate(data) {
+        return this.request(
+            ProductEndpoints.PRODUCT_CREATE.url,
+            {
+                method: ProductEndpoints.PRODUCT_CREATE.method,
+                data: ProductEndpoints.PRODUCT_CREATE.body(data), // todos los parametros del body, no data o bien desempaquetarlo
+                csrfToken: true
             }
         );
     }

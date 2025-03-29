@@ -138,8 +138,8 @@ class Modal extends HTMLElement {
         }, { once: true });
     }
 
-    confirmAction() {
-        this.onSubmit();
+    confirmAction(e) {
+        this.onSubmit(e);
         this.#closeModal();
     }
 

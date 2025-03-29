@@ -1,151 +1,187 @@
+/*********************
+  Scrollbars Globales
+**********************/
 * {
-    scrollbar-width: 0;
+    scrollbar-width: thin;
+    scrollbar-color: #d4d4d4 #fffbf0;
 }
 
 *::-webkit-scrollbar {
+    width: 8px;
     background-color: transparent;
-    width: 12px;
 }
 
 *::-webkit-scrollbar-thumb {
-    border-radius: 99px;
-    background-color: #ddd;
-    border: 4px solid #fff;
+    border-radius: 4px;
+    background-color: #d4d4d4;
+    border: 2px solid #fffbf0;
 }
 
+/*********************
+  Modal Container
+**********************/
 #modal {
     position: fixed;
-    overflow: hidden;
-    background: rgba(0, 0, 0, 0.5);
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
+    display: flex;
     align-items: center;
     justify-content: center;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(3px);
     z-index: 1000;
-    display: flex;
     opacity: 0;
-    transition: opacity 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     pointer-events: none;
+
+    &.show {
+        opacity: 1;
+        pointer-events: auto;
+    }
 }
 
-#modal.show {
-    opacity: 1;
-    pointer-events: auto;
-}
-
+/*********************
+  Contenido del Modal
+**********************/
 .modal-container {
+    width: min(90%, 500px);
     max-height: 90vh;
-    max-width: 500px;
-    margin-left: auto;
-    margin-right: auto;
-    background-color: #fffbf0;
-    border-radius: 16px;
+    background: #fffbf0;
+    border-radius: 1rem;
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
+    transform: scale(0.95);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    box-shadow: 0px 6px 10px rgba(0, 0, 0, 0.2);
+
+    #modal.show & {
+        transform: scale(1);
+    }
 
     @media (max-width: 600px) {
-        width: 90%;
+        border-radius: 0.75rem;
+        width: 95%;
     }
 }
 
+/*********************
+  Secciones del Modal
+**********************/
 .modal-container-header {
-    padding: 16px 32px;
-    border-bottom: 1px solid #ddd;
+    padding: 1.25rem 2rem;
+    border-bottom: 1px solid #e5e5e5;
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-shrink: 0;
 }
 
 .modal-container-title {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    line-height: 1;
+    font-size: 1.25rem;
     font-weight: 700;
-    font-size: 1.125;
-}
-
-.modal-container-body {
-    padding: 24px 32px 51px;
-    overflow-y: auto;
-    max-height: calc(90vh - 130px);
-}
-
-
-.modal-container-footer {
-    padding: 20px 32px;
+    color: #1a1a1a;
     display: flex;
     align-items: center;
-    justify-content: flex-end;
-    border-top: 1px solid #ddd;
-    gap: 12px;
-    position: relative;
+    gap: 0.75rem;
 
-    &:after {
-        content: "";
-        display: block;
-        position: absolute;
-        top: -51px;
-        left: 24px;
-        right: 24px;
-        height: 50px;
-        flex-shrink: 0;
+    svg {
+        width: 1.5rem;
+        height: 1.5rem;
     }
 }
 
+.modal-container-body {
+    padding: 2rem;
+    overflow-y: auto;
+    flex-grow: 1;
+    max-height: calc(90vh - 140px);
+    scrollbar-gutter: stable;
+
+    @media (max-width: 600px) {
+        padding: 1.5rem;
+    }
+}
+
+.modal-container-footer {
+    padding: 1.5rem 2rem;
+    border-top: 1px solid #e5e5e5;
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    position: relative;
+    background: linear-gradient(to top,
+            #fffbf0 70%,
+            rgba(255, 251, 240, 0.7));
+
+    @media (max-width: 600px) {
+        padding: 1.25rem;
+        flex-wrap: wrap;
+    }
+}
+
+/*********************
+  Componentes
+**********************/
 .button {
-    padding: 12px 20px;
-    border-radius: 8px;
-    background-color: transparent;
-    border: 0;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
     font-weight: 600;
     cursor: pointer;
-    transition: 0.15s ease;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+
+    &:focus-visible {
+        outline: 2px solid #750550;
+        outline-offset: 2px;
+    }
 
     &.is-ghost {
+        background: transparent;
+        color: #404040;
 
-        &:hover,
-        &:focus {
-            background-color: #dfdad7;
+        &:hover {
+            background: rgba(0, 0, 0, 0.05);
         }
     }
 
     &.is-primary {
-        background-color: #750550;
-        color: #fff;
+        background: #750550;
+        color: white;
 
-        &:hover,
-        &:focus {
-            background-color: #4a0433;
+        &:hover {
+            background: #5a043d;
         }
     }
 }
 
 .icon-button {
-    padding: 0;
-    border: 0;
-    background-color: transparent;
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    line-height: 1;
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    background: transparent;
+    border: none;
     cursor: pointer;
-    border-radius: 8px;
-    transition: 0.15s ease;
+    transition: all 0.2s ease;
 
-    svg {
-        width: 24px;
-        height: 24px;
+    &:hover {
+        background: rgba(0, 0, 0, 0.05);
     }
 
-    &:hover,
-    &:focus {
-        background-color: #dfdad7;
+    svg {
+        width: 1.5rem;
+        height: 1.5rem;
+    }
+}
+
+/*********************
+Animaciones
+**********************/
+@media (prefers-reduced-motion: reduce) {
+
+    #modal,
+    .modal-container {
+        transition: none !important;
     }
 }
