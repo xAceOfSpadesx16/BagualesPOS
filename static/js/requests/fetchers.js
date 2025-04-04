@@ -31,27 +31,8 @@ class Fetcher {
             ...(body && { body })
         };
         return fetch(url, options)
-            .then(response => {
-                if (!response.ok) {
-                    return response.json().then(err => {
-                        throw {
-                            status: response.status,
-                            message: err.message || err.detail
-                        };
-                    });
-                }
-                const contentType = response.headers.get('Content-Type');
-
-                if (contentType && contentType.includes('application/json')) {
-                    return response.json();
-                } else if (contentType && contentType.includes('text/html')) {
-                    return response.text();
-                } else {
-                    throw new Error('Unsupported response format');
-                }
-            })
             .catch(error => {
-                console.error(error);
+                console.error("Error en la petición:", error);
                 throw error;
             });
     }
@@ -128,6 +109,28 @@ class SalesFetcher extends Fetcher {
             }
         );
     };
+
+    static closeSaleForm() {
+        return this.request(
+            SaleEndpoints.CLOSE_SALE_FORM.url,
+            {
+                method: SaleEndpoints.CLOSE_SALE_FORM.method,
+            }
+        );
+    };
+
+    static closeSale(saleId, formData) {
+        return this.request(
+            SaleEndpoints.CLOSE_SALE.url(saleId),
+            {
+                method: SaleEndpoints.CLOSE_SALE.method,
+                csrfToken: true,
+                data: SaleEndpoints.CLOSE_SALE.body(formData)
+            }
+        );
+    };
+
+
 }
 
 class ProductsFetcher extends Fetcher {

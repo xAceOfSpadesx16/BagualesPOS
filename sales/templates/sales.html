@@ -15,16 +15,21 @@
 {% block content %}
 
     <section id="sales-section" style="display: none;">
-        <div class="form-container">
-            <form id="product-form">
-                {% csrf_token %}
-                {% for field in form %}
-                        {{ field.errors }}
-                        {{ field }}
-                {% endfor %}
-                <button type="submit">Agregar</button>
-            </form>
-
+        <div class="close-row">
+            {% comment %} <div class="empty-container"></div> {% endcomment %}
+            <div class="form-container">
+                <form id="product-form">
+                    {% csrf_token %}
+                    {% for field in form %}
+                            {{ field.errors }}
+                            {{ field }}
+                    {% endfor %}
+                    <button type="submit">Agregar</button>
+                </form>
+            </div>
+            <div class="close-container">
+                <button id="close-sale-button">Cerrar Venta</button>
+            </div>
         </div>
         <div class="table-container">
 
@@ -69,18 +74,18 @@
                         {% endfor %}
                     {% else %}
                         <tr id="no-products">
-                            <td colspan="4" >No hay productos en la venta</td>
+                            <td colspan="5" >No hay productos en la venta</td>
                         </tr>
                     {% endif %}
                 </tbody>
 
             </table>
 
+            
             <div id="total-container">
                 <span class="total-label">Total:</span>
                 <span id="total-value">${{ sale.formatted_total_amount }}</span>
             </div>
-
         </div>
 
     </div>

@@ -1,9 +1,10 @@
-from django.views.generic import TemplateView, CreateView, View
+from django.views.generic import TemplateView, CreateView, View, UpdateView
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
 from django.http import HttpRequest
 from django.utils.translation import gettext_lazy as _
+from django.urls import reverse_lazy
 
 from dal import autocomplete
 
@@ -11,7 +12,10 @@ from json import loads
 
 from sales.models import Sale, SaleDetail
 
-from sales.forms import SearchProductForm
+from sales.forms import SearchProductForm, CloseSaleForm
+
+from sales.mixins import PatchMethodMixin
+
 from products.models import Product
 
 class SalesIndex(TemplateView):
@@ -35,7 +39,8 @@ class SaleDetailDelete(View):
         sale_detail.delete()
         
         return JsonResponse({"message": _('Record deleted successfully'), "total_sale_amount": sale_detail.order.formatted_total_amount}, status=200)
-        
+
+
 class SaleDetailCreate(CreateView):
     model = SaleDetail
 
@@ -46,11 +51,11 @@ class SaleDetailCreate(CreateView):
         form = SearchProductForm(loads(request.body), request=self.request)
         if form.is_valid():
             instance: SaleDetail = form.save()
+
             product = instance.product
             quantity = instance.quantity
             sale_price = instance.formatted_sale_price
             total_price = instance.formatted_total_price
-
 
             return JsonResponse({
                 'product': {
@@ -65,14 +70,25 @@ class SaleDetailCreate(CreateView):
         else:
             return JsonResponse({'error': form.errors.as_json()}, status=400)
 
+class CloseSale(PatchMethodMixin, UpdateView):
+    form_class = CloseSaleForm
+    model = Sale
+    http_method_names = ['patch']
+    success_url = reverse_lazy('sales')
+    template_name = 'close_sale.html'
 
+    def form_valid(self, form):
+        super().form_valid
+        form.save()
+        return JsonResponse({'redirect_url': self.success_url }, status = 200)
 
-class SaleQuantityDetailUpdate(View):
+    def form_invalid(self, form):
+        response = super().form_invalid(form)
+        response.status_code = 400
+        return response
 
-    def dispatch(self, request, *args, **kwargs):
-        if request.method.lower() == 'patch':
-            return self.patch(request, *args, **kwargs)
-        return super().dispatch(request, *args, **kwargs)
+class SaleQuantityDetailUpdate(PatchMethodMixin, View):
+
 
     def patch(self, request: HttpRequest, pk, *args, **kwargs):
         body = loads(request.body)
@@ -115,3 +131,4 @@ class ProductAutocomplete(autocomplete.Select2QuerySetView):
 
     def get_result_label(self, item: Product):
         return f"{item.name} {item.color.name} {item.brand.name} T-{item.letter_size.name if item.letter_size else item.numeric_size}"
+

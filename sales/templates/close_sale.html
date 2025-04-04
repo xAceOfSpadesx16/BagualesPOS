@@ -1,0 +1,18 @@
+<form method="post" id="client-form" enctype="multipart/form-data">
+    {% csrf_token %}
+
+    <!-- Campos Full-Width -->
+    <div class="form-group">
+        <label class="required" for="{{ form.client.id_for_label }}">Cliente</label>
+        {{ form.client }}
+        {{ form.client.errors }}
+    </div>
+
+    <div class="form-group">
+        <label class="required" for="{{ form.pay_method.id_for_label }}">Metodo de Pago</label>
+        {{ form.pay_method }}
+        {{ form.pay_method.errors }}
+    </div>
+
+
+</form>

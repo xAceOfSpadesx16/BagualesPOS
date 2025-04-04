@@ -37,6 +37,7 @@ customElements.define('close-button', XIconButton, { extends: 'button' });
 
 class Modal extends HTMLElement {
     static isOpen = false;
+    static instance = null;
 
     /**
      * @param {string} [title=''] - Título del modal.
@@ -65,6 +66,8 @@ class Modal extends HTMLElement {
         closeIdSelector = 'close_modal',
         modalXCloseIdSelector = 'modal_x_close',
 
+        requireCloseConfirmation = false
+
     } = {}) {
         super();
         this.onSubmit = onSubmit;
@@ -80,6 +83,8 @@ class Modal extends HTMLElement {
         this.submitSelector = submitIdSelector;
         this.closeSelector = closeIdSelector;
         this.modalXCloseSelector = modalXCloseIdSelector;
+
+        this.requireCloseConfirmation = requireCloseConfirmation;
 
         this.#setUpModalContent();
     }
@@ -122,6 +127,7 @@ class Modal extends HTMLElement {
 
     openModal() {
         if (Modal.isOpen) return;
+        Modal.instance = this;
         Modal.isOpen = true;
         document.querySelector('.page-wrapper').appendChild(this);
         setTimeout(() => this.classList.add('show'), 10);
@@ -130,22 +136,27 @@ class Modal extends HTMLElement {
 
     #closeModal() {
         if (!Modal.isOpen) return;
+
+        console.log('cerrando modal')
         this.classList.remove('show');
-        this.onClose();
         this.addEventListener('transitionend', () => {
             this.remove();
             Modal.isOpen = false;
+            Modal.instance = null;
         }, { once: true });
+
     }
 
-    confirmAction(e) {
-        this.onSubmit(e);
-        this.#closeModal();
+    async confirmAction(e) {
+        const result = await this.onSubmit(e);
+        console.log('result de submit event', result);
+        if (this.requireCloseConfirmation && !result) return;
+        this.#closeModal(result);
     }
 
     backdropListener(event) {
         if (event.target === this) {
-            this.#closeModal();
+            this.#closeModal(true);
         }
     }
 
@@ -157,6 +168,18 @@ class Modal extends HTMLElement {
     disconnectedCallback() {
         this.removeEventListener('click', this.boundBackdropListener);
     }
+
+    #updateContent(newContent) {
+        console.log('updateContent');
+        this.content = newContent;
+        const contentContainer = this.querySelector(this.contentSelector.map(cls => `.${cls}`).join(", "))
+        console.log(contentContainer);
+        contentContainer.innerHTML = newContent;
+    }
+    static updateContent(newContent) {
+        Modal.instance.#updateContent(newContent);
+    }
+
 }
 
 customElements.define('custom-modal', Modal);

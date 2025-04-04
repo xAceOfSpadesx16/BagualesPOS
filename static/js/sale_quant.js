@@ -8,6 +8,7 @@ class QuantityInput extends HTMLInputElement {
         this.value = initialValue;
         this.saledetailId = saledetailId;
         this.escapePressed = false;
+
     };
 
     connectedCallback() {

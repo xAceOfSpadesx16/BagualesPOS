@@ -31,5 +31,6 @@ def update_sale_total(sender, instance: SaleDetail, **kwargs):
 @receiver(post_delete, sender=SaleDetail)
 @atomic
 def update_stock(sender, instance: SaleDetail, **kwargs):
-    instance.product.inventory.quantity += instance.quantity
-    instance.product.inventory.save()
+    if instance.product:
+        instance.product.inventory.quantity += instance.quantity
+        instance.product.inventory.save()

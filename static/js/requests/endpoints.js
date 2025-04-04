@@ -126,6 +126,15 @@ const SaleEndpoints = Object.freeze({
         /** @type {SaleDetailUpdateBodyBuilder} */
         body: (quantity) => ({ quantity })
     }),
+    CLOSE_SALE_FORM: Object.freeze({
+        method: 'GET',
+        url: '/ventas/close/'
+    }),
+    CLOSE_SALE: Object.freeze({
+        method: 'PATCH',
+        url: (pk) => `/ventas/close/${pk}/`,
+        body: (formData) => formData
+    })
 });
 
 export { ProductEndpoints, SaleEndpoints };

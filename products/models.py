@@ -135,7 +135,7 @@ class Brand(Model):
 class Product(Model):
     inventory: Inventory
     name = CharField(_('name'),max_length=50)
-    numeric_size = IntegerField(_('numeric size'), null=True)
+    numeric_size = IntegerField(_('numeric size'), null=True, blank=True)
     cost_price = IntegerField(_('cost price'))
     sale_price = IntegerField(_('sale price'))
     internal_code = CharField(_('internal code'), max_length=50, editable=False, null=True, blank=True)

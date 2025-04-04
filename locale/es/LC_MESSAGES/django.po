@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-03-26 11:42-0300\n"
+"POT-Creation-Date: 2025-04-04 11:40-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -19,10 +19,10 @@ msgstr ""
 "Plural-Forms: nplurals=3; plural=n == 1 ? 0 : n != 0 && n % 1000000 == 0 ? "
 "1 : 2;\n"
 
-#: clients/models.py:20 products/models.py:17 products/models.py:31
-#: products/models.py:45 products/models.py:60 products/models.py:75
-#: products/models.py:89 products/models.py:103 products/models.py:119
-#: products/models.py:136 sales/models.py:15
+#: clients/models.py:20 products/models.py:18 products/models.py:32
+#: products/models.py:46 products/models.py:61 products/models.py:76
+#: products/models.py:90 products/models.py:104 products/models.py:120
+#: products/models.py:137 sales/models.py:15
 msgid "name"
 msgstr "nombre"
 
@@ -30,7 +30,7 @@ msgstr "nombre"
 msgid "last_name"
 msgstr "apellido"
 
-#: clients/models.py:22 products/models.py:104 users/models.py:37
+#: clients/models.py:22 products/models.py:105 users/models.py:37
 msgid "phone number"
 msgstr "telefono"
 
@@ -42,7 +42,7 @@ msgstr "D.N.I. "
 msgid "cuit"
 msgstr "C.U.I.T. "
 
-#: clients/models.py:25 products/models.py:105 users/models.py:23
+#: clients/models.py:25 products/models.py:106 users/models.py:23
 msgid "email"
 msgstr "email"
 
@@ -72,12 +72,12 @@ msgstr "tipo de factura"
 msgid "balance"
 msgstr "saldo"
 
-#: clients/models.py:32 clients/models.py:49 products/models.py:151
+#: clients/models.py:32 clients/models.py:49 products/models.py:152
 #: sales/models.py:16 sales/models.py:33 sales/models.py:56 users/models.py:44
 msgid "created at"
 msgstr "creado el"
 
-#: clients/models.py:33 products/models.py:152 sales/models.py:17
+#: clients/models.py:33 products/models.py:153 sales/models.py:17
 #: sales/models.py:34 users/models.py:45
 msgid "updated at"
 msgstr "actualizado el"
@@ -106,7 +106,7 @@ msgstr "Registro de CC de cliente"
 msgid "customer balance records"
 msgstr "Registros de CC de clientes"
 
-#: inventory/models.py:11 products/models.py:158 sales/models.py:53
+#: inventory/models.py:11 products/models.py:167 sales/models.py:53
 msgid "product"
 msgstr "producto"
 
@@ -122,111 +122,111 @@ msgstr "inventario"
 msgid "inventories"
 msgstr "inventarios"
 
-#: products/models.py:23 products/models.py:149
+#: products/models.py:24 products/models.py:150
 msgid "category"
 msgstr "categoria"
 
-#: products/models.py:24
+#: products/models.py:25
 msgid "categories"
 msgstr "categoria"
 
-#: products/models.py:37 products/models.py:150
+#: products/models.py:38 products/models.py:151
 msgid "season"
 msgstr "temporada"
 
-#: products/models.py:38
+#: products/models.py:39
 msgid "seasons"
 msgstr "temporada"
 
-#: products/models.py:46
+#: products/models.py:47
 msgid "code"
 msgstr "codigo"
 
-#: products/models.py:52 products/models.py:147
+#: products/models.py:53 products/models.py:148
 msgid "color"
 msgstr "color"
 
-#: products/models.py:53
+#: products/models.py:54
 msgid "colors"
 msgstr "colores"
 
-#: products/models.py:68 products/models.py:144
+#: products/models.py:69 products/models.py:145
 msgid "gender"
 msgstr "genero"
 
-#: products/models.py:69
+#: products/models.py:70
 msgid "genders"
 msgstr "generos"
 
-#: products/models.py:81
+#: products/models.py:82
 msgid "size"
 msgstr "talle"
 
-#: products/models.py:82
+#: products/models.py:83
 msgid "sizes"
 msgstr "talles"
 
-#: products/models.py:95 products/models.py:146
+#: products/models.py:96 products/models.py:147
 msgid "material"
 msgstr "material"
 
-#: products/models.py:96
+#: products/models.py:97
 msgid "materials"
 msgstr "materiales"
 
-#: products/models.py:111 products/models.py:120
+#: products/models.py:112 products/models.py:121
 msgid "supplier"
 msgstr "proveedor"
 
-#: products/models.py:112
+#: products/models.py:113
 msgid "suppliers"
 msgstr "proveedores"
 
-#: products/models.py:121
+#: products/models.py:122
 msgid "logo"
 msgstr "logo"
 
-#: products/models.py:127 products/models.py:148
+#: products/models.py:128 products/models.py:149
 msgid "brand"
 msgstr "marca"
 
-#: products/models.py:128
+#: products/models.py:129
 msgid "brands"
 msgstr "marcas"
 
-#: products/models.py:137
+#: products/models.py:138
 msgid "numeric size"
 msgstr "talle numerico"
 
-#: products/models.py:138
+#: products/models.py:139
 msgid "cost price"
 msgstr "precio de costo"
 
-#: products/models.py:139 sales/models.py:55
+#: products/models.py:140 sales/models.py:55
 msgid "sale price"
 msgstr "precio de venta"
 
-#: products/models.py:140
+#: products/models.py:141
 msgid "internal code"
 msgstr "codigo interno"
 
-#: products/models.py:141
+#: products/models.py:142
 msgid "details"
 msgstr "detalles"
 
-#: products/models.py:142
+#: products/models.py:143
 msgid "image"
 msgstr "imagen"
 
-#: products/models.py:143
+#: products/models.py:144
 msgid "active"
 msgstr "activo"
 
-#: products/models.py:145
+#: products/models.py:146
 msgid "letter size"
 msgstr "talle"
 
-#: products/models.py:159
+#: products/models.py:168
 msgid "products"
 msgstr "productos"
 
@@ -237,6 +237,10 @@ msgstr "Buscar un producto..."
 #: sales/forms.py:48
 msgid "Product is required."
 msgstr "El producto es requerido."
+
+#: sales/forms.py:60
+msgid "Search a client..."
+msgstr "Buscar un cliente..."
 
 #: sales/models.py:20 sales/models.py:30
 msgid "payment method"

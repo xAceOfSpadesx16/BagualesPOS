@@ -4,7 +4,7 @@ from products.models import Product
 
 class ProductForm(ModelForm):
 
-    details = CharField(widget= Textarea())
+    details = CharField(widget= Textarea(), required=False)
 
     class Meta:
         model = Product
