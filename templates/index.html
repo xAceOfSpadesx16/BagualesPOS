@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 {% load static %}
+{% load livereload_tags %}
 <html lang="es">
     <head>
         <meta charset="UTF-8" />
@@ -13,6 +14,8 @@
         <link rel="stylesheet" href="{% static 'style/navbar.css' %}" />
         {% block head_css %}{% endblock %}
         {% block head_js %}{% endblock %}
+        
+        {% livereload_script %}
     </head>
     <body>
         <div class="page-wrapper">

@@ -3,7 +3,8 @@
 {% block head_css %}
     <link rel="stylesheet" href="{% static 'style/sales.css' %}">
     <link rel="stylesheet" href="{% static 'style/table.css' %}">
-    {{ form.media.css }}
+    <link rel="stylesheet" href="{% static 'style/modal.css' %}">
+    {{ product_form.media.css }}
 {% endblock head_css %}
 {% block title %} Ventas {% endblock title %}
 
@@ -16,21 +17,30 @@
 
     <section id="sales-section" style="display: none;">
         <div class="close-row">
-            {% comment %} <div class="empty-container"></div> {% endcomment %}
+
+            <div class="client-container">
+                {{ client_form.client }}
+            </div>
+
             <div class="form-container">
                 <form id="product-form">
                     {% csrf_token %}
-                    {% for field in form %}
+                    {% for field in product_form %}
                             {{ field.errors }}
                             {{ field }}
                     {% endfor %}
                     <button type="submit">Agregar</button>
                 </form>
             </div>
+
             <div class="close-container">
-                <button id="close-sale-button">Cerrar Venta</button>
+                <button id="close-sale-button" title="Cerrar Venta" data-sale-id="{{ sale.id }}">
+                    <img src="{% static 'images/checkout.png' %}" alt="Checkout">
+                </button>
             </div>
+            
         </div>
+
         <div class="table-container">
 
             <table id="sale-table" class="responsive-table scroll">
@@ -88,16 +98,14 @@
             </div>
         </div>
 
-    </div>
-
     </section>
 {% endblock content %}
 
 {% block body_scripts %}
 
-<script type="module" src="{% static 'js/sales.js' %}"></script>
+{{ product_form.media.js }}
 
-{{ form.media.js }}
+<script type="module" src="{% static 'js/sales.js' %}"></script>
 <script>
     window.addEventListener('load', function() {
         const salesSection = document.getElementById('sales-section');

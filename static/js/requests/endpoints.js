@@ -126,14 +126,13 @@ const SaleEndpoints = Object.freeze({
         /** @type {SaleDetailUpdateBodyBuilder} */
         body: (quantity) => ({ quantity })
     }),
-    CLOSE_SALE_FORM: Object.freeze({
+    CLOSE_SALE_DETAILS: Object.freeze({
         method: 'GET',
-        url: '/ventas/close/'
+        url: (pk) => `/ventas/close-details/${pk}/`
     }),
     CLOSE_SALE: Object.freeze({
         method: 'PATCH',
         url: (pk) => `/ventas/close/${pk}/`,
-        body: (formData) => formData
     })
 });
 

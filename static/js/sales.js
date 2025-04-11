@@ -1,5 +1,6 @@
 import { setInputQuantity } from "./sale_quant.js";
 import { SalesFetcher } from "./requests/fetchers.js";
+import { Modal } from "./modal.js";
 
 
 const trashIconSVG = `
@@ -135,11 +136,33 @@ document.addEventListener('click', function (event) {
             console.error(error);
         });
     }
+
+    if (event.target.closest('#close-sale-button')) {
+        const button = event.target.closest('#close-sale-button');
+        const saleId = button.getAttribute('data-sale-id');
+        SalesFetcher.closeSaleDetails(saleId).then(response => response.text()).then(data => {
+            const modal = new Modal({ title: 'Resumenw de venta', content: data, onSubmit: null, requireCloseConfirmation: false });
+            modal.openModal();
+        }).catch(error => {
+            console.error(error);
+        });
+    }
 });
 
 document.getElementById('sale-table').querySelector('tbody').addEventListener('dblclick', function (event) {
     const target = event.target;
     if (target.classList.contains('quantity-cell')) {
         setInputQuantity(target);
+    }
+});
+
+window.addEventListener('load', (event) => {
+    const clientSelect = document.getElementById('client-autocomplete');
+
+    if (clientSelect) {
+        clientSelect.onchange = function (e) {
+            const selectedValue = this.value;
+            console.log('Evento change disparado:', selectedValue);
+        };
     }
 });

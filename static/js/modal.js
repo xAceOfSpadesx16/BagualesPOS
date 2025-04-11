@@ -137,7 +137,6 @@ class Modal extends HTMLElement {
     #closeModal() {
         if (!Modal.isOpen) return;
 
-        console.log('cerrando modal')
         this.classList.remove('show');
         this.addEventListener('transitionend', () => {
             this.remove();
@@ -149,7 +148,6 @@ class Modal extends HTMLElement {
 
     async confirmAction(e) {
         const result = await this.onSubmit(e);
-        console.log('result de submit event', result);
         if (this.requireCloseConfirmation && !result) return;
         this.#closeModal(result);
     }
@@ -170,10 +168,8 @@ class Modal extends HTMLElement {
     }
 
     #updateContent(newContent) {
-        console.log('updateContent');
         this.content = newContent;
         const contentContainer = this.querySelector(this.contentSelector.map(cls => `.${cls}`).join(", "))
-        console.log(contentContainer);
         contentContainer.innerHTML = newContent;
     }
     static updateContent(newContent) {

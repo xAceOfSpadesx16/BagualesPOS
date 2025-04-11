@@ -21,7 +21,7 @@ class Client(Model):
     last_name = CharField(_('last_name'), max_length=50)
     phone = PhoneNumberField(null=True, blank=True, verbose_name= _('phone number'))
     dni = CharField(max_length=9, verbose_name= _('dni'))
-    cuit = CharField(max_length=11, null=True, validators=[RegexValidator(r'^\d{2}-\d{8}-\d{1}$', 'Ingrese un CUIT válido.')], unique=True, verbose_name= _('cuit'))
+    cuit = CharField(max_length=13, null=True, validators=[RegexValidator(r'^\d{2}-\d{8}-\d{1}$', 'Ingrese un CUIT válido.')], unique=True, verbose_name= _('cuit'))
     email = CharField(max_length=50, verbose_name= _('email'))
     address = CharField(max_length=100, verbose_name= _('address'))
     city = CharField(max_length=50, verbose_name= _('city'))

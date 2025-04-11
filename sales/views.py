@@ -12,7 +12,7 @@ from json import loads
 
 from sales.models import Sale, SaleDetail
 
-from sales.forms import SearchProductForm, CloseSaleForm
+from sales.forms import SearchProductForm, CloseSaleForm, SaleClientForm
 
 from sales.mixins import PatchMethodMixin
 
@@ -27,7 +27,9 @@ class SalesIndex(TemplateView):
             sale: Sale = Sale.objects.create(seller=self.request.user)
             self.request.session['active_sale_id'] = sale.id
         kwargs['sale'] = sale
-        kwargs['form'] = SearchProductForm()
+        kwargs['product_form'] = SearchProductForm()
+        kwargs['client_form'] = SaleClientForm()
+
         return super().get_context_data(**kwargs)
 
 class SaleDetailDelete(View):
@@ -73,19 +75,27 @@ class SaleDetailCreate(CreateView):
 class CloseSale(PatchMethodMixin, UpdateView):
     form_class = CloseSaleForm
     model = Sale
-    http_method_names = ['patch']
+    http_method_names = ['patch', 'get']
     success_url = reverse_lazy('sales')
     template_name = 'close_sale.html'
 
-    def form_valid(self, form):
-        super().form_valid
-        form.save()
-        return JsonResponse({'redirect_url': self.success_url }, status = 200)
+    def patch(self, request: HttpRequest, pk, *args, **kwargs):
+        sale = get_object_or_404(Sale, id=pk)
+        sale.closed = True
+        sale.save()
+        return JsonResponse({'redirect_url': reverse_lazy('sales')}, status=200)
 
-    def form_invalid(self, form):
-        response = super().form_invalid(form)
-        response.status_code = 400
-        return response
+class CloseDetailsSale(TemplateView):
+    http_method_names = ['get']
+    template_name = 'close_details_sale.html'
+    
+
+    def get_context_data(self, **kwargs):
+        sale = get_object_or_404(Sale, id=self.kwargs.get('pk'))
+        kwargs['sale'] = sale
+        return super().get_context_data(**kwargs)
+        
+
 
 class SaleQuantityDetailUpdate(PatchMethodMixin, View):
 

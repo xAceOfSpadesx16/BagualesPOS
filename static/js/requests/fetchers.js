@@ -110,22 +110,21 @@ class SalesFetcher extends Fetcher {
         );
     };
 
-    static closeSaleForm() {
+    static closeSaleDetails(saleId) {
         return this.request(
-            SaleEndpoints.CLOSE_SALE_FORM.url,
+            SaleEndpoints.CLOSE_SALE_DETAILS.url(saleId),
             {
-                method: SaleEndpoints.CLOSE_SALE_FORM.method,
+                method: SaleEndpoints.CLOSE_SALE_DETAILS.method,
             }
         );
     };
 
-    static closeSale(saleId, formData) {
+    static closeSale(saleId) {
         return this.request(
             SaleEndpoints.CLOSE_SALE.url(saleId),
             {
                 method: SaleEndpoints.CLOSE_SALE.method,
                 csrfToken: true,
-                data: SaleEndpoints.CLOSE_SALE.body(formData)
             }
         );
     };
