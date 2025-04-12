@@ -129,6 +129,17 @@ class SalesFetcher extends Fetcher {
         );
     };
 
+    static updateClient(saleId, clientId) {
+        return this.request(
+            SaleEndpoints.UPDATE_CLIENT.url(saleId),
+            {
+                method: SaleEndpoints.UPDATE_CLIENT.method,
+                data: SaleEndpoints.UPDATE_CLIENT.body(clientId),
+                csrfToken: true,
+            }
+        );
+    };
+
 
 }
 

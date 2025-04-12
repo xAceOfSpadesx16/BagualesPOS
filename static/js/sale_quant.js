@@ -57,7 +57,7 @@ class QuantityInput extends HTMLInputElement {
 
 
     UpdateQuantityFetch = (saledetailId, newQuantity, Cell, Row) => {
-        SalesFetcher.updateSaleDetailQuantity(saledetailId, newQuantity).then(data => {
+        SalesFetcher.updateSaleDetailQuantity(saledetailId, newQuantity).then(data => data.json()).then(data => {
 
             Cell.textContent = data.quantity;
             Row.querySelector('.price-cell').textContent = `$${data.sale_price}`;

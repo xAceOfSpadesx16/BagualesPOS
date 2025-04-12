@@ -67,16 +67,23 @@ class CloseSaleForm(ModelForm):
             ),
         }
 
-class SaleClientForm(Form):
-    client = forms.ModelChoiceField(
-        queryset= Client.objects.all(),
-        required=False,
-        widget=autocomplete.ModelSelect2(
-            url='client-autocomplete',
-            attrs={
-                'data-placeholder': _('Search a client...'),
-                'data-ajax--delay': 250,
-                'id': 'client-autocomplete'
-            }
-        )
-    )
+class SaleClientForm(ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance is not None:
+            self.fields['client'].widget.attrs['data-sale-id'] = self.instance.id
+            
+
+    class Meta:
+        model = Sale
+        fields = ('client',)
+        widgets = {
+            "client": autocomplete.ModelSelect2(
+                url="client-autocomplete",
+                attrs = {
+                    "data-placeholder": _("Search a client..."),
+                    "data-ajax--delay": 250,
+                    "id": "client-autocomplete",
+                }
+            )
+        }

@@ -149,6 +149,7 @@ document.addEventListener('click', function (event) {
     }
 });
 
+
 document.getElementById('sale-table').querySelector('tbody').addEventListener('dblclick', function (event) {
     const target = event.target;
     if (target.classList.contains('quantity-cell')) {
@@ -156,13 +157,26 @@ document.getElementById('sale-table').querySelector('tbody').addEventListener('d
     }
 });
 
+
 window.addEventListener('load', (event) => {
     const clientSelect = document.getElementById('client-autocomplete');
 
     if (clientSelect) {
-        clientSelect.onchange = function (e) {
+
+        function ClientChange(event) {
             const selectedValue = this.value;
-            console.log('Evento change disparado:', selectedValue);
-        };
+            const previousValue = this.dataset.previousValue;
+            const saleId = this.getAttribute('data-sale-id');
+            SalesFetcher.updateClient(saleId, selectedValue).then(
+                () => { this.dataset.previousValue = selectedValue }
+            ).catch(error => {
+                console.error(error);
+                this.value = previousValue;
+                const changeEvent = new Event('change');
+                this.dispatchEvent(changeEvent);
+            });
+        }
+        clientSelect.dataset.previousValue = clientSelect.value;
+        clientSelect.onchange = ClientChange;
     }
 });

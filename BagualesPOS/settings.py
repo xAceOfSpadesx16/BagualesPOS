@@ -73,6 +73,9 @@ if DEBUG:
     MIDDLEWARE += [
         'livereload.middleware.LiveReloadScript',
     ]
+    LIVERELOAD_HOST="192.168.18.3"
+    LIVERELOAD_PORT=35729
+    
 
 ROOT_URLCONF = 'BagualesPOS.urls'
 

@@ -1,5 +1,5 @@
 from django.views.generic import TemplateView, CreateView, View, UpdateView
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
 from django.http import HttpRequest
@@ -18,6 +18,8 @@ from sales.mixins import PatchMethodMixin
 
 from products.models import Product
 
+from clients.models import Client
+
 class SalesIndex(TemplateView):
     template_name = 'sales.html'
 
@@ -28,7 +30,7 @@ class SalesIndex(TemplateView):
             self.request.session['active_sale_id'] = sale.id
         kwargs['sale'] = sale
         kwargs['product_form'] = SearchProductForm()
-        kwargs['client_form'] = SaleClientForm()
+        kwargs['client_form'] = SaleClientForm(instance=sale)
 
         return super().get_context_data(**kwargs)
 
@@ -113,6 +115,16 @@ class SaleQuantityDetailUpdate(PatchMethodMixin, View):
             'total_sale_amount': sale_detail.order.formatted_total_amount,
         }
         return JsonResponse(data)
+
+class ClientUpdateView(PatchMethodMixin, View):
+    def patch(self, request: HttpRequest, pk, *args, **kwargs):
+        sale = get_object_or_404(Sale, id=pk)
+        body = loads(request.body)
+        client_id = body.get('client')
+        client = get_object_or_404(Client, id=client_id)
+        sale.client = client
+        sale.save()
+        return JsonResponse({"message": _("Client updated successfully")})
 
 
 class ProductAutocomplete(autocomplete.Select2QuerySetView):

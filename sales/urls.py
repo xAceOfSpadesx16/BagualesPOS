@@ -1,5 +1,5 @@
 from django.urls import path
-from sales.views import SaleDetailDelete, SaleDetailCreate, SaleQuantityDetailUpdate, SalesIndex, ProductAutocomplete, CloseSale, CloseDetailsSale
+from sales.views import SaleDetailDelete, SaleDetailCreate, SaleQuantityDetailUpdate, SalesIndex, ProductAutocomplete, CloseSale, CloseDetailsSale, ClientUpdateView
 
 
 
@@ -12,4 +12,5 @@ urlpatterns = [
     path('product-autocomplete/', ProductAutocomplete.as_view(), name='product-autocomplete'),
     path('close-details/<int:pk>/', CloseDetailsSale.as_view(), name='close-sale-details'),
     path('close/<int:pk>/', CloseSale.as_view(), name='close-sale'),
+    path('update-client/<int:pk>/', ClientUpdateView.as_view(), name='update-client')
 ]

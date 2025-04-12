@@ -133,6 +133,12 @@ const SaleEndpoints = Object.freeze({
     CLOSE_SALE: Object.freeze({
         method: 'PATCH',
         url: (pk) => `/ventas/close/${pk}/`,
+    }),
+    // UPDATE_CLIENT
+    UPDATE_CLIENT: Object.freeze({
+        method: 'PATCH',
+        url: (pk) => `/ventas/update-client/${pk}/`,
+        body: (clientId) => ({ client: clientId })
     })
 });
 
