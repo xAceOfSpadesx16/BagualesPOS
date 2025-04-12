@@ -56,16 +56,8 @@ class SearchProductForm(ModelForm):
 class CloseSaleForm(ModelForm):
     class Meta:
         model = Sale
-        fields = ('client', 'pay_method')
-        widgets = {
-            "client": autocomplete.ModelSelect2(
-                url="client-autocomplete",
-                attrs={
-                    "data-placeholder": _('Search a client...'),
-                    "data-ajax--delay": 250,
-                },
-            ),
-        }
+        fields = ('pay_method',)
+
 
 class SaleClientForm(ModelForm):
     def __init__(self, *args, **kwargs):

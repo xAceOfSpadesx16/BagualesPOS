@@ -128,11 +128,12 @@ const SaleEndpoints = Object.freeze({
     }),
     CLOSE_SALE_DETAILS: Object.freeze({
         method: 'GET',
-        url: (pk) => `/ventas/close-details/${pk}/`
+        url: (pk) => `/ventas/close/${pk}/`
     }),
     CLOSE_SALE: Object.freeze({
         method: 'PATCH',
         url: (pk) => `/ventas/close/${pk}/`,
+        body: (payMethod) => ({ pay_method: payMethod })
     }),
     // UPDATE_CLIENT
     UPDATE_CLIENT: Object.freeze({

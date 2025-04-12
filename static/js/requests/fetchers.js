@@ -119,11 +119,12 @@ class SalesFetcher extends Fetcher {
         );
     };
 
-    static closeSale(saleId) {
+    static closeSale(saleId, clientId) {
         return this.request(
             SaleEndpoints.CLOSE_SALE.url(saleId),
             {
                 method: SaleEndpoints.CLOSE_SALE.method,
+                data: SaleEndpoints.CLOSE_SALE.body(clientId),
                 csrfToken: true,
             }
         );

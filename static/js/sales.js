@@ -78,6 +78,41 @@ function setAttributes(element, attributes) {
     });
 }
 
+async function closeSale(e) {
+    e.preventDefault();
+    const form = e.target.closest('.modal-container').querySelector('form');
+    if (!form) {
+        console.error("No se encontró el formulario.");
+        return Promise.resolve(false);
+    }
+
+    const saleId = form.getAttribute('data-sale-id');
+    const clientData = form.querySelector('select[name="pay_method"]').value;
+
+    return SalesFetcher.closeSale(saleId, clientData)
+        .then(response => {
+            if (response.ok) {
+                const contentType = response.headers.get('Content-Type');
+                if (contentType.toLowerCase().includes("application/json")) {
+                    response.json().then(data => {
+                        window.location.href = data.redirect_url;
+                    })
+                }
+                if (contentType.toLowerCase().includes("text/html")) {
+                    response.text().then(html => {
+                        Modal.updateContent(html);
+                        return false;
+                    })
+                }
+
+            }
+        })
+        .catch(error => {
+            console.error("Error en fetch:", error);
+            return false;
+        });
+}
+
 document.addEventListener('submit', function (event) {
 
     if (event.target.id === 'product-form') {
@@ -141,7 +176,7 @@ document.addEventListener('click', function (event) {
         const button = event.target.closest('#close-sale-button');
         const saleId = button.getAttribute('data-sale-id');
         SalesFetcher.closeSaleDetails(saleId).then(response => response.text()).then(data => {
-            const modal = new Modal({ title: 'Resumenw de venta', content: data, onSubmit: null, requireCloseConfirmation: false });
+            const modal = new Modal({ title: 'Resumen de venta', content: data, onSubmit: closeSale, requireCloseConfirmation: true });
             modal.openModal();
         }).catch(error => {
             console.error(error);
@@ -180,3 +215,5 @@ window.addEventListener('load', (event) => {
         clientSelect.onchange = ClientChange;
     }
 });
+
+

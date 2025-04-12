@@ -79,24 +79,22 @@ class CloseSale(PatchMethodMixin, UpdateView):
     model = Sale
     http_method_names = ['patch', 'get']
     success_url = reverse_lazy('sales')
-    template_name = 'close_sale.html'
+    template_name = 'close_details_sale.html'
+
 
     def patch(self, request: HttpRequest, pk, *args, **kwargs):
-        sale = get_object_or_404(Sale, id=pk)
-        sale.closed = True
-        sale.save()
-        return JsonResponse({'redirect_url': reverse_lazy('sales')}, status=200)
-
-class CloseDetailsSale(TemplateView):
-    http_method_names = ['get']
-    template_name = 'close_details_sale.html'
-    
-
-    def get_context_data(self, **kwargs):
-        sale = get_object_or_404(Sale, id=self.kwargs.get('pk'))
-        kwargs['sale'] = sale
-        return super().get_context_data(**kwargs)
+        self.object = self.get_object()
+        print(loads(request.body))
+        form = CloseSaleForm(loads(request.body), instance=self.object)
+        if form.is_valid():
+            instance = form.save(commit=False)
+            instance.closed = True
+            instance.save()
+            return JsonResponse({'redirect_url': self.success_url}, status=200)
         
+        else:
+            return self.form_invalid(form)
+            
 
 
 class SaleQuantityDetailUpdate(PatchMethodMixin, View):
@@ -153,4 +151,3 @@ class ProductAutocomplete(autocomplete.Select2QuerySetView):
 
     def get_result_label(self, item: Product):
         return f"{item.name} {item.color.name} {item.brand.name} T-{item.letter_size.name if item.letter_size else item.numeric_size}"
-

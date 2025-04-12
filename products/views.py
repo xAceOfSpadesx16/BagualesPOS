@@ -16,7 +16,6 @@ class ProductCreateView(CreateView):
     success_url = reverse_lazy('administration')
 
     def form_valid(self, form):
-        super().form_valid
         form.save()
         return JsonResponse({'redirect_url': self.success_url }, status = 200)
     

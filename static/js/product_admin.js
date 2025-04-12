@@ -14,6 +14,7 @@ async function saveProduct(e) {
 
     return ProductsFetcher.productCreate(formData)
         .then(response => {
+            console.log(response.ok)
             if (response.ok) {
                 response.json().then(data => {
                     window.location.href = data.redirect_url;
