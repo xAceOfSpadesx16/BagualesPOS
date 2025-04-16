@@ -1,9 +1,96 @@
 {% extends "index.html" %}
 {% load static %}
 
-{% block sale_records %}
+{% block head_css %}
+    <link rel="stylesheet" href="{% static 'style/records.css' %}">
+    <link rel="stylesheet" href="{% static 'style/table.css' %}">
+{% endblock head_css %}
+
+{% block content %}
     <section id="records_section">
-        <h2>Registros</h2>
-        <p> {{ request.path }} </p>
+        <div class="table-container">
+
+            <table id="records-table" class="responsive-table scroll">
+
+                <thead>
+
+                <tr class="table-header">
+
+                    <th>N° Venta</th>
+
+                    <th>Medio de Pago</th>
+
+                    <th>Cliente</th>
+                    
+                    <th>Fecha</th>
+                    
+                    <th>Total</th>
+
+                    <th> Acciones </th>
+
+                </tr>
+
+                </thead>
+
+                <tbody>
+
+                    {% if sales %}
+                        {% for sale in sales %}
+                        <tr>
+                            <td>{{ sale.id }}</td>
+                            <td>
+                                {% if sale.pay_method %}
+                                    {{ sale.pay_method.name }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>
+
+                                {% if sale.client %}
+                                    {{ sale.client.name }} {{ sale.client.last_name }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>{{ sale.created_at }}</td>
+                            <td class="total-cell">${{ sale.formatted_total_amount }}</td>
+                            <td class="actions-cell">
+                                <button class="delete-btn" data-sale-id="{{ sale.id }}" type="button">
+                                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                        <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
+                                        <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/>
+                                    </svg>
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr id="no-products">
+                            <td colspan="5" > No hay Ventas </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+
+            </table>
+
     </section>
-{% endblock sale_records %}
+    <div class="pagination">
+        <span class="step-links">
+            {% if page_obj.has_previous %}
+            <a href="?page=1">  &lt;&lt; </a>
+            <a href="?page={{ page_obj.previous_page_number  }}">&lt;</a>
+            {% endif %}
+
+            <span class="current">
+                Pagina {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+            </span>
+            
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}">&gt;</a>
+            <a href="?page={{ page_obj.paginator.num_pages }}" > &gt;&gt;</a>
+            {% endif %}
+        </span>
+    </div>
+</div>
+{% endblock content %}

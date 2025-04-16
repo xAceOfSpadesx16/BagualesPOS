@@ -1,5 +1,5 @@
 class BaseButton extends HTMLButtonElement {
-    constructor(idName, onClick, textContent, innerHTML, classList) {
+    constructor(idName, onClick, textContent, innerHTML, classList, newAttributes) {
         super();
         this.id = idName;
         this.onClick = onClick;
@@ -8,6 +8,11 @@ class BaseButton extends HTMLButtonElement {
             this.innerHTML = innerHTML;
         } else {
             this.textContent = textContent || '';
+        }
+        if (newAttributes) {
+            Object.entries(newAttributes).forEach(([key, value]) => {
+                this.setAttribute(key, value);
+            });
         }
     }
     connectedCallback() {
@@ -66,7 +71,9 @@ class Modal extends HTMLElement {
         closeIdSelector = 'close_modal',
         modalXCloseIdSelector = 'modal_x_close',
 
-        requireCloseConfirmation = false
+        requireCloseConfirmation = false,
+
+        confirmButtonDataAttr = {},
 
     } = {}) {
         super();
@@ -85,6 +92,8 @@ class Modal extends HTMLElement {
         this.modalXCloseSelector = modalXCloseIdSelector;
 
         this.requireCloseConfirmation = requireCloseConfirmation;
+
+        this.confirmButtonDataAttr = confirmButtonDataAttr;
 
         this.#setUpModalContent();
     }
@@ -113,7 +122,7 @@ class Modal extends HTMLElement {
         footer.classList.add('modal-container-footer');
 
         const cancelBtn = new BaseButton(this.closeSelector, this.#closeModal.bind(this), 'Cancelar', '', ['button', 'is-ghost']);
-        const confirmBtn = new BaseButton(this.submitSelector, this.confirmAction.bind(this), 'Confirmar', '', ['button', 'is-primary']);
+        const confirmBtn = new BaseButton(this.submitSelector, this.confirmAction.bind(this), 'Confirmar', '', ['button', 'is-primary'], this.confirmButtonDataAttr);
 
         footer.appendChild(cancelBtn);
         footer.appendChild(confirmBtn);

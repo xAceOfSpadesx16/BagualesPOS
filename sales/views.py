@@ -14,7 +14,7 @@ from sales.models import Sale, SaleDetail
 
 from sales.forms import SearchProductForm, CloseSaleForm, SaleClientForm
 
-from sales.mixins import PatchMethodMixin
+from utils.mixins import PatchMethodMixin
 
 from products.models import Product
 
@@ -84,7 +84,6 @@ class CloseSale(PatchMethodMixin, UpdateView):
 
     def patch(self, request: HttpRequest, pk, *args, **kwargs):
         self.object = self.get_object()
-        print(loads(request.body))
         form = CloseSaleForm(loads(request.body), instance=self.object)
         if form.is_valid():
             instance = form.save(commit=False)
@@ -123,6 +122,8 @@ class ClientUpdateView(PatchMethodMixin, View):
         sale.client = client
         sale.save()
         return JsonResponse({"message": _("Client updated successfully")})
+
+
 
 
 class ProductAutocomplete(autocomplete.Select2QuerySetView):

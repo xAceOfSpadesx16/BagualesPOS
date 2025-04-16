@@ -50,12 +50,22 @@ const ProductEndpoints = Object.freeze({
         method: 'GET',
         url: '/productos/create/'
     }),
-    PRODUCT_CREATE: {
+    PRODUCT_CREATE: Object.freeze({
         method: "POST",
         url: '/productos/create/',
         /** @type {ProductCreateBodyBuilder} */
         body: (formData) => formData
-    }
+    }),
+    PRODUCT_UPDATE_FORM: Object.freeze({
+        method: 'GET',
+        url: (pk) => `/productos/update/${pk}/`
+    }),
+    PRODUCT_UPDATE: Object.freeze({
+        method: "POST",
+        url: (pk) => `/productos/update/${pk}/`,
+        /** @type {ProductCreateBodyBuilder} */
+        body: (formData) => formData
+    })
 });
 
 /**

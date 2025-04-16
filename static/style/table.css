@@ -64,17 +64,26 @@
 }
 
 
-.delete-btn {
+.delete-btn,
+.edit-btn {
     padding: 4px 8px;
     font-size: 10px;
-    border: 1px solid #d9534f;
     border-radius: 4px;
     cursor: pointer;
     transition: all 0.3s ease;
+    border: none;
+    background-color: #FFC107;
+    color: black;
 }
+
 
 .delete-btn:hover {
     background: #d9534f;
+    color: white;
+}
+
+.edit-btn:hover {
+    background: #5bc0de;
     color: white;
 }
 

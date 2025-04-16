@@ -165,7 +165,26 @@ class ProductsFetcher extends Fetcher {
             ProductEndpoints.PRODUCT_CREATE.url,
             {
                 method: ProductEndpoints.PRODUCT_CREATE.method,
-                data: ProductEndpoints.PRODUCT_CREATE.body(data), // todos los parametros del body, no data o bien desempaquetarlo
+                data: ProductEndpoints.PRODUCT_CREATE.body(data),
+                csrfToken: true
+            }
+        );
+    }
+
+    static productUpdateForm(id) {
+        return this.request(
+            ProductEndpoints.PRODUCT_UPDATE_FORM.url(id),
+            {
+                method: ProductEndpoints.PRODUCT_UPDATE_FORM.method,
+            }
+        );
+    }
+    static productUpdate(id, data) {
+        return this.request(
+            ProductEndpoints.PRODUCT_UPDATE.url(id),
+            {
+                method: ProductEndpoints.PRODUCT_UPDATE.method,
+                data: ProductEndpoints.PRODUCT_UPDATE.body(data),
                 csrfToken: true
             }
         );
