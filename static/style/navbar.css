@@ -55,8 +55,8 @@
     display: grid;
     grid-template-columns: 1fr 3fr;
     align-items: center;
-    height: 50px;
     overflow: hidden;
+    padding: 10px 0;
 }
 
 .navbar img {

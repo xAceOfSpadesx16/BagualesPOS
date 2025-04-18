@@ -8,4 +8,55 @@
     {% block head_admin_css %}{% endblock head_admin_css %}
 {% endblock head_css %}
 
+{% block content %}
+    <div class="admin-wrapper">
+        <nav class="admin-subnav">
+            <ul>
+                <li class="{% if '/administracion/productos/' == request.path %}active{% endif %}">
+                    <a href="{% url 'product_list' %}">Productos</a>
+                </li>
+
+                <li class= "{% if '/administracion/marcas/' == request.path %}active{% endif %}">
+                    <a href="{% url 'brand_list' %}">Marcas</a>
+                </li>
+
+                <li class= "{% if '/administracion/categorias/' == request.path %}active{% endif %}">
+                    <a href="{% url 'category_list' %}">Categorias</a>
+                </li>
+
+                <li class= "{% if '/administracion/colores/' == request.path %}active{% endif %}">
+                    <a href="{% url 'color_list' %}">Colores</a>
+                </li>
+
+                <li class= "{% if '/administracion/generos/' == request.path %}active{% endif %}">
+                    <a href="{% url 'gender_list' %}">Generos</a>
+                </li>
+
+                <li class= "{% if '/administracion/talles/' == request.path %}active{% endif %}">
+                    <a href="{% url 'letter_size_list' %}">Talles</a>
+                </li>
+
+                <li class= "{% if '/administracion/materiales/' == request.path %}active{% endif %}">
+                    <a href="{% url 'materials_list' %}">Materiales</a>
+                </li>
+
+                <li class= "{% if '/administracion/temporadas/' == request.path %}active{% endif %}">
+                    <a href="{% url 'season_list' %}">Temporadas</a>
+                </li>
+
+                <li class= "{% if '/administracion/proveedores/' == request.path %}active{% endif %}">
+                    <a href="{% url 'supplier_list' %}">Proveedores</a>
+                </li>
+
+            </ul>
+        </nav>
+
+        <!-- Contenido específico de cada sub-tab -->
+        <div class="admin-content">
+            {% block admin_content %}{% endblock admin_content %}
+        </div>
+    </div>
+{% endblock content %}
+
+
 

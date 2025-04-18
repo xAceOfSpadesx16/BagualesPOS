@@ -3,14 +3,13 @@
 {% block head_admin_css %}
 <link rel="stylesheet" href="{% static 'style/table.css' %}">
 <link rel="stylesheet" href="{% static 'style/product_form.css' %}">
+<link rel="stylesheet" href="{% static 'style/products.css' %}">
 
 {% endblock head_admin_css %}
 
 
-
-
-{% block content %}
-    <section id="administration-section">
+{% block admin_content %}
+    <section id="product_section">
         <div class="new-product-container">
             <button id="new-product-button">Nuevo Producto</button>
         </div>
@@ -84,7 +83,7 @@
 
         </div>
     </section>
-{% endblock content %}
+{% endblock admin_content %}
 
 {% block body_scripts %}
 

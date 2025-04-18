@@ -83,6 +83,7 @@ document.addEventListener('click', (e) => {
         ProductsFetcher.productDelete(productId).then(response => response.json()).then(data => {
             const row = button.closest('tr');
             row.remove();
+            // agregar dialogo de exito
         }).catch(error => {
             console.error(error);
         });

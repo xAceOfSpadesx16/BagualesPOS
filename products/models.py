@@ -6,6 +6,7 @@ from django.db.models.fields.files import ImageField
 from django.db.models.fields.related import ForeignKey
 from django.db.models.deletion import SET_NULL
 from django.db.models.indexes import Index
+from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
 
 from utils import PhoneNumberField
@@ -151,6 +152,8 @@ class Product(Model):
     season = ForeignKey(Season, on_delete=SET_NULL, null=True, verbose_name=_('season'))
     created_at = DateTimeField(_('created at'), auto_now_add=True, editable=False)
     updated_at = DateTimeField(_('updated at'), auto_now=True)
+    is_deleted = BooleanField(_('deleted'), default=False)
+    deleted_at = DateTimeField(_('deleted at'), null=True, blank=True)
 
     def __str__(self):
         return f'{self.name} - {self.brand.name}'
@@ -163,6 +166,11 @@ class Product(Model):
     def formatted_sale_price(self):
         return formatted_integer(self.sale_price)
     
+    def soft_delete(self, *args, **kwargs):
+        self.is_deleted = True
+        self.deleted_at = now()
+        super().save(*args, **kwargs)
+
     class Meta:
         verbose_name = _('product')
         verbose_name_plural = _('products')

@@ -48,23 +48,27 @@
 const ProductEndpoints = Object.freeze({
     PRODUCT_CREATE_FORM: Object.freeze({
         method: 'GET',
-        url: '/productos/create/'
+        url: '/administracion/productos/create/'
     }),
     PRODUCT_CREATE: Object.freeze({
         method: "POST",
-        url: '/productos/create/',
+        url: '/administracion/productos/create/',
         /** @type {ProductCreateBodyBuilder} */
         body: (formData) => formData
     }),
     PRODUCT_UPDATE_FORM: Object.freeze({
         method: 'GET',
-        url: (pk) => `/productos/update/${pk}/`
+        url: (pk) => `/administracion/productos/update/${pk}/`
     }),
     PRODUCT_UPDATE: Object.freeze({
         method: "POST",
-        url: (pk) => `/productos/update/${pk}/`,
+        url: (pk) => `/administracion/productos/update/${pk}/`,
         /** @type {ProductCreateBodyBuilder} */
         body: (formData) => formData
+    }),
+    PRODUCT_DELETE: Object.freeze({
+        method: 'DELETE',
+        url: (pk) => `/administracion/productos/delete/${pk}/`
     })
 });
 

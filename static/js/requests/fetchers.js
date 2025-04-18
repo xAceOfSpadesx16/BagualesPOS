@@ -189,6 +189,15 @@ class ProductsFetcher extends Fetcher {
             }
         );
     }
+    static productDelete(id) {
+        return this.request(
+            ProductEndpoints.PRODUCT_DELETE.url(id),
+            {
+                method: ProductEndpoints.PRODUCT_DELETE.method,
+                csrfToken: true
+            }
+        );
+    }
 }
 
 

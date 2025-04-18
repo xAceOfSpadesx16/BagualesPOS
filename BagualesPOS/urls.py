@@ -10,7 +10,7 @@ urlpatterns = [
     path('registros/', include('records.urls')),
     path('inventario/', include('inventory.urls')),
     path('clientes/', include('clients.urls')),
-    path('productos/', include('products.urls')),
+    # path('productos/', include('products.urls')),
     path('administracion/', include('administration.urls')),
     path('users/', include('users.urls')),
     path(

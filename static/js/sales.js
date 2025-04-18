@@ -167,6 +167,7 @@ document.addEventListener('click', function (event) {
                 noProducts.innerHTML = `<td colspan="5">No hay productos en el carrito</td>`;
                 bodyCarrito.appendChild(noProducts);
             }
+            // agregar dialogo de exito
         }).catch(error => {
             console.error(error);
         });
