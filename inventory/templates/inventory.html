@@ -10,8 +10,10 @@
 {% block content %}
 
     <section id="inventory_section">
+
         <div class="table-container">
-            <table id="sale-table" class="responsive-table scroll">
+
+            <table id="inventory-table" class="responsive-table scroll">
 
                 <thead>
 
@@ -48,7 +50,7 @@
                         {% endfor %}
                     {% else %}
                         <tr id="no-products">
-                            <td colspan="4" >No hay productos en la venta</td>
+                            <td colspan="4" >No hay productos en el inventario</td>
                         </tr>
                     {% endif %}
                 </tbody>

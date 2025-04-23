@@ -1,0 +1,12 @@
+.color-td {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.color-cell {
+    width: 30px;
+    height: 30px;
+    border-radius: 25%;
+    border: 1px solid #7e7d7d;
+}

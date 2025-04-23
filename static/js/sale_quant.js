@@ -1,4 +1,4 @@
-import { SalesFetcher } from "./requests/fetchers.js";
+import { SalesFetcher } from "./requests/fetchers/sale_fetcher.js";
 
 class QuantityInput extends HTMLInputElement {
     constructor(initialValue, saledetailId) {

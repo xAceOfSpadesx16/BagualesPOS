@@ -41,7 +41,7 @@ INSTALLED_APPS = [
 
     'dal',
     'dal_select2',
-    
+
     'sales',
     'records',
     'inventory',

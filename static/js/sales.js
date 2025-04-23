@@ -1,5 +1,5 @@
+import { SalesFetcher } from "./requests/fetchers/sale_fetcher.js";
 import { setInputQuantity } from "./sale_quant.js";
-import { SalesFetcher } from "./requests/fetchers.js";
 import { Modal } from "./modal.js";
 
 

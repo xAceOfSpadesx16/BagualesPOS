@@ -45,7 +45,7 @@ class Season(Model):
 
 class Color(Model):
     name = CharField(_('name'),max_length=50)
-    code = CharField(_('code'), max_length=6)
+    code = CharField(_('code'), max_length=7)
 
     def __str__(self):
         return self.name

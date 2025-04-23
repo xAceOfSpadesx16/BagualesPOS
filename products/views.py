@@ -13,20 +13,7 @@ from products.models import Product, Brand, Category, Color, Gender, LetterSize,
 from products.forms import ProductForm, BrandForm, CategoryForm, ColorForm, GenderForm, LetterSizeForm, MaterialsForm, SeasonForm, SupplierForm
 
 
-""" PRODUCT VIEWS """
-
-class ProductListView(ListView):
-    template_name = 'product_administration.html'
-    model = Product
-    context_object_name = 'products'
-    queryset = Product.objects.filter(is_deleted=False)
-
-class ProductCreateView(CreateView):
-    model = Product
-    form_class = ProductForm
-    template_name = 'product_form.html'
-    success_url = reverse_lazy('administration')
-
+class CreateFormValidationMixin:
     def form_valid(self, form):
         form.save()
         return JsonResponse({'redirect_url': self.success_url }, status = 200)
@@ -35,17 +22,35 @@ class ProductCreateView(CreateView):
         response = super().form_invalid(form)
         response.status_code = 400
         return response
+    
+class UpdateFormValidationMixin:
+    def form_valid(self, form):
+        form.save()
+        return JsonResponse({'redirect_url': self.success_url }, status = 200)
+    
+""" PRODUCT VIEWS """
 
-class ProductUpdateView(UpdateView):
+class ProductListView(ListView):
+    template_name = 'product_administration.html'
+    model = Product
+    context_object_name = 'products'
+    queryset = Product.objects.filter(is_deleted=False)
+
+
+class ProductCreateView(CreateFormValidationMixin, CreateView):
     model = Product
     form_class = ProductForm
     template_name = 'product_form.html'
     success_url = reverse_lazy('administration')
 
-    def form_valid(self, form):
-        form.save()
-        return JsonResponse({'redirect_url': self.success_url }, status = 200)
-    
+
+class ProductUpdateView(UpdateFormValidationMixin, UpdateView):
+    model = Product
+    form_class = ProductForm
+    template_name = 'product_form.html'
+    success_url = reverse_lazy('administration')
+
+
 class ProductDeleteView(View):
     http_method_names = ['delete']
 
@@ -61,18 +66,21 @@ class BrandListView(ListView):
     template_name = 'brand_administration.html'
     model = Brand
     context_object_name = 'brands'
+    
 
-class BrandCreateView(CreateView):
+class BrandCreateView(CreateFormValidationMixin, CreateView):
     model = Brand
     form_class = BrandForm
-    template_name = 'brand_form.html'
+    template_name = 'administration_forms.html'
     success_url = reverse_lazy('brand_administration')
 
-class BrandUpdateView(UpdateView):
+    
+class BrandUpdateView(UpdateFormValidationMixin, UpdateView):
     model = Brand
     form_class = BrandForm
-    template_name = 'brand_form.html'
+    template_name = 'administration_forms.html'
     success_url = reverse_lazy('brand_administration')
+
 
 class BrandDeleteView(View):
     http_method_names = ['delete']
@@ -90,16 +98,16 @@ class CategoryListView(ListView):
     model = Category
     context_object_name = 'categories'
 
-class CategoryCreateView(CreateView):
+class CategoryCreateView(CreateFormValidationMixin, CreateView):
     model = Category
     form_class = CategoryForm
-    template_name = 'category_form.html'
+    template_name = 'administration_forms.html'
     success_url = reverse_lazy('category_administration')
 
-class CategoryUpdateView(UpdateView):
+class CategoryUpdateView(UpdateFormValidationMixin, UpdateView):
     model = Category
     form_class = CategoryForm
-    template_name = 'category_form.html'
+    template_name = 'administration_forms.html'
     success_url = reverse_lazy('category_administration')
 
 class CategoryDeleteView(View):
@@ -118,16 +126,17 @@ class ColorListView(ListView):
     model = Color
     context_object_name = 'colors'
 
-class ColorCreateView(CreateView):
+class ColorCreateView(CreateFormValidationMixin, CreateView):
     model = Color
     form_class = ColorForm
-    template_name = 'color_form.html'
+    template_name = 'administration_forms.html'
     success_url = reverse_lazy('color_administration')
 
-class ColorUpdateView(UpdateView):
+
+class ColorUpdateView(UpdateFormValidationMixin, UpdateView):
     model = Color
-    form_class = Color
-    template_name = 'color_form.html'
+    form_class = ColorForm
+    template_name = 'administration_forms.html'
     success_url = reverse_lazy('color_administration')
 
 class ColorDeleteView(View):
@@ -146,16 +155,16 @@ class GenderListView(ListView):
     model = Gender
     context_object_name = 'genders'
 
-class GenderCreateView(CreateView):
+class GenderCreateView(CreateFormValidationMixin, CreateView):
     model = Gender
     form_class = GenderForm
-    template_name = 'gender_form.html'
+    template_name = 'administration_forms.html'
     success_url = reverse_lazy('gender_administration')
 
-class GenderUpdateView(UpdateView):
+class GenderUpdateView(UpdateFormValidationMixin, UpdateView):
     model = Gender
     form_class = GenderForm
-    template_name = 'gender_form.html'
+    template_name = 'administration_forms.html'
     success_url = reverse_lazy('gender_administration')
 
 class GenderDeleteView(View):
@@ -174,16 +183,16 @@ class LetterSizeListView(ListView):
     model = LetterSize
     context_object_name = 'letter_sizes'
 
-class LetterSizeCreateView(CreateView):
+class LetterSizeCreateView(CreateFormValidationMixin, CreateView):
     model = LetterSize
     form_class = LetterSizeForm
-    template_name = 'letter_size_form.html'
+    template_name = 'administration_forms.html'
     success_url = reverse_lazy('letter_size_administration')
 
-class LetterSizeUpdateView(UpdateView):
+class LetterSizeUpdateView(UpdateFormValidationMixin, UpdateView):
     model = LetterSize
     form_class = LetterSizeForm
-    template_name = 'letter_size_form.html'
+    template_name = 'administration_forms.html'
     success_url = reverse_lazy('letter_size_administration')
 
 class LetterSizeDeleteView(View):
@@ -198,20 +207,20 @@ class LetterSizeDeleteView(View):
 """ Materials VIEWS """
 
 class MaterialsListView(ListView):
-    template_name = 'materials_administration.html'
+    template_name = 'material_administration.html'
     model = Materials
     context_object_name = 'materials'
 
-class MaterialsCreateView(CreateView):
+class MaterialsCreateView(CreateFormValidationMixin, CreateView):
     model = Materials
     form_class = MaterialsForm
-    template_name = 'materials_form.html'
+    template_name = 'administration_forms.html'
     success_url = reverse_lazy('materials_administration')
 
-class MaterialsUpdateView(UpdateView):
+class MaterialsUpdateView(UpdateFormValidationMixin, UpdateView):
     model = Materials
     form_class = MaterialsForm
-    template_name = 'materials_form.html'
+    template_name = 'administration_forms.html'
     success_url = reverse_lazy('materials_administration')
 
 class MaterialsDeleteView(View):
@@ -230,16 +239,16 @@ class SeasonListView(ListView):
     model = Season
     context_object_name = 'seasons'
 
-class SeasonCreateView(CreateView):
+class SeasonCreateView(CreateFormValidationMixin, CreateView):
     model = Season
     form_class = SeasonForm
-    template_name = 'season_form.html'
+    template_name = 'administration_forms.html'
     success_url = reverse_lazy('season_administration')
 
-class SeasonUpdateView(UpdateView):
+class SeasonUpdateView(UpdateFormValidationMixin, UpdateView):
     model = Season
     form_class = SeasonForm
-    template_name = 'season_form.html'
+    template_name = 'administration_forms.html'
     success_url = reverse_lazy('season_administration')
 
 class SeasonDeleteView(View):
@@ -258,16 +267,16 @@ class SupplierListView(ListView):
     model = Supplier
     context_object_name = 'suppliers'
 
-class SupplierCreateView(CreateView):
+class SupplierCreateView(CreateFormValidationMixin, CreateView):
     model = Supplier
     form_class = SupplierForm
-    template_name = 'supplier_form.html'
+    template_name = 'administration_forms.html'
     success_url = reverse_lazy('supplier_administration')
 
-class SupplierUpdateView(UpdateView):    
+class SupplierUpdateView(UpdateFormValidationMixin, UpdateView):    
     model = Supplier
     form_class = SupplierForm
-    template_name = 'supplier_form.html'
+    template_name = 'administration_forms.html'
     success_url = reverse_lazy('supplier_administration')
 
 class SupplierDeleteView(View):

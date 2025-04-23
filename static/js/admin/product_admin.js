@@ -1,6 +1,6 @@
-import { ProductsFetcher } from "./requests/fetchers.js";
+import { ProductsFetcher } from "../requests/fetchers/product_fetcher.js";
 
-import { Modal } from "./modal.js";
+import { Modal } from "../modal.js";
 
 async function saveProduct(e) {
     e.preventDefault();
@@ -66,7 +66,7 @@ async function updateProduct(e) {
 
 document.addEventListener('click', (e) => {
     const target = e.target;
-    if (target.closest('#new-product-button')) {
+    if (target.closest('#new-object-button')) {
         ProductsFetcher.productFormGET().then(data => {
             data.text().then(html => {
                 const modal = new Modal({ title: 'Nuevo producto', content: html, onSubmit: saveProduct, requireCloseConfirmation: true });

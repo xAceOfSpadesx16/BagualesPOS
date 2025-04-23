@@ -8,6 +8,7 @@
 
 {% block content %}
     <section id="records_section">
+
         <div class="table-container">
 
             <table id="records-table" class="responsive-table scroll">
@@ -53,7 +54,7 @@
                                     -
                                 {% endif %}
                             </td>
-                            <td>{{ sale.created_at }}</td>
+                            <td>{{ sale.created_at|date:"d/m/Y" }}</td>
                             <td class="total-cell">${{ sale.formatted_total_amount }}</td>
                             <td class="actions-cell">
                                 <button class="delete-btn" data-sale-id="{{ sale.id }}" type="button">
@@ -67,12 +68,14 @@
                         {% endfor %}
                     {% else %}
                         <tr id="no-products">
-                            <td colspan="5" > No hay Ventas </td>
+                            <td colspan="5" > No hay ventas registradas.  </td>
                         </tr>
                     {% endif %}
                 </tbody>
 
             </table>
+
+        </div>
 
     </section>
     <div class="pagination">

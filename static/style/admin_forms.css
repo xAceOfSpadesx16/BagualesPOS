@@ -1,9 +1,9 @@
 /* ===== ESTRUCTURA PRINCIPAL ===== */
-#product-form {
+/* #product-form {
     padding: 0;
     max-width: 100%;
     box-sizing: border-box;
-}
+} */
 
 .form-columns-container {
     display: grid;
@@ -74,10 +74,10 @@
     padding-right: 35px !important;
 }
 
-.required::after {
+/* .required::after {
     content: " *";
     color: #dc2626;
-}
+} */
 
 /* ===== MANEJO DE ERRORES ===== */
 .errorlist {

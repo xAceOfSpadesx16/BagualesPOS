@@ -1,4 +1,10 @@
-#records_section {
+.table-container {
+    flex: 1;
+    min-height: 0px;
+    width: 100%;
+}
+
+#inventory_section {
     display: flex;
     flex-direction: column;
     justify-content: space-around;
