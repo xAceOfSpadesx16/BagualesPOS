@@ -16,18 +16,21 @@ const buildRow = (row, data) => {
             value: data.quantity,
             class: 'editable-cell quantity-cell',
             attributes: {
-                'data-saledetail-id': data.id,
-                'ondblclick': 'setInputQuantity(this)'
+                'data-sale-detail-id': data.id,
+                // 'ondblclick': 'setInputQuantity(this)'
             }
         },
         {
-            value: data.product.name
+            value: data.product.name,
+            class: 'product-cell',
         },
         {
-            value: `$${data.sale_price}`
+            value: `$${data.sale_price}`,
+            class: 'price-cell'
         },
         {
-            value: `$${data.total_price}`
+            value: `$${data.total_price}`,
+            class: 'subtotal-cell'
         },
         {
             class: 'action-cell',
@@ -43,6 +46,8 @@ const buildRow = (row, data) => {
             ]
         }
     ];
+
+    row.setAttribute('data-row-id', data.id);
 
     cellsConfig.forEach(config => {
         const cell = document.createElement('td');
@@ -76,6 +81,14 @@ function setAttributes(element, attributes) {
     Object.entries(attributes).forEach(([key, value]) => {
         element.setAttribute(key, value);
     });
+}
+
+function updateRow(row, data) {
+    const subtotalCell = row.querySelector('.subtotal-cell');
+    const quantityCell = row.querySelector('.quantity-cell');
+
+    quantityCell.textContent = data.quantity;
+    subtotalCell.textContent = `$${data.total_price}`;
 }
 
 async function closeSale(e) {
@@ -130,14 +143,20 @@ document.addEventListener('submit', function (event) {
         ).then(
             data => {
 
-                if (noProducts && data.product.name.length > 0) {
-                    bodyCarrito.removeChild(noProducts);
-                };
+                if (data.created) {
+                    if (noProducts && data.product.name.length > 0) {
+                        bodyCarrito.removeChild(noProducts);
+                    };
 
-                let newRow = bodyCarrito.insertRow(-1);
-                buildRow(newRow, data);
-
+                    let newRow = bodyCarrito.insertRow(-1);
+                    buildRow(newRow, data);
+                }
+                else {
+                    let row = bodyCarrito.querySelector(`[data-row-id="${data.id}"]`);
+                    updateRow(row, data);
+                }
                 totalElement.textContent = `$${data.total_sale_amount}`;
+
             }).catch(error => {
                 alert(error.message);
             });

@@ -8,7 +8,7 @@ from sales.models import SaleDetail
 
 @receiver(post_save, sender=SaleDetail)
 @atomic
-def update_stock(sender, instance: SaleDetail, created: bool, **kwargs):
+def update_stock_save(sender, instance: SaleDetail, created: bool, **kwargs):
 
     stock = instance.product.inventory
     if created:
@@ -17,6 +17,15 @@ def update_stock(sender, instance: SaleDetail, created: bool, **kwargs):
         old_record = SaleDetail.objects.get(pk=instance.pk)
         stock.quantity -= instance.quantity - old_record.quantity
     stock.save()
+
+
+@receiver(post_delete, sender=SaleDetail)
+@atomic
+def update_stock_delete(sender, instance: SaleDetail, **kwargs):
+    if instance.product:
+        instance.product.inventory.quantity += instance.quantity
+        instance.product.inventory.save()
+        instance.product.save()
 
 @receiver(post_save, sender = SaleDetail)
 @receiver(post_delete, sender = SaleDetail)
@@ -27,10 +36,3 @@ def update_sale_total(sender, instance: SaleDetail, **kwargs):
     sale.total_amount = total_price_details
     sale.save()
 
-
-@receiver(post_delete, sender=SaleDetail)
-@atomic
-def update_stock(sender, instance: SaleDetail, **kwargs):
-    if instance.product:
-        instance.product.inventory.quantity += instance.quantity
-        instance.product.inventory.save()

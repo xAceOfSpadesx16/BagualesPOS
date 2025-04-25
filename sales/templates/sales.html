@@ -68,7 +68,7 @@
 
                     {% if sale.details.all %}
                         {% for detail in sale.details.all %}
-                        <tr>
+                        <tr data-row-id="{{ detail.id }}">
                             <td class="editable-cell quantity-cell" data-sale-detail-id="{{ detail.id }}" >{{ detail.quantity }}</td>
                             <td class= "product-cell">{{ detail.product.name }}</td>
                             <td class= "price-cell">${{ detail.formatted_sale_price }}</td>

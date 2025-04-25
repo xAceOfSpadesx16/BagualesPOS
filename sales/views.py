@@ -1,5 +1,5 @@
 from django.views.generic import TemplateView, CreateView, View, UpdateView
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
 from django.http import HttpRequest
@@ -54,7 +54,21 @@ class SaleDetailCreate(CreateView):
     def post(self, request: HttpRequest, *args, **kwargs):
         form = SearchProductForm(loads(request.body), request=self.request)
         if form.is_valid():
-            instance: SaleDetail = form.save()
+            created = False
+            form_instance: SaleDetail = form.save(commit=False)
+
+            if SaleDetail.objects.filter(product=form_instance.product, order=form_instance.order).exists():
+
+                sale_detail = SaleDetail.objects.get(product=form_instance.product, order=form_instance.order)
+                sale_detail.quantity += form_instance.quantity
+                sale_detail.save()
+                instance = sale_detail
+
+            else:
+                form_instance.save()
+                instance = form_instance
+                created = True
+
 
             product = instance.product
             quantity = instance.quantity
@@ -70,6 +84,7 @@ class SaleDetailCreate(CreateView):
                 'total_price': total_price,
                 'total_sale_amount': instance.order.formatted_total_amount,
                 'id': instance.pk,
+                'created': created,
             })
         else:
             return JsonResponse({'error': form.errors.as_json()}, status=400)
@@ -128,7 +143,7 @@ class ClientUpdateView(PatchMethodMixin, View):
 
 class ProductAutocomplete(autocomplete.Select2QuerySetView):
     def get_queryset(self):
-        qs = Product.objects.select_related('letter_size', 'gender', 'material', 'color', 'brand', 'category', 'season').all().order_by('name')
+        qs = Product.objects.select_related('letter_size', 'gender', 'material', 'color', 'brand', 'category', 'season').filter(is_deleted=False).all().order_by('name')
         search_term = self.request.GET.get('q', '')
         if search_term:
             search_terms = search_term.split()
@@ -151,4 +166,4 @@ class ProductAutocomplete(autocomplete.Select2QuerySetView):
         return qs
 
     def get_result_label(self, item: Product):
-        return f"{item.name} {item.color.name} {item.brand.name} T-{item.letter_size.name if item.letter_size else item.numeric_size}"
+        return f"{item.name} {item.color.name if item.color else 'Sin Color'} {item.brand.name if item.brand else 'Sin Marca'} T-{item.letter_size.name if item.letter_size else item.numeric_size}"

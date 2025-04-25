@@ -1,15 +1,10 @@
 from dal import autocomplete
 from django import forms
-from django.forms import ModelForm, Form
+from django.forms import ModelForm
 from django.forms.fields import IntegerField
 from django.utils.translation import gettext_lazy as _
 
 from sales.models import SaleDetail, Sale
-
-from products.models import Product
-
-from clients.models import Client
-
 
 
 class SearchProductForm(ModelForm):

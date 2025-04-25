@@ -11,7 +11,7 @@ from products.views import SupplierCreateView, SupplierUpdateView, SupplierListV
 
 
 urlpatterns = [
-    path('', RedirectView.as_view(pattern_name='product_list', permanent=True), name='administration'),
+    path('', RedirectView.as_view(pattern_name='product_administration', permanent=True), name='administration'),
     path('productos/', include('products.urls')),
 ]
 
