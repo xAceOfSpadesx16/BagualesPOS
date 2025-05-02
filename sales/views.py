@@ -130,9 +130,14 @@ class SaleQuantityDetailUpdate(PatchMethodMixin, View):
 
 class ClientUpdateView(PatchMethodMixin, View):
     def patch(self, request: HttpRequest, pk, *args, **kwargs):
-        sale = get_object_or_404(Sale, id=pk)
         body = loads(request.body)
         client_id = body.get('client')
+        sale = get_object_or_404(Sale, id=pk)
+        if not client_id:
+            sale.client = None
+            sale.save()
+            return JsonResponse({"message": _("Client deleted successfully")})
+        
         client = get_object_or_404(Client, id=client_id)
         sale.client = client
         sale.save()

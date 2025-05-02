@@ -71,6 +71,7 @@ class SaleClientForm(ModelForm):
                     "data-placeholder": _("Search a client..."),
                     "data-ajax--delay": 250,
                     "id": "client-autocomplete",
-                }
+                },
+                
             )
         }

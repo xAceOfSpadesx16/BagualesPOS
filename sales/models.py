@@ -25,7 +25,7 @@ class PayMethod(Model):
 
 class Sale(Model):
     seller = ForeignKey(get_user_model(), on_delete=SET_NULL, null=True, verbose_name= _('seller'))
-    client = ForeignKey(Client, on_delete=SET_NULL, null=True, verbose_name= _('client'))
+    client = ForeignKey(Client, on_delete=SET_NULL, null=True, blank=True, verbose_name= _('client'))
     total_amount = IntegerField(default=0, verbose_name= _('total amount'))
     pay_method = ForeignKey(PayMethod, on_delete=SET_NULL, null=True, verbose_name= _('payment method'))
     canceled = BooleanField(default=False, verbose_name= _('canceled'))
