@@ -1,26 +1,50 @@
 {% extends "index.html" %}
 {% load static %}
-
 {% block head_css %}
     <link rel="stylesheet" href="{% static 'style/sales.css' %}">
+    <link rel="stylesheet" href="{% static 'style/table.css' %}">
+    <link rel="stylesheet" href="{% static 'style/modal.css' %}">
+    <link rel="stylesheet" href="{% static 'style/close_sale.css' %}">
+    {{ product_form.media.css }}
 {% endblock head_css %}
 {% block title %} Ventas {% endblock title %}
+
+{% block head_js %}
+<script type="text/javascript" src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
+{% endblock head_js %}
 
 
 {% block content %}
 
-    <section id="sales-section">
-        <div class="form-container">
-            <form>
-                    <input type="text" id="product" name="customer", placeholder="Producto">
-                    <input type="number" id="quantity" name="quantity", placeholder="Cantidad">
-                    <button type="submit">Agregar</button>
-            </form>
+    <section id="sales-section" style="display: none;">
+        <div class="close-row">
 
+            <div class="client-container">
+                {{ client_form.client }}
+            </div>
+
+            <div class="form-container">
+                <form id="product-form">
+                    {% csrf_token %}
+                    {% for field in product_form %}
+                            {{ field.errors }}
+                            {{ field }}
+                    {% endfor %}
+                    <button type="submit">Agregar</button>
+                </form>
+            </div>
+
+            <div class="close-container">
+                <button id="close-sale-button" title="Cerrar Venta" data-sale-id="{{ sale.id }}">
+                    <img src="{% static 'images/checkout.png' %}" alt="Checkout">
+                </button>
+            </div>
+            
         </div>
+
         <div class="table-container">
 
-            <table class="responsive-table scroll">
+            <table id="sale-table" class="responsive-table scroll">
 
                 <thead>
 
@@ -44,17 +68,24 @@
 
                     {% if sale.details.all %}
                         {% for detail in sale.details.all %}
-                        <tr>
-                            <td>{{ detail.quantity }}</td>
-                            <td>{{ detail.product.name }}</td>
-                            <td>${{ detail.sale_price }}</td>
-                            <td>${{ detail.get_total_price }}</td>
-                            <td><a href="{% url 'sale-detail-delete' detail.id %}">Eliminar</a></td>
+                        <tr data-row-id="{{ detail.id }}">
+                            <td class="editable-cell quantity-cell" data-sale-detail-id="{{ detail.id }}" >{{ detail.quantity }}</td>
+                            <td class= "product-cell">{{ detail.product.name }}</td>
+                            <td class= "price-cell">${{ detail.formatted_sale_price }}</td>
+                            <td class= "subtotal-cell">${{ detail.formatted_total_price }}</td>
+                            <td class="actions-cell">
+                                <button class="delete-btn" data-sale-detail-id="{{ detail.id }}" type="button">
+                                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                        <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
+                                        <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/>
+                                    </svg>
+                                </button>
+                            </td>
                         </tr>
                         {% endfor %}
                     {% else %}
-                        <tr>
-                            <td colspan="4">No hay productos en la venta</td>
+                        <tr id="no-products">
+                            <td colspan="5" >No hay productos en la venta</td>
                         </tr>
                     {% endif %}
                 </tbody>
@@ -62,12 +93,33 @@
             </table>
 
         </div>
-
-    </div>
+        
+        <div id="total-container">
+            <span class="total-label">Total:</span>
+            <span id="total-value">${{ sale.formatted_total_amount }}</span>
+        </div>
 
     </section>
 {% endblock content %}
 
 {% block body_scripts %}
-{% comment %} <script src="{% static 'js/sales.js' %}"></script> {% endcomment %}
+
+{{ product_form.media.js }}
+
+<script type="module" src="{% static 'js/sales.js' %}"></script>
+<script>
+    window.addEventListener('load', function() {
+        const salesSection = document.getElementById('sales-section');
+        salesSection.style.opacity = 0;
+        salesSection.style.display = 'flex';
+        let opacity = 0;
+        const intervalId = setInterval(function() {
+            opacity += 0.1;
+            salesSection.style.opacity = opacity;
+            if (opacity >= 1) {
+                clearInterval(intervalId);
+            }
+        }, 15);
+    });
+</script>
 {% endblock body_scripts %}

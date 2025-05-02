@@ -1,0 +1,188 @@
+/*********************
+  Scrollbars Globales
+**********************/
+* {
+    scrollbar-width: thin;
+    scrollbar-color: #d4d4d4 #fffbf0;
+}
+
+*::-webkit-scrollbar {
+    width: 8px;
+    background-color: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+    border-radius: 4px;
+    background-color: #d4d4d4;
+    border: 2px solid #fffbf0;
+}
+
+/*********************
+  Modal Container
+**********************/
+#modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.7);
+    -webkit-backdrop-filter: blur(3px);
+    backdrop-filter: blur(3px);
+    z-index: 1000;
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+
+    &.show {
+        opacity: 1;
+        pointer-events: auto;
+    }
+}
+
+/*********************
+  Contenido del Modal
+**********************/
+.modal-container {
+    width: min(90%, 500px);
+    max-height: 90vh;
+    background: #fffbf0;
+    border-radius: 1rem;
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
+    transform: scale(0.95);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+
+    #modal.show & {
+        transform: scale(1);
+    }
+
+    @media (max-width: 600px) {
+        border-radius: 0.75rem;
+        width: 95%;
+    }
+}
+
+/*********************
+  Secciones del Modal
+**********************/
+.modal-container-header {
+    padding: 1.25rem 2rem;
+    border-bottom: 1px solid #e5e5e5;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+}
+
+.modal-container-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1a1a1a;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+
+    svg {
+        width: 1.5rem;
+        height: 1.5rem;
+    }
+}
+
+.modal-container-body {
+    padding: 2rem;
+    overflow-y: auto;
+    flex-grow: 1;
+    max-height: calc(90vh - 140px);
+    scrollbar-gutter: stable;
+
+    @media (max-width: 600px) {
+        padding: 1.5rem;
+    }
+}
+
+.modal-container-footer {
+    padding: 1.5rem 2rem;
+    border-top: 1px solid #e5e5e5;
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    position: relative;
+    background: linear-gradient(to top,
+            #fffbf0 70%,
+            rgba(255, 251, 240, 0.7));
+
+    @media (max-width: 600px) {
+        padding: 1.25rem;
+        flex-wrap: wrap;
+    }
+}
+
+/*********************
+  Componentes
+**********************/
+.button {
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+
+    &:focus-visible {
+        outline: 2px solid #750550;
+        outline-offset: 2px;
+    }
+
+    &.is-ghost {
+        background: transparent;
+        color: #404040;
+
+        &:hover {
+            background: rgba(0, 0, 0, 0.05);
+        }
+    }
+
+    &.is-primary {
+        background: #750550;
+        color: white;
+
+        &:hover {
+            background: #5a043d;
+        }
+    }
+}
+
+.icon-button {
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+        background: rgba(0, 0, 0, 0.05);
+    }
+
+    svg {
+        width: 1.5rem;
+        height: 1.5rem;
+    }
+}
+
+/*********************
+Animaciones
+**********************/
+@media (prefers-reduced-motion: reduce) {
+
+    #modal,
+    .modal-container {
+        transition: none !important;
+    }
+}

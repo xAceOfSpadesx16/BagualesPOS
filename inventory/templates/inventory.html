@@ -1,12 +1,70 @@
 {% extends "index.html" %}
 {% load static %}
 
-{% block inventory %}
+{% block title %} Inventario {% endblock title %}
+{% block head_css %}
+<link rel="stylesheet" href="{% static 'style/table.css' %}">
+    <link rel="stylesheet" href="{% static 'style/inventory.css' %}">
+
+{% endblock head_css %}
+
+{% block content %}
 
     <section id="inventory_section">
-        <h2>Inventario</h2>
-        <p> {{ request.path }} </p>
+
+        <div class="table-container">
+
+            <table id="inventory-table" class="responsive-table scroll">
+
+                <thead>
+                    <tr class="table-header">
+                        <th>Producto</th>
+                        <th>Marca</th>
+                        <th>Color</th>
+                        <th>Genero</th>
+                        <th>Categoria</th>
+                        <th>Cantidad</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% if inventories %}
+                        {% for inventory in inventories %}
+                        <tr>
+                            <td>{{ inventory.product.name }}</td>
+                            <td>{{ inventory.product.brand.name }}</td>
+                            <td>{{ inventory.product.color.name }}</td>
+                            <td>{{ inventory.product.gender.name }}</td>
+                            <td>{{ inventory.product.category.name }}</td>
+                            <td class="quantity-cell">
+                                <div class="quantity-wrapper" data-inventory-id="{{ inventory.id }}">
+                                    <button class="btn-quantity substraction">
+                                        <svg viewBox="0 0 24 24" width="20" height="20">
+                                            <path d="M5 11h14v2H5z"/>
+                                        </svg>
+                                    </button>
+                                    <span class="current-quantity">{{ inventory.quantity }}</span>
+                                    <button class="btn-quantity addition">
+                                        <svg viewBox="0 0 24 24" width="20" height="20">
+                                            <path d="M11 5h2v14h-2V5zm-6 6h14v2H5v-2z"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr id="no-products">
+                            <td colspan="6">No hay productos en el inventario</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
     </section>
 
-{% endblock inventory %}
+{% endblock content %}
 
+{% block body_scripts %}
+    <script type="module" src="{% static 'js/inventory.js' %}"></script>
+{% endblock body_scripts %}

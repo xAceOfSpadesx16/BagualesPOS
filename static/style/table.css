@@ -1,0 +1,138 @@
+.table-container {
+    width: 95%;
+    height: 80%;
+    margin: 20px auto;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    overflow: auto;
+    position: relative;
+    font-size: 11px;
+    min-width: 300px;
+}
+
+.scroll-wrapper {
+    width: max-content;
+    min-width: 100%;
+    padding-bottom: 15px;
+}
+
+.scroll {
+    width: 100%;
+    table-layout: auto;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: white;
+}
+
+.scroll thead {
+    position: sticky;
+    top: 0;
+    left: 0;
+    z-index: 4;
+    background: linear-gradient(145deg, #D4A017, #FFC107);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.scroll th,
+.scroll td {
+    padding: 8px 12px;
+    text-align: center;
+    border-bottom: 1px solid #f0f0f0;
+    white-space: nowrap;
+    min-width: 120px;
+    max-width: 400px;
+    overflow: visible;
+}
+
+.scroll th {
+    color: white;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+    padding: 12px 15px;
+    position: relative;
+}
+
+.scroll tbody tr {
+    transition: background 0.2s ease;
+    height: 40px;
+}
+
+.scroll tbody tr:hover {
+    background: rgba(212, 160, 23, 0.05);
+}
+
+
+.delete-btn,
+.edit-btn {
+    padding: 4px 8px;
+    font-size: 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: none;
+    background-color: #FFC107;
+    color: black;
+}
+
+
+.delete-btn:hover {
+    background: #d9534f;
+    color: white;
+}
+
+.edit-btn:hover {
+    background: #5bc0de;
+    color: white;
+}
+
+.table-container::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.table-container::-webkit-scrollbar-track {
+    background: #f8f8f8;
+    border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+    background: #D4A017;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+@media (max-width: 1600px) {
+    .table-container {
+        width: 95%;
+    }
+
+    .scroll th,
+    .scroll td {
+        min-width: 100px;
+    }
+}
+
+@media (max-width: 768px) {
+    .table-container {
+        margin: 10px 0;
+        border-radius: 0;
+        /* font-size: 10px; */
+    }
+
+    .scroll th,
+    .scroll td {
+        padding: 6px 8px;
+        min-width: 80px;
+    }
+
+    .scroll th {
+        padding: 8px 10px;
+    }
+
+    .delete-btn {
+        padding: 3px 6px;
+    }
+}

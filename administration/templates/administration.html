@@ -1,9 +1,84 @@
 {% extends "index.html" %}
 {% load static %}
 
-{% block admin %}
-    <section id="administration-section">
-        <h2>Administración</h2>
-        <p> {{ request.path }} </p>
-    </section>
-{% endblock admin %}
+{% block title %} Administración {% endblock title %}
+{% block head_css %}
+    <link rel="stylesheet" href="{% static 'style/administration.css' %}">
+    <link rel="stylesheet" href="{% static 'style/modal.css' %}">
+    <link rel="stylesheet" href="{% static 'style/table.css' %}">
+    {% block head_admin_css %}{% endblock head_admin_css %}
+{% endblock head_css %}
+
+{% block content %}
+    <div class="admin-wrapper">
+        <nav class="admin-subnav">
+            <ul>
+                <li class="{% if '/administracion/productos/' == request.path %}active{% endif %}">
+                    <a href="{% url 'product_administration' %}">Productos</a>
+                </li>
+
+                <li class= "{% if '/administracion/marcas/' == request.path %}active{% endif %}">
+                    <a href="{% url 'brand_administration' %}">Marcas</a>
+                </li>
+
+                <li class= "{% if '/administracion/categorias/' == request.path %}active{% endif %}">
+                    <a href="{% url 'category_administration' %}">Categorias</a>
+                </li>
+
+                <li class= "{% if '/administracion/colores/' == request.path %}active{% endif %}">
+                    <a href="{% url 'color_administration' %}">Colores</a>
+                </li>
+
+                <li class= "{% if '/administracion/generos/' == request.path %}active{% endif %}">
+                    <a href="{% url 'gender_administration' %}">Generos</a>
+                </li>
+
+                <li class= "{% if '/administracion/talles/' == request.path %}active{% endif %}">
+                    <a href="{% url 'letter_size_administration' %}">Talles</a>
+                </li>
+
+                <li class= "{% if '/administracion/materiales/' == request.path %}active{% endif %}">
+                    <a href="{% url 'materials_administration' %}">Materiales</a>
+                </li>
+
+                <li class= "{% if '/administracion/temporadas/' == request.path %}active{% endif %}">
+                    <a href="{% url 'season_administration' %}">Temporadas</a>
+                </li>
+
+                <li class= "{% if '/administracion/proveedores/' == request.path %}active{% endif %}">
+                    <a href="{% url 'supplier_administration' %}">Proveedores</a>
+                </li>
+
+            </ul>
+        </nav>
+
+        <!-- Contenido específico de cada sub-tab -->
+        <div class="admin-content">
+            <section id="admin_section">
+
+
+                <div class="new-object-container">
+                    <button id="new-object-button">
+                        {% block new_object_button_label %}{% endblock new_object_button_label %}
+                    </button>
+                </div>
+            
+                <div class="table-container">
+                    <table class="responsive-table scroll">
+                        <thead>
+                            {% block table_head %}{% endblock table_head %}
+                        </thead>
+                        <tbody>
+                            {% block table_body %}{% endblock table_body %}
+                        </tbody>
+                    </table>
+                </div>
+
+
+            </section>
+        </div>
+    </div>
+{% endblock content %}
+
+
+

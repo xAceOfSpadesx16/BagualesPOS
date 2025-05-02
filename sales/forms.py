@@ -1,0 +1,77 @@
+from dal import autocomplete
+from django import forms
+from django.forms import ModelForm
+from django.forms.fields import IntegerField
+from django.utils.translation import gettext_lazy as _
+
+from sales.models import SaleDetail, Sale
+
+
+class SearchProductForm(ModelForm):
+    quantity = IntegerField(required=True, initial= 1, min_value=1, help_text= "Cantidad")
+
+    class Meta:
+        model = SaleDetail
+        fields = ("product", 'quantity')
+        widgets = {
+            "product": autocomplete.ModelSelect2(
+                url="product-autocomplete",
+                attrs={
+                    "data-placeholder": _('Search a product...'),
+                    "data-ajax--delay": 250,
+                },
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+        self.request = kwargs.pop("request", None)
+        super().__init__(*args, **kwargs)
+
+
+    def save(self, *args, **kwargs):
+        sale = Sale.objects.get_table_active_sale(self.request.user)
+        if not sale:
+            sale = Sale.objects.create(seller=self.request.user)
+
+        self.instance.order = sale
+
+        # if SaleDetail.objects.filter(product=self.cleaned_data.get("product"), order=sale).exists():
+            # raise forms.ValidationError("El producto ya existe en la venta.")
+        
+        return super().save(*args, **kwargs)
+        
+
+    def clean_product(self):
+        product = self.cleaned_data.get("product")
+        if not product:
+            raise forms.ValidationError(_('Product is required.'))
+        return product
+
+
+class CloseSaleForm(ModelForm):
+    class Meta:
+        model = Sale
+        fields = ('pay_method',)
+
+
+class SaleClientForm(ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance is not None:
+            self.fields['client'].widget.attrs['data-sale-id'] = self.instance.id
+            
+
+    class Meta:
+        model = Sale
+        fields = ('client',)
+        widgets = {
+            "client": autocomplete.ModelSelect2(
+                url="client-autocomplete",
+                attrs = {
+                    "data-placeholder": _("Search a client..."),
+                    "data-ajax--delay": 250,
+                    "id": "client-autocomplete",
+                },
+                
+            )
+        }

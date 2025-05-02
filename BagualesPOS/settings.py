@@ -25,7 +25,8 @@ SECRET_KEY = 'django-insecure-^27!dnd+((m=b%*8gt9mzk%p1toftvqtz^wu73u1_e%i3hc&zc
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+# ALLOWED_HOSTS = ['0.0.0.0', 'losbagualescampo.local', '127.0.0.1', '192.168.18.3']
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -37,6 +38,10 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
+    'dal',
+    'dal_select2',
+
     'sales',
     'records',
     'inventory',
@@ -45,6 +50,8 @@ INSTALLED_APPS = [
     'administration',
     'users',
 ]
+
+
 
 
 MIDDLEWARE = [
@@ -57,6 +64,18 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+# LIVERELOAD 
+if DEBUG:
+    INSTALLED_APPS += [
+        'livereload',
+    ]
+    MIDDLEWARE += [
+        'livereload.middleware.LiveReloadScript',
+    ]
+    LIVERELOAD_HOST="192.168.18.3"
+    LIVERELOAD_PORT=35729
+    
 
 ROOT_URLCONF = 'BagualesPOS.urls'
 
@@ -144,3 +163,11 @@ AUTH_USER_MODEL = 'users.CustomUser'
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/ventas/'
 LOGOUT_REDIRECT_URL = '/login/'
+
+LOCALE_PATHS = [
+    BASE_DIR / 'locale',
+]
+
+
+if DEBUG:
+    SECURE_CROSS_ORIGIN_OPENER_POLICY = None
