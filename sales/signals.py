@@ -1,4 +1,4 @@
-from django.db.models.signals import post_save, post_delete
+from django.db.models.signals import post_save, post_delete, pre_save
 from django.dispatch import receiver
 from django.db.transaction import atomic
 from django.db.models.aggregates import Sum
@@ -6,17 +6,25 @@ from django.db.models.expressions import F
 
 from sales.models import SaleDetail
 
+@receiver(pre_save, sender=SaleDetail)
+def cache_old_quantity(sender, instance, **kwargs):
+    if instance.pk:
+        try:
+            old_instance = SaleDetail.objects.get(pk=instance.pk)
+            instance._old_quantity = old_instance.quantity
+        except SaleDetail.DoesNotExist:
+            instance._old_quantity = 0
+    else:
+        instance._old_quantity = 0
+
 @receiver(post_save, sender=SaleDetail)
 @atomic
 def update_stock_save(sender, instance: SaleDetail, created: bool, **kwargs):
 
     stock = instance.product.inventory
-    if created:
-        stock.quantity -= instance.quantity
-    else:
-        old_record = SaleDetail.objects.get(pk=instance.pk)
-        stock.quantity -= instance.quantity - old_record.quantity
+    stock.quantity -= (instance.quantity - instance._old_quantity)
     stock.save()
+    instance.product.save()
 
 
 @receiver(post_delete, sender=SaleDetail)

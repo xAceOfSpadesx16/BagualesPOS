@@ -3,15 +3,18 @@ from typing import TYPE_CHECKING
 
 from django.views.generic.base import View
 from django.views.generic.list import ListView
-from django.http import JsonResponse, Http404
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
-from json import loads
+from django.db.models import F
+
+from json import loads, JSONDecodeError
+from enum import StrEnum
 
 from inventory.models import Inventory
 
 if TYPE_CHECKING:
     from django.http import HttpRequest
-    
+
 
 class InventoryListView(ListView):
     template_name = 'inventory.html'
@@ -21,24 +24,52 @@ class InventoryListView(ListView):
     allow_empty = True
     ordering = ['product__brand__name']
 
-class UpdateInventoryView(View):
+class UpdateOperation(StrEnum):
+    ADDITION = 'addition'
+    SUBTRACTION = 'subtraction'
 
-    http_method_names = ['patch']
-
-    def dispatch(self, request, *args, **kwargs):
-        if request.method.lower() == 'patch':
-            return self.patch(request, *args, **kwargs)
-        return super().dispatch(request, *args, **kwargs)
+    @classmethod
+    def list_values(cls):
+        return list(map(lambda c: c.value, cls))
     
-    def patch(self, request: HttpRequest, pk: int, *args, **kwargs):
-        body = loads(request.body)
+    def __str__(self):
+        return self.value
+    
+class InventoryQuantityUpdate(View):
 
+    http_method_names = ['post']
+    valid_operations = UpdateOperation.list_values()
+
+    def post(self, request: HttpRequest, pk: int, *args, **kwargs):
         try:
+            body = loads(request.body)
+            operation = body.get('operation')
             quantity = int(body.get('quantity'))
-        except ValueError:
-            raise Http404('Cantidad no valida, ingrese un numero.')
+        except JSONDecodeError:
+            return JsonResponse(
+                {'success': False, 'message': 'Cuerpo de solicitud inválido'}, 
+                status=400
+            )
+        except (ValueError, TypeError):
+            return JsonResponse(
+                {'success': False, 'message': 'Formato de cantidad inválido'}, 
+                status=400
+            )
+
+        if operation not in self.valid_operations:
+            return JsonResponse({'success': False, 'message': 'Operación inválida.'}, status=400)
         
-        inventory: Inventory = get_object_or_404(inventory, id=pk)
-        inventory.update_quantity(quantity=quantity)
+        if quantity < 0:
+            return JsonResponse({'success': False, 'message': 'Cantidad inválida.'}, status=400)
+        
+        inventory = get_object_or_404(Inventory, id=pk)
+        
+        if operation == UpdateOperation.ADDITION:
+            inventory.quantity = F('quantity') + quantity
+            
+        elif operation == UpdateOperation.SUBTRACTION:
+            inventory.quantity = F('quantity') - quantity
+
+        inventory.save()
         return JsonResponse({'success': True, 'message': 'Cantidad actualizada con exito.'})
     

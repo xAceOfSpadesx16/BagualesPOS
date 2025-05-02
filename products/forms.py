@@ -15,7 +15,6 @@ class FormGroupMixin:
 class RequiredSuffixMixin:
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        print('required')
         for field_name, field in self.fields.items():
             if field.required:
                 field.label_suffix = ' *'
