@@ -11,6 +11,8 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+import os
+import environ
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -19,14 +21,23 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
+env = environ.Env(
+    SECRET_KEY=(str, 'django-insecure-^27!dnd+((m=b%*8gt9mzk%p1toftvqtz^wu73u1_e%i3hc&zc'),
+    DEBUG=(bool, True),
+    ALLOWED_HOSTS=(list, ['*']),
+)
+
+# En caso de no cargar variables de entorno desde Docker
+env.read_env(os.path.join(BASE_DIR, '.env'))
+env.read_env()
+
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-^27!dnd+((m=b%*8gt9mzk%p1toftvqtz^wu73u1_e%i3hc&zc'
+SECRET_KEY = env('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env('DEBUG')
 
-# ALLOWED_HOSTS = ['0.0.0.0', 'losbagualescampo.local', '127.0.0.1', '192.168.18.3']
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS')
 
 
 # Application definition
@@ -65,16 +76,16 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-# LIVERELOAD 
-if DEBUG:
-    INSTALLED_APPS += [
-        'livereload',
-    ]
-    MIDDLEWARE += [
-        'livereload.middleware.LiveReloadScript',
-    ]
-    LIVERELOAD_HOST="192.168.18.3"
-    LIVERELOAD_PORT=35729
+# # LIVERELOAD 
+# if DEBUG:
+#     INSTALLED_APPS += [
+#         'livereload',
+#     ]
+#     MIDDLEWARE += [
+#         'livereload.middleware.LiveReloadScript',
+#     ]
+#     LIVERELOAD_HOST="192.168.18.3"
+#     LIVERELOAD_PORT=35729
     
 
 ROOT_URLCONF = 'BagualesPOS.urls'
@@ -98,16 +109,16 @@ TEMPLATES = [
 WSGI_APPLICATION = 'BagualesPOS.wsgi.application'
 
 
-# Database
-# https://docs.djangoproject.com/en/5.1/ref/settings/#databases
-
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': env('DB_NAME'),
+        'USER': env('DB_USER'),
+        'PASSWORD': env('DB_PASSWORD'),
+        'HOST': env('DB_HOST'),
+        'PORT': env('DB_PORT'),
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
