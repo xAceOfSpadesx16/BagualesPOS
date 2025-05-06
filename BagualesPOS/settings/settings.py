@@ -22,9 +22,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 env = environ.Env(
-    SECRET_KEY=(str),
-    DEBUG=(bool),
-    ALLOWED_HOSTS=(list),
+    SECRET_KEY=(str, 'django-insecure-^27!dnd+((m=b%*8gt9mzk%p1toftvqtz^wu73u1_e%i3hc&zc'),
+    DEBUG=(bool, True),
+    ALLOWED_HOSTS=(list, ['*']),
 )
 
 env.read_env()
@@ -61,6 +61,8 @@ INSTALLED_APPS = [
 ]
 
 
+
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -72,12 +74,24 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+# # LIVERELOAD 
+# if DEBUG:
+#     INSTALLED_APPS += [
+#         'livereload',
+#     ]
+#     MIDDLEWARE += [
+#         'livereload.middleware.LiveReloadScript',
+#     ]
+#     LIVERELOAD_HOST="192.168.18.3"
+#     LIVERELOAD_PORT=35729
+    
+
 ROOT_URLCONF = 'BagualesPOS.urls'
 
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates', BASE_DIR / '**' / 'templates'],
+        'DIRS': [BASE_DIR / 'templates', BASE_DIR / '**/templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -139,7 +153,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = 'static/'
-STATIC_ROOT = BASE_DIR / 'static'
+# STATIC_ROOT = BASE_DIR / 'static'
 
 STATICFILES_DIRS = [
     BASE_DIR / 'static'
@@ -159,4 +173,10 @@ LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/ventas/'
 LOGOUT_REDIRECT_URL = '/login/'
 
+LOCALE_PATHS = [
+    BASE_DIR / 'locale',
+]
 
+
+if DEBUG:
+    SECURE_CROSS_ORIGIN_OPENER_POLICY = None

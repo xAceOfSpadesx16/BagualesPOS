@@ -1,11 +1,18 @@
 <!DOCTYPE html>
 {% load static %}
-{% load livereload_tags %}
+
+{% if django_debug %}
+    {% load livereload_tags %}
+{% endif %}
+
 <html lang="es">
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Los Baguales - Punto de Venta</title>
+        {% if django_debug %}
+            {% livereload_script %}
+        {% endif %}
         <link
             rel="icon"
             type="image/x-icon"
@@ -14,8 +21,6 @@
         <link rel="stylesheet" href="{% static 'style/navbar.css' %}" />
         {% block head_css %}{% endblock %}
         {% block head_js %}{% endblock %}
-        
-        {% livereload_script %}
     </head>
     <body>
         <div class="page-wrapper">

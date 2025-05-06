@@ -8,9 +8,11 @@ https://docs.djangoproject.com/en/5.1/howto/deployment/wsgi/
 """
 
 import os
-
+from environ import Env
 from django.core.wsgi import get_wsgi_application
+env=Env()
+Env.read_env()
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'BagualesPOS.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', f'BagualesPOS.settings.{env.str("SETTINGS_MODULE")}')
 
 application = get_wsgi_application()

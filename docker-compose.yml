@@ -13,8 +13,6 @@ services:
   web:
     build: .
     command: python manage.py runserver 0.0.0.0:8000
-    environment:
-      - DJANGO_SETTINGS_MODULE=BagualesPOS.settings
     depends_on:
       - db
     ports:
@@ -22,7 +20,7 @@ services:
     volumes:
       - .:/app
     env_file:
-      - .env
+      - .env.development
 
 volumes:
   postgres_data:

@@ -22,20 +22,18 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 env = environ.Env(
-    SECRET_KEY=(str, 'django-insecure-^27!dnd+((m=b%*8gt9mzk%p1toftvqtz^wu73u1_e%i3hc&zc'),
-    DEBUG=(bool, True),
-    ALLOWED_HOSTS=(list, ['*']),
+    DJANGO_SECRET_KEY=(str),
+    DJANGO_DEBUG=(bool, False),
+    ALLOWED_HOSTS=(list),
 )
 
-# En caso de no cargar variables de entorno desde Docker
-env.read_env(os.path.join(BASE_DIR, '.env'))
 env.read_env()
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = env('SECRET_KEY')
+SECRET_KEY = env.str('DJANGO_SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = env('DEBUG')
+DEBUG = env.bool('DJANGO_DEBUG')
 
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS')
 
@@ -63,8 +61,6 @@ INSTALLED_APPS = [
 ]
 
 
-
-
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -76,24 +72,12 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-# # LIVERELOAD 
-# if DEBUG:
-#     INSTALLED_APPS += [
-#         'livereload',
-#     ]
-#     MIDDLEWARE += [
-#         'livereload.middleware.LiveReloadScript',
-#     ]
-#     LIVERELOAD_HOST="192.168.18.3"
-#     LIVERELOAD_PORT=35729
-    
-
 ROOT_URLCONF = 'BagualesPOS.urls'
 
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates', BASE_DIR / '**/templates'],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -101,6 +85,8 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                
+                'BagualesPOS.context_processors.django_debug',
             ],
         },
     },
@@ -110,14 +96,7 @@ WSGI_APPLICATION = 'BagualesPOS.wsgi.application'
 
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': env('DB_NAME'),
-        'USER': env('DB_USER'),
-        'PASSWORD': env('DB_PASSWORD'),
-        'HOST': env('DB_HOST'),
-        'PORT': env('DB_PORT'),
-    }
+    'default': env.db(default='sqlite:///db.sqlite3'),
 }
 
 # Password validation
@@ -155,7 +134,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = 'static/'
-# STATIC_ROOT = BASE_DIR / 'static'
+STATIC_ROOT = BASE_DIR / 'static'
 
 STATICFILES_DIRS = [
     BASE_DIR / 'static'
@@ -175,10 +154,4 @@ LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/ventas/'
 LOGOUT_REDIRECT_URL = '/login/'
 
-LOCALE_PATHS = [
-    BASE_DIR / 'locale',
-]
 
-
-if DEBUG:
-    SECURE_CROSS_ORIGIN_OPENER_POLICY = None
