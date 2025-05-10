@@ -25,6 +25,11 @@ env = environ.Env(
     DJANGO_SECRET_KEY=(str),
     DJANGO_DEBUG=(bool, False),
     ALLOWED_HOSTS=(list),
+    DB_NAME=(str, ''),
+    DB_USER=(str, ''),
+    DB_PASSWORD=(str, ''),
+    DB_HOST=(str, ''),
+    DB_PORT=(int, 0),
 )
 
 env.read_env()
@@ -77,10 +82,10 @@ ROOT_URLCONF = 'BagualesPOS.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates'],
+        'DIRS': [BASE_DIR /".." / 'templates', BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
-            'context_processors': [
+            'context_processors': [ 
                 'django.template.context_processors.debug',
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
@@ -96,7 +101,14 @@ WSGI_APPLICATION = 'BagualesPOS.wsgi.application'
 
 
 DATABASES = {
-    'default': env.db(default='sqlite:///db.sqlite3'),
+    'default': {
+        'ENGINE': "django.db.backends.postgresql",
+        'NAME': env.str('DB_NAME'),
+        'USER': env.str('DB_USER'),
+        'PASSWORD': env.str('DB_PASSWORD'),
+        'HOST': env.str('DB_HOST'),
+        'PORT': env.int('DB_PORT'),
+    },
 }
 
 # Password validation
@@ -136,9 +148,8 @@ USE_TZ = True
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-STATICFILES_DIRS = [
-    BASE_DIR / 'static'
-]
+STATICFILES_DIRS =['static/']
+
 
 MEDIA_URL = 'media/'
 MEDIA_ROOT = BASE_DIR / 'media'

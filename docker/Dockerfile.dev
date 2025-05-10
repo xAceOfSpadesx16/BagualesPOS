@@ -1,0 +1,32 @@
+# Use an official lightweight Python image
+FROM python:3.13.3-slim-bookworm
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
+
+RUN apt-get update && apt-get install -y --no-install-recommends libpq-dev gcc locales && sed -i 's/# es_AR.UTF-8 UTF-8/es_AR.UTF-8 UTF-8/' /etc/locale.gen && locale-gen es_AR.UTF-8 && update-locale LANG=es_AR.UTF-8 && rm -rf /var/lib/apt/lists/*
+
+ENV UV_PROJECT_ENVIRONMENT="/usr/local/.venv"
+
+WORKDIR /app
+
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+# Copy requirements first to leverage Docker's cache
+COPY ../pyproject.toml .
+
+RUN uv venv $UV_PROJECT_ENVIRONMENT
+ENV PATH="$UV_PROJECT_ENVIRONMENT/.venv/bin:$PATH"
+
+# uv venv
+RUN uv pip install -r pyproject.toml --extra dev --python $UV_PROJECT_ENVIRONMENT/bin/python
+
+# Copy the application code
+COPY . .
+
+# Expose the port the app runs on
+EXPOSE 8000
+
+RUN chmod +x ./docker/entrypoint.development.sh
+
+ENTRYPOINT [ "bash", "/app/docker/entrypoint.development.sh" ]

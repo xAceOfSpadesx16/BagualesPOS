@@ -12,12 +12,14 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 COPY ../pyproject.toml .
 
 # Install the dependencies
-RUN uv run pip install -r pyproject.toml
+RUN uv pip install -r pyproject.toml --extra dev --system
 
 # Copy the application code
-COPY .. .
+COPY . .
 
 # Expose the port the app runs on
 EXPOSE 8000
 
-ENTRYPOINT [ "bash ", "-c", "docker/entrypoint.${SETTINGS_MODULE}.sh" ]
+RUN chmod +x ./docker/*.sh
+
+ENTRYPOINT [ "bash", "-c", "/app/docker/entrypoint.${SETTINGS_MODULE}.sh" ]

@@ -1,3 +1,6 @@
-uv run manage.py migrate --noinput
-uv run manage.py collectstatic --noinput
-uv run manage.py livereload && uv run manage.py runserver 0.0.0.0:8000
+source $UV_PROJECT_ENVIRONMENT/bin/activate
+cd /app
+python manage.py migrate --noinput
+python manage.py collectstatic --noinput
+python manage.py livereload &
+python manage.py runserver 0.0.0.0:8000
