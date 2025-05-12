@@ -22,7 +22,7 @@ ENV PATH="$UV_PROJECT_ENVIRONMENT/.venv/bin:$PATH"
 RUN uv pip install -r pyproject.toml --extra dev --python $UV_PROJECT_ENVIRONMENT/bin/python
 
 # Copy the application code
-COPY . .
+COPY .. .
 
 # Expose the port the app runs on
 EXPOSE 8000

@@ -1,0 +1,51 @@
+{% load static %}
+<!DOCTYPE html>
+
+<html lang="es">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <title>Login</title>
+        <meta name="description" content="Login Punto de Venta">
+        <link rel="stylesheet" href="{% static 'style/login.css' %}">
+        <link rel="icon" type="image/x-icon" href="{% static 'images/logo.ico' %}" >
+    </head>
+    <body>
+        <section id="login-section">
+            <div class="background-image">
+                <img src="{% static 'images/banner.jpeg' %}" alt="banner" class="banner">
+                <div class="card">
+                    <form class="form" action="#" method="post">
+                        {% csrf_token %}
+                        <span class="input-span">
+                            <label for="username" class="label">Nombre de Usuario</label>
+                            <input type="text" name="username" id="username">
+                        </span>
+                        <span class="input-span">
+                            <label for="password" class="label">Contraseña</label>
+                            <input type="password" name="password" id="password">
+                        </span>
+                        <span class="span">
+                            <a href="#">Olvidaste tu contraseña?</a>
+                        </span>
+                        <input class="submit" type="submit" value="Log in" />
+                        
+                    </form>
+                    {% if form.errors %}
+                    <div class="error-message">
+                        <ul>
+                            {% for field, errors in form.errors.items %}
+                                {% for error in errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+                </div>
+            </div>    
+                
+        </section>
+    </body>
+</html>
