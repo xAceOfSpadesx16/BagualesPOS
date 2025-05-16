@@ -168,7 +168,7 @@ class ProductAutocomplete(autocomplete.Select2QuerySetView):
                     Q(internal_code__istartswith=term)
                 )
             qs = qs.filter(*q_objects)
-        return qs
+        return qs[:50]
 
     def get_result_label(self, item: Product):
         return f"{item.name} {item.color.name if item.color else 'Sin Color'} {item.brand.name if item.brand else 'Sin Marca'} T-{item.letter_size.name if item.letter_size else item.numeric_size}"
