@@ -1,8 +1,9 @@
 from django.db.models import Model
-from django.db.models.fields import CharField, DateTimeField, BooleanField, IntegerField
-from django.db.models.fields.related import ForeignKey
-from django.db.models.deletion import CASCADE
+from django.db.models.fields import CharField, DateTimeField, BooleanField, IntegerField, FloatField
+from django.db.models.fields.related import ForeignKey, OneToOneField
+from django.db.models.deletion import CASCADE, SET_NULL
 from django.core.validators import RegexValidator
+from django.db.models.indexes import Index
 from utils import PhoneNumberField
 from django.utils.translation import gettext_lazy as _
 
@@ -40,6 +41,25 @@ class Client(Model):
     class Meta:
         verbose_name = _('client')
         verbose_name_plural = _('clients')
+        indexes = [
+            Index(fields=['dni'], name='dni_index'),
+            Index(fields=['cuit'], name='cuit_index'),
+            Index(fields=['approved_customer_account'], name='approved_cc_index'),
+            Index(fields=['balance'], name='balance_index'),
+            Index(fields=['name'], name='name_index'),
+            Index(fields=['last_name'], name='last_name_index'),
+            Index(fields=['phone'], name='phone_index'),
+            Index(fields=['email'], name='email_index'),
+        ]
+
+class Balance(Model):
+    user = OneToOneField(Client, verbose_name=_(""), on_delete=SET_NULL)
+    balance = FloatField()
+
+
+    def save(self, force_insert = ..., force_update = ..., using = ..., update_fields = ...):
+        return super().save(force_insert, force_update, using, update_fields)
+
 
 class CustomerBalanceRecord(Model):
     client = ForeignKey(Client, on_delete=CASCADE, verbose_name= _('client'))

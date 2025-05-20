@@ -1,8 +1,20 @@
 from django.db.models import Q
-
+from django.views.generic import ListView
 from dal import autocomplete
 
 from clients.models import Client
+
+class ClientsListView(ListView):
+    template_name = 'clients_list.html'
+    model = Client
+    context_object_name = 'clients'
+
+class ClientCCListView(ListView):
+    template_name = 'clients_cc_list.html'
+    model = Client
+    context_object_name = 'cc_clients'
+    queryset = Client.objects.filter(approved_customer_account=True)
+
 
 class ClientAutocomplete(autocomplete.Select2QuerySetView):
     def get_queryset(self):

@@ -4,7 +4,7 @@ FROM python:3.13.3-slim-bookworm
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1
 
-RUN apt-get update && apt-get install -y --no-install-recommends libpq-dev gcc locales && sed -i 's/# es_AR.UTF-8 UTF-8/es_AR.UTF-8 UTF-8/' /etc/locale.gen && locale-gen es_AR.UTF-8 && update-locale LANG=es_AR.UTF-8 && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends libpq-dev gcc locales gettext && sed -i 's/# es_AR.UTF-8 UTF-8/es_AR.UTF-8 UTF-8/' /etc/locale.gen && locale-gen es_AR.UTF-8 && update-locale LANG=es_AR.UTF-8 && rm -rf /var/lib/apt/lists/*
 
 ENV UV_PROJECT_ENVIRONMENT="/usr/local/.venv"
 
