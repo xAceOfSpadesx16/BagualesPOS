@@ -25,11 +25,11 @@
     {% if clients %}
         {% for client in clients %}
             <tr>
-                <td>{{ client.name }} - {{ client.lastname }}</td>
+                <td>{{ client.name }} - {{ client.last_name }}</td>
                 <td>{{ client.dni }}</td>
                 <td>{{ client.cuit }}</td>
-                <td><input type="checkbox" checked="{{ client.approved_customer_account }}" disabled></input></td>
-                <td>{{ client.approved_customer_account }}</td>
+                <td><input type="checkbox" {{ client.approved_customer_account|yesno:'checked,' }} disabled></td>
+                <td>{{ client.balance }}</td>
                 <td>
                     <button class="edit-btn" data-object-id="{{ client.id }}" type="button">
                         <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">

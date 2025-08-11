@@ -34,11 +34,11 @@
                         <span class="bar"></span>
                     </div>
                     <ul class="nav">
-                        <li class="nav-item"><a href= {% url 'sales' %}>Ventas</a></li>
-                        <li class="nav-item"><a href= {% url 'records' %}>Registros</a></li>
-                        <li class="nav-item"><a href= {% url 'inventory' %}>Inventario</a></li>
-                        <li class="nav-item"><a href= {% url 'clients' %}>Clientes</a></li>
-                        <li class="nav-item"><a href= {% url 'administration' %}>Administración</a></li>
+                        <li class="nav-item"><a href= "{% url 'sales' %}">Ventas</a></li>
+                        <li class="nav-item"><a href= "{% url 'records' %}">Registros</a></li>
+                        <li class="nav-item"><a href= "{% url 'inventory' %}">Inventario</a></li>
+                        <li class="nav-item"><a href= "{% url 'clients' %}">Clientes</a></li>
+                        <li class="nav-item"><a href= "{% url 'administration' %}">Administración</a></li>
                         <form action="{% url 'logout' %}" method="post" id="logout-form">
                             {% csrf_token %}
                             <button type="submit" title="Cerrar Sesión" class="logout-btn">

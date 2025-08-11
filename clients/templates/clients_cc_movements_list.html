@@ -1,0 +1,92 @@
+{% extends 'client_index.html' %}
+
+
+
+{% block content %}
+<div id="client-section">
+    <div class="client-wrapper">
+        <div class="client-subnav">
+            <ul>
+                <li><a href="{% url 'clients' %}">Clientes</a></li>
+                <li class="active"><a href="#">Cuenta Corriente</a></li>
+            </ul>
+        </div>
+        <div class="client-content">
+            <h2>Movimientos de cuenta corriente de {{ current_account.client.get_full_name }}</h2>
+            <p><b>Fecha de apertura:</b> {{ current_account.opening_date|date:'d/m/Y' }}<br>
+            <b>Límite de crédito:</b> {{ current_account.credit_limit|default:'-' }}<br>
+            <b>Estado:</b> {% if current_account.active %} Activa {% else %} Inactiva {% endif %}</p>
+            <div class="totals-summary">
+                <b>Totales:</b>
+                <ul>
+                    <li>Total: {{ total_amount|default:'0' }}</li>
+                    <li>Créditos: {{ credit_total|default:'0' }}</li>
+                    <li>Débitos: {{ debit_total|default:'0' }}</li>
+                </ul>
+            </div>
+            <div class="movement-form">
+                <h3>Nuevo movimiento</h3>
+                <form id="cc-movement-form">
+                    <label for="movement_type">Tipo de movimiento:</label>
+                    <select name="movement_type" id="movement_type">
+                        {% for value, label in movement_types %}
+                            <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                    <label for="amount">Monto:</label>
+                    <input type="number" name="amount" id="amount" required>
+                    <label for="notes">Notas:</label>
+                    <input type="text" name="notes" id="notes">
+                    <label for="reference">Referencia:</label>
+                    <input type="text" name="reference" id="reference">
+                    <button type="submit">Crear movimiento</button>
+                </form>
+            </div>
+            <div class="table-container">
+                <div class="scroll-wrapper">
+                    <table class="scroll">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Tipo</th>
+                                <th>Monto</th>
+                                <th>Notas</th>
+                                <th>Referencia</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if movements %}
+                                {% for movement in movements %}
+                                    <tr data-movement-id="{{ movement.pk }}">
+                                        <td>{{ movement.created_at|date:'d/m/Y H:i' }}</td>
+                                        <td>{{ movement.get_movement_type_display }}</td>
+                                        <td>{{ movement.amount }}</td>
+                                        <td>{{ movement.notes|default:'-' }}</td>
+                                        <td>{{ movement.reference|default:'-' }}</td>
+                                        <td>
+                                            <a href="{% url 'current_account_cc_detail' movement.pk %}" class="edit-btn">Ver</a>
+                                            <button class="delete-btn icon-btn" data-movement-id="{{ movement.pk }}" title="Eliminar">
+                                                <img src="/static/icons/trash.svg" alt="Eliminar">
+                                            </button>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr id="no-movements">
+                                    <td colspan="6">No hay movimientos registrados.</td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %} 
+
+{% block body_scripts %}
+<script type="module" src="/static/js/clients_cc_movements.js"></script>
+{% endblock %}

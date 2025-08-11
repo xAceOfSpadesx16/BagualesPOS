@@ -12,21 +12,8 @@ from products.models import Product, Brand, Category, Color, Gender, LetterSize,
 
 from products.forms import ProductForm, BrandForm, CategoryForm, ColorForm, GenderForm, LetterSizeForm, MaterialsForm, SeasonForm, SupplierForm
 
+from utils.mixins import CreateFormValidationMixin, UpdateFormValidationMixin
 
-class CreateFormValidationMixin:
-    def form_valid(self, form):
-        form.save()
-        return JsonResponse({'redirect_url': self.success_url }, status = 200)
-    
-    def form_invalid(self, form):
-        response = super().form_invalid(form)
-        response.status_code = 400
-        return response
-    
-class UpdateFormValidationMixin:
-    def form_valid(self, form):
-        form.save()
-        return JsonResponse({'redirect_url': self.success_url }, status = 200)
     
 """ PRODUCT VIEWS """
 
@@ -286,3 +273,4 @@ class SupplierDeleteView(View):
         supplier = get_object_or_404(Supplier, id=pk)
         supplier.delete()
         return JsonResponse({"message": f"{_('Supplier deleted successfully')}: {supplier.name}"}, status=200)
+    
