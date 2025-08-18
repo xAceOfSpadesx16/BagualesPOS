@@ -1,6 +1,6 @@
 import { MaterialFetcher } from "../requests/fetchers/material_fetchers.js";
 import { Modal } from "../modal.js";
-import { saveObject, updateObject, deleteObject } from "./admin_utils.js";
+import { saveObject, deleteObject } from "./admin_utils.js";
 
 
 document.addEventListener('click', (e) => {
@@ -19,10 +19,11 @@ document.addEventListener('click', (e) => {
 
     if (target.closest('.edit-btn')) {
         const button = target.closest('.edit-btn');
-        const materialId = button.getAttribute('data-object-id');
+        const materialId = button.dataset.objectId;
+
         MaterialFetcher.getUpdateForm(materialId).then(data => {
             data.text().then(html => {
-                const updateMaterial = (e) => updateObject(e, (id, formData) => MaterialFetcher.updateMaterial(id, formData));
+                const updateMaterial = (e) => saveObject(e, (id, formData) => MaterialFetcher.updateMaterial(id, formData));
                 const modal = new Modal({ title: 'Editar Material', content: html, onSubmit: updateMaterial, requireCloseConfirmation: true, confirmButtonDataAttr: { 'data-object-id': materialId } });
                 modal.openModal();
             })

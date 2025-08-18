@@ -1,7 +1,7 @@
 import { SeasonFetcher } from "../requests/fetchers/season_fetchers.js";
 
 import { Modal } from "../modal.js";
-import { saveObject, updateObject, deleteObject } from "./admin_utils.js";
+import { saveObject, deleteObject } from "./admin_utils.js";
 
 
 document.addEventListener('click', (e) => {
@@ -21,10 +21,11 @@ document.addEventListener('click', (e) => {
 
     if (target.closest('.edit-btn')) {
         const button = target.closest('.edit-btn');
-        const seasonId = button.getAttribute('data-object-id');
+        const seasonId = button.dataset.objectId;
+
         SeasonFetcher.getUpdateForm(seasonId).then(data => {
             data.text().then(html => {
-                const updateSeason = (e) => updateObject(e, (id, formData) => SeasonFetcher.updateSeason(id, formData));
+                const updateSeason = (e) => saveObject(e, (id, formData) => SeasonFetcher.updateSeason(id, formData));
                 const modal = new Modal({ title: 'Editar Temporada', content: html, onSubmit: updateSeason, requireCloseConfirmation: true, confirmButtonDataAttr: { 'data-object-id': seasonId } });
                 modal.openModal();
             })

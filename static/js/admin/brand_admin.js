@@ -1,6 +1,6 @@
 import { BrandFetcher } from "../requests/fetchers/brand_fetchers.js";
 import { Modal } from "../modal.js";
-import { saveObject, updateObject, deleteObject } from "./admin_utils.js";
+import { saveObject, deleteObject } from "./admin_utils.js";
 
 
 document.addEventListener('click', (e) => {
@@ -27,8 +27,7 @@ document.addEventListener('click', (e) => {
 
         BrandFetcher.brandUpdateForm(brandId).then(data => {
             data.text().then(html => {
-                const updateBrand = (e) =>
-                    updateObject(e, (id, formData) => BrandFetcher.brandUpdate(id, formData));
+                const updateBrand = (e) => saveObject(e, (id, formData) => BrandFetcher.brandUpdate(id, formData));
                 const modal = new Modal({ title: 'Editar producto', content: html, onSubmit: updateBrand, requireCloseConfirmation: true, confirmButtonDataAttr: { 'data-object-id': brandId } });
                 modal.openModal();
             })

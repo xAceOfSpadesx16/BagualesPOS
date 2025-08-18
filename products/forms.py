@@ -67,7 +67,7 @@ class GenderForm(AdministrationForm):
 class LetterSizeForm(AdministrationForm):
     class Meta:
         model = LetterSize
-        fields = ['name']
+        fields = ['short_name', 'name']
 
 class MaterialsForm(AdministrationForm):
     class Meta:
