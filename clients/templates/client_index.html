@@ -3,7 +3,6 @@
 {% load static %}
 
 {% block head_css %}
-<link rel="stylesheet" href="{% static 'style/client.css' %}">
 <link rel="stylesheet" href="{% static 'style/modal.css' %}">
 <link rel="stylesheet" href="{% static 'style/table.css' %}">
 {% endblock head_css %}
@@ -11,18 +10,6 @@
 {% block content %}
 
 <div class="client-wrapper">
-    <nav class="client-subnav">
-        <ul>
-            <li class="{% if '/clientes/' == request.path %}active{% endif %}">
-                <a href="{% url 'clients' %}">Listado</a>
-            </li>
-
-            <li class= "{% if '/clientes/cc/' == request.path %}active{% endif %}">
-                <a href="{% url 'clients_cc' %}">Cuentas Corrientes</a>
-            </li>
-
-        </ul>
-    </nav>
 
     <!-- Contenido específico de cada sub-tab -->
     <div class="client-content">

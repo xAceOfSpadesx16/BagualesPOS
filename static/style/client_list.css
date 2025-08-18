@@ -93,6 +93,11 @@
 
 }
 
+.deleted_client {
+    opacity: 0.6;
+    color: red;
+}
+
 @media (max-width: 768px) {
     .client-subnav li {
         padding: 6px 12px;

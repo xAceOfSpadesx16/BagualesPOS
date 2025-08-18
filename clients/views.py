@@ -6,7 +6,7 @@ from django.views.generic import ListView
 from dal import autocomplete
 from django.views.generic.detail import DetailView
 from django.views import View
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseRedirect
 from django.forms.models import model_to_dict
 from django.shortcuts import get_object_or_404
 from django.urls import reverse_lazy
@@ -14,58 +14,78 @@ from django.utils.translation import gettext_lazy as _
 from django.db import transaction
 from django.core.exceptions import ValidationError
 
-from utils.mixins import CreateFormValidationMixin, UpdateFormValidationMixin
+from utils.mixins import FormValidationMixin, FetchRequestMixin
 from django.views.generic.edit import CreateView, UpdateView
 
 from clients.models import CustomerBalanceRecord, Client, CustomerAccount
 from clients.choices import MovementType
-from clients.forms import ClientForm
+from clients.forms import ClientForm, CustomerAccountForm
 
 class ClientsListView(ListView):
     template_name = 'clients_list.html'
     model = Client
     context_object_name = 'clients'
     paginate_by = 20
+    http_method_names = ['get']
+    ordering = ['is_deleted', 'name', 'last_name']
 
     def get_queryset(self):
-        return super().get_queryset().prefetch_related('customer_account')
+        return super().get_queryset().prefetch_related('customer_account', 'customer_account__balance_records')
 
 
 class ClientRetrieveView(DetailView):
     model = Client
     template_name = 'client_detail.html'
     context_object_name = 'client'
+    http_method_names = ['get']
 
     def get_queryset(self):
         return super().get_queryset().prefetch_related('customer_account')
 
 
-class ClientCreateView(CreateFormValidationMixin, CreateView):
+class ClientCreateView(FormValidationMixin, FetchRequestMixin, CreateView):
     model = Client
     form_class = ClientForm
     template_name = 'client_form.html'
-    success_url = reverse_lazy('clients_list')
+    success_url = reverse_lazy('clients')
+    http_method_names = ['get', 'post']
 
 
-class ClientUpdateView(UpdateFormValidationMixin, UpdateView):
+
+class ClientUpdateView(FormValidationMixin, FetchRequestMixin, UpdateView):
     model = Client
     form_class = ClientForm
     template_name = 'client_form.html'
-    success_url = reverse_lazy('clients_list')
+    success_url = reverse_lazy('clients')
+    http_method_names = ['get', 'post']
 
 
-class ClientDeleteView(View):
-    http_method_names = ['delete']
 
-    def delete(self, request, pk, *args, **kwargs):
+class ClientDeleteView(FetchRequestMixin, View):
+    http_method_names = ['post']
+    success_url = reverse_lazy('clients')
+
+    def post(self, request, pk, *args, **kwargs):
         client = get_object_or_404(Client, id=pk)
         client.soft_delete()
-        return JsonResponse({"message": f"{_('Client deleted successfully')}: {client.name} - {client.last_name}"}, status=200)
+        return HttpResponseRedirect(self.success_url)
+
+
+class ClientRestoreView(FetchRequestMixin, View):
+    http_method_names = ['post']
+    success_url = reverse_lazy('clients')
+
+    def post(self, request, pk, *args, **kwargs):
+        client = get_object_or_404(Client, id=pk)
+        client.restore()
+        return HttpResponseRedirect(self.success_url)
 
 
 class ClientAutocomplete(autocomplete.Select2QuerySetView):
+    http_method_names = ['get']
+
     def get_queryset(self):
-        qs = Client.objects.filter(active=True).order_by('name')
+        qs = Client.objects.filter(is_deleted=False).order_by('name')
         search_term = self.request.GET.get('q', '')
         if search_term and len(search_term) > 1:
             search_terms = search_term.split()
@@ -84,10 +104,13 @@ class ClientAutocomplete(autocomplete.Select2QuerySetView):
 class BalanceRecordDetailView(DetailView):
     model = CustomerBalanceRecord
     template_name = 'balance_record_detail.html'
-    context_object_name = 'movement'
+    context_object_name = 'record'
+    http_method_names = ['get']
 
 
 class BalanceRecordCreateAPI(View):
+    http_method_names = ['post']
+
     def post(self, request, *args, **kwargs):
         try:
             data = json.loads(request.body)
@@ -132,6 +155,8 @@ class BalanceRecordCreateAPI(View):
 
 
 class CustomerAccountSoftDelete(View):
+    http_method_names = ['post']
+
     def post(self, request, *args, **kwargs):
         customer_account_id = kwargs.get('customer_account_id')
         customer_account = get_object_or_404(CustomerAccount, pk=customer_account_id)
@@ -143,8 +168,15 @@ class CustomerAccountDetailView(DetailView):
     model = CustomerAccount
     template_name = 'customer_account_detail.html'
     context_object_name = 'customer_account'
+    http_method_names = ['get']
 
     def get_queryset(self):
         return super().get_queryset().select_related('client').prefetch_related('balance_records', 'balance_records__created_by', 'balance_records__related_to', 'balance_records__sale')
-    
 
+
+class CustomerAccountUpdateView(FormValidationMixin, FetchRequestMixin, UpdateView):
+    model = CustomerAccount
+    form_class = CustomerAccountForm
+    template_name = 'customer_account_form.html'
+    success_url = reverse_lazy('customer_account_detail')
+    http_method_names = ['get', 'post']

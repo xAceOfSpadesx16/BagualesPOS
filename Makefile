@@ -35,5 +35,8 @@ migrate:
 makemigrations:
 	$(DOCKER_DEV) exec web uv run --python 3.13 manage.py makemigrations
 
+createsuperuser:
+	$(DOCKER_DEV) exec web uv run --python 3.13 manage.py createsuperuser
+
 command:
 	$(DOCKER_DEV) exec web /bin/bash

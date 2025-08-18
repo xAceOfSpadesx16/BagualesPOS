@@ -1,6 +1,6 @@
 from __future__ import annotations
 from django.db.models import Model
-from django.db.models.fields import CharField, DateTimeField, BooleanField, FloatField, TextField, DecimalField
+from django.db.models.fields import CharField, DateTimeField, BooleanField, FloatField, TextField, DecimalField, DateField
 from django.db.models.fields.related import ForeignKey, OneToOneField
 from django.db.models.deletion import SET_NULL, PROTECT
 from django.db.models.aggregates import Sum
@@ -15,21 +15,11 @@ from django.utils.timezone import now
 from django.core.exceptions import ValidationError, NON_FIELD_ERRORS
 
 from clients.managers import BalanceRecordsManager
-from clients.choices import MovementType
+from clients.choices import MovementType, BillingType
 
 from utils import PhoneNumberField
-from utils.mixins import SoftDeleteMixin
 
 class Client(Model):
-
-    BILLING_TYPES = (
-        ('A', 'A'),
-        ('B', 'B'),
-        ('C', 'C'),
-        ('E', 'E'),
-        ('M', 'M'),
-        ('T', 'T'),
-    )
 
     name = CharField(_('name'),max_length=50)
     last_name = CharField(_('last_name'), max_length=50)
@@ -38,11 +28,12 @@ class Client(Model):
     cuit = CharField(max_length=13, null=True, validators=[RegexValidator(r'^\d{2}-\d{8}-\d{1}$', 'Ingrese un CUIT válido.')], unique=True, verbose_name= _('cuit'))
     email = CharField(max_length=50, verbose_name= _('email'), unique=True)
     address = CharField(max_length=100, verbose_name= _('address'))
+    birth_date = DateField(null=True, blank=True, verbose_name= _('birth date'))
     postal_code = CharField(max_length=10, verbose_name= _('postal code'))
-    billing_type = CharField(max_length= 1, choices=BILLING_TYPES, default='C', verbose_name= _('billing type'))
+    chosen_billing_type = CharField(max_length= 2, choices=BillingType.choices, default='C', verbose_name= _('billing type'))
     created_at = DateTimeField(auto_now_add=True, verbose_name= _('created at'))
     updated_at = DateTimeField(auto_now=True, verbose_name= _('updated at'))
-    approved_customer_account = BooleanField(default=False, verbose_name= _('approved customer account'))
+    approved_customer_account = BooleanField(default=True, verbose_name= _('approved customer account'))
     is_deleted = BooleanField(default=False, verbose_name=_('is deleted'))
     deleted_at = DateTimeField(null=True, blank=True, verbose_name=_('deleted at'))
 
@@ -54,6 +45,15 @@ class Client(Model):
         self.deleted_at = now()
         self.save()
 
+    def restore(self):
+        """
+        Restores a soft-deleted client.
+        """
+        self.is_deleted = False
+        self.deleted_at = None
+        self.save()
+
+    @property
     def get_full_name(self):
         return f'{self.name} {self.last_name}'
 
@@ -88,9 +88,53 @@ class Client(Model):
         except ValidationError:
             raise ValidationError({'email': _('Ingrese un email válido.')})
 
+
+class CustomerAccount(Model):
+    client = OneToOneField(Client, on_delete=PROTECT, related_name='customer_account', verbose_name=_('client'))
+    credit_limit = DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, verbose_name=_('credit limit'))
+    active = BooleanField(default=True, verbose_name=_('active'))
+    notes = TextField(null=True, blank=True, verbose_name=_('notes'))
+    opening_date = DateTimeField(auto_now_add=True, verbose_name=_('opening date'))
+
+    @property
+    def get_balance(self):
+        """
+        Returns the current balance of the account by summing all movements.
+        """
+        return self.balance_records.aggregate(balance=Sum('amount'))['balance'] or 0
+
+    def get_movements(self, movement_type=None, start_date=None, end_date=None):
+        """
+        Returns movements ordered by descending date, optionally filtered by type and date range.
+        """
+        qs = self.balance_records.order_by('-created_at')
+        if movement_type:
+            qs = qs.filter(movement_type=movement_type)
+        if start_date:
+            qs = qs.filter(created_at__gte=start_date)
+        if end_date:
+            qs = qs.filter(created_at__lte=end_date)
+        return qs
+
+
+    class Meta:
+        verbose_name = _('customer account')
+        verbose_name_plural = _('customer accounts')
+
+
+    def deactivate(self):
+        """
+        Deactivates the account.
+        """
+        self.active = False
+        self.save()
+        
+    def __str__(self):
+        return f"{self.client.get_full_name()} - {self.opening_date}"
+    
 class CustomerBalanceRecord(Model):
 
-    current_account = ForeignKey('CurrentAccount', on_delete=PROTECT, verbose_name=_('current account'), related_name="balance_records")
+    customer_account = ForeignKey(CustomerAccount, on_delete=PROTECT, verbose_name=_('customer account'), related_name="balance_records")
     sale = ForeignKey('sales.Sale', blank=True, null=True, on_delete=PROTECT, verbose_name=_('sale'), related_name="sale_balance_records")
     related_to = ForeignKey('self', blank=True, null=True, on_delete=SET_NULL, verbose_name=_('related to'), related_name="related_records")
 
@@ -109,13 +153,13 @@ class CustomerBalanceRecord(Model):
     objects: BalanceRecordsManager = BalanceRecordsManager()
 
     def __str__(self):
-        return f'{self.current_account} - {self.amount} - {self.movement_type}'
+        return f'{self.customer_account} - {self.amount} - {self.movement_type}'
 
     class Meta:
         verbose_name = _('customer balance record')
         verbose_name_plural = _('customer balance records')
         indexes = [
-            Index(fields=['current_account'], name='current_account_index'),
+            Index(fields=['customer_account'], name='customer_account_index'),
             Index(fields=['created_at'], name='created_at_index'),
             Index(fields=['movement_type'], name='movement_type_index'),
         ]
@@ -195,67 +239,20 @@ class CustomerBalanceRecord(Model):
         self.validate_movement_type()
 
         # Validate negative balance and credit limit
-        if self.current_account:
-            if not self.current_account.active:
+        if self.customer_account:
+            if not self.customer_account.active:
                 raise ValidationError({NON_FIELD_ERRORS: _('Cannot register movements in inactive accounts.')})
             future_balance = None
             if self.pk:
                 try:
                     old = CustomerBalanceRecord.objects.get(pk=self.pk)
-                    future_balance = self.current_account.get_balance() - old.amount + self.amount
+                    future_balance = self.customer_account.get_balance() - old.amount + self.amount
                 except CustomerBalanceRecord.DoesNotExist:
-                    future_balance = self.current_account.get_balance() + self.amount
+                    future_balance = self.customer_account.get_balance() + self.amount
             else:
-                future_balance = self.current_account.get_balance() + self.amount
+                future_balance = self.customer_account.get_balance() + self.amount
             if future_balance is not None:
                 if future_balance < 0:
                     raise ValidationError({NON_FIELD_ERRORS: _('Balance cannot be negative.')})
-                if self.current_account.credit_limit is not None and future_balance > self.current_account.credit_limit:
+                if self.customer_account.credit_limit is not None and future_balance > self.customer_account.credit_limit:
                     raise ValidationError({NON_FIELD_ERRORS: _('Balance exceeds credit limit.')})
-
-class CustomerAccount(Model):
-    client = OneToOneField(Client, on_delete=PROTECT, related_name='customer_account', verbose_name=_('client'))
-    credit_limit = DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, verbose_name=_('credit limit'))
-    active = BooleanField(default=True, verbose_name=_('active'))
-    notes = TextField(null=True, blank=True, verbose_name=_('notes'))
-    opening_date = DateTimeField(auto_now_add=True, verbose_name=_('opening date'))
-
-    def get_balance(self):
-        """
-        Returns the current balance of the account by summing all movements.
-        """
-        return self.balance_records.aggregate(balance=Sum('amount'))['balance'] or 0
-
-    def get_movements(self, movement_type=None, start_date=None, end_date=None):
-        """
-        Returns movements ordered by descending date, optionally filtered by type and date range.
-        """
-        qs = self.balance_records.order_by('-created_at')
-        if movement_type:
-            qs = qs.filter(movement_type=movement_type)
-        if start_date:
-            qs = qs.filter(created_at__gte=start_date)
-        if end_date:
-            qs = qs.filter(created_at__lte=end_date)
-        return qs
-
-    def is_active(self):
-        """
-        Returns True if the account is active.
-        """
-        return self.active
-
-    class Meta:
-        verbose_name = _('current account')
-        verbose_name_plural = _('current accounts')
-
-
-    def deactivate(self):
-        """
-        Deactivates the account.
-        """
-        self.active = False
-        self.save()
-        
-    def __str__(self):
-        return f"{self.client.get_full_name()} - {self.opening_date}"

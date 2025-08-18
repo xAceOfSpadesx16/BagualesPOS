@@ -108,11 +108,9 @@ class CloseSale(PatchMethodMixin, UpdateView):
         
         else:
             return self.form_invalid(form)
-            
 
 
 class SaleQuantityDetailUpdate(PatchMethodMixin, View):
-
 
     def patch(self, request: HttpRequest, pk, *args, **kwargs):
         body = loads(request.body)
@@ -144,8 +142,6 @@ class ClientUpdateView(PatchMethodMixin, View):
         return JsonResponse({"message": _("Client updated successfully")})
 
 
-
-
 class ProductAutocomplete(autocomplete.Select2QuerySetView):
     def get_queryset(self):
         qs = Product.objects.select_related('letter_size', 'gender', 'material', 'color', 'brand', 'category', 'season').filter(is_deleted=False).all().order_by('name')
@@ -172,3 +168,4 @@ class ProductAutocomplete(autocomplete.Select2QuerySetView):
 
     def get_result_label(self, item: Product):
         return f"{item.name} {item.color.name if item.color else 'Sin Color'} {item.brand.name if item.brand else 'Sin Marca'} T-{item.letter_size.name if item.letter_size else item.numeric_size}"
+

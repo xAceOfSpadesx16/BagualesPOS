@@ -1,7 +1,8 @@
 from django.db.models.fields import BooleanField, DateTimeField
+from django.forms import BoundField
 from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
-from django.http import JsonResponse
+from django.http import HttpResponseForbidden
 
 # VIEWS MIXINS
 class PatchMethodMixin(object):
@@ -13,20 +14,17 @@ class PatchMethodMixin(object):
     def patch(self, request, *args, **kwargs):
         pass
 
-class CreateFormValidationMixin:
-    def form_valid(self, form):
-        form.save()
-        return JsonResponse({'redirect_url': self.success_url }, status = 200)
-    
+class FormValidationMixin:
     def form_invalid(self, form):
         response = super().form_invalid(form)
-        response.status_code = 400
+        response.status_code = 422
         return response
-    
-class UpdateFormValidationMixin:
-    def form_valid(self, form):
-        form.save()
-        return JsonResponse({'redirect_url': self.success_url }, status = 200)
+
+class FetchRequestMixin:
+    def dispatch(self, request, *args, **kwargs):
+        if not request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return HttpResponseForbidden(_("This view can only be accessed via Fetch."))
+        return super().dispatch(request, *args, **kwargs)
 
 # MODELS MIXINS
 class SoftDeleteMixin:
@@ -37,3 +35,20 @@ class SoftDeleteMixin:
         self.is_deleted = True
         self.deleted_at = now()
         super().save(*args, **kwargs)
+
+# FORM MIXINS
+class CustomBoundField(BoundField):
+    def css_classes(self, extra_classes=None):
+        return "form-group"
+
+
+class FormGroupMixin:
+    def __getitem__(self, name):
+        return CustomBoundField(self, self.fields[name], name)
+
+class RequiredSuffixMixin:
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field_name, field in self.fields.items():
+            if field.required:
+                field.label_suffix = ' *'

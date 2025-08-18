@@ -9,20 +9,29 @@ async function saveObject(e, fetcherFunct) {
     }
 
     const formData = new FormData(form);
+    const button = e.target.closest('#confirm_modal');
+    const objectId = button.getAttribute('data-object-id');
 
-    return fetcherFunct(formData)
-        .then(response => {
-            if (response.ok) {
-                return response.json().then(data => {
-                    window.location.href = data.redirect_url;
-                });
-            } else {
-                return response.text().then(html => {
-                    Modal.updateContent(html);
-                    return false;
-                });
-            }
-        })
+    const responsePromise = objectId
+        ? fetcherFunct(objectId, formData)
+        : fetcherFunct(formData);
+
+    return responsePromise.then(response => {
+        if (response.status === 422) {
+            return response.text().then(html => {
+                Modal.updateContent(html);
+                return false;
+            });
+        }
+        if (response.redirected) {
+            window.location.assign(response.url);
+            return;
+        }
+        else {
+            alert("Error inesperado: " + response.status);
+            throw new Error("Error inesperado: " + response.status);
+        }
+    })
         .catch(error => {
             console.error("Error en fetch:", error);
             return false;
@@ -39,7 +48,7 @@ async function updateObject(e, fetcherFunct) {
     }
 
     const formData = new FormData(form);
-    const objectId = button.getAttribute('data-object-id');
+
     console.log(objectId)
     return fetcherFunct(objectId, formData)
         .then(response => {
@@ -60,7 +69,6 @@ async function updateObject(e, fetcherFunct) {
             console.error("Error en fetch:", error);
             return false;
         });
-
 }
 
 async function deleteObject(e, fetcherFunct) {

@@ -12,7 +12,7 @@ from products.models import Product, Brand, Category, Color, Gender, LetterSize,
 
 from products.forms import ProductForm, BrandForm, CategoryForm, ColorForm, GenderForm, LetterSizeForm, MaterialsForm, SeasonForm, SupplierForm
 
-from utils.mixins import CreateFormValidationMixin, UpdateFormValidationMixin
+from utils.mixins import FormValidationMixin
 
     
 """ PRODUCT VIEWS """
@@ -24,14 +24,14 @@ class ProductListView(ListView):
     queryset = Product.objects.filter(is_deleted=False)
 
 
-class ProductCreateView(CreateFormValidationMixin, CreateView):
+class ProductCreateView(FormValidationMixin, CreateView):
     model = Product
     form_class = ProductForm
     template_name = 'product_form.html'
     success_url = reverse_lazy('administration')
 
 
-class ProductUpdateView(UpdateFormValidationMixin, UpdateView):
+class ProductUpdateView(FormValidationMixin, UpdateView):
     model = Product
     form_class = ProductForm
     template_name = 'product_form.html'
@@ -55,14 +55,14 @@ class BrandListView(ListView):
     context_object_name = 'brands'
     
 
-class BrandCreateView(CreateFormValidationMixin, CreateView):
+class BrandCreateView(FormValidationMixin, CreateView):
     model = Brand
     form_class = BrandForm
     template_name = 'administration_forms.html'
     success_url = reverse_lazy('brand_administration')
 
     
-class BrandUpdateView(UpdateFormValidationMixin, UpdateView):
+class BrandUpdateView(FormValidationMixin, UpdateView):
     model = Brand
     form_class = BrandForm
     template_name = 'administration_forms.html'
@@ -85,13 +85,13 @@ class CategoryListView(ListView):
     model = Category
     context_object_name = 'categories'
 
-class CategoryCreateView(CreateFormValidationMixin, CreateView):
+class CategoryCreateView(FormValidationMixin, CreateView):
     model = Category
     form_class = CategoryForm
     template_name = 'administration_forms.html'
     success_url = reverse_lazy('category_administration')
 
-class CategoryUpdateView(UpdateFormValidationMixin, UpdateView):
+class CategoryUpdateView(FormValidationMixin, UpdateView):
     model = Category
     form_class = CategoryForm
     template_name = 'administration_forms.html'
@@ -113,14 +113,14 @@ class ColorListView(ListView):
     model = Color
     context_object_name = 'colors'
 
-class ColorCreateView(CreateFormValidationMixin, CreateView):
+class ColorCreateView(FormValidationMixin, CreateView):
     model = Color
     form_class = ColorForm
     template_name = 'administration_forms.html'
     success_url = reverse_lazy('color_administration')
 
 
-class ColorUpdateView(UpdateFormValidationMixin, UpdateView):
+class ColorUpdateView(FormValidationMixin, UpdateView):
     model = Color
     form_class = ColorForm
     template_name = 'administration_forms.html'
@@ -142,13 +142,13 @@ class GenderListView(ListView):
     model = Gender
     context_object_name = 'genders'
 
-class GenderCreateView(CreateFormValidationMixin, CreateView):
+class GenderCreateView(FormValidationMixin, CreateView):
     model = Gender
     form_class = GenderForm
     template_name = 'administration_forms.html'
     success_url = reverse_lazy('gender_administration')
 
-class GenderUpdateView(UpdateFormValidationMixin, UpdateView):
+class GenderUpdateView(FormValidationMixin, UpdateView):
     model = Gender
     form_class = GenderForm
     template_name = 'administration_forms.html'
@@ -170,13 +170,13 @@ class LetterSizeListView(ListView):
     model = LetterSize
     context_object_name = 'letter_sizes'
 
-class LetterSizeCreateView(CreateFormValidationMixin, CreateView):
+class LetterSizeCreateView(FormValidationMixin, CreateView):
     model = LetterSize
     form_class = LetterSizeForm
     template_name = 'administration_forms.html'
     success_url = reverse_lazy('letter_size_administration')
 
-class LetterSizeUpdateView(UpdateFormValidationMixin, UpdateView):
+class LetterSizeUpdateView(FormValidationMixin, UpdateView):
     model = LetterSize
     form_class = LetterSizeForm
     template_name = 'administration_forms.html'
@@ -198,13 +198,13 @@ class MaterialsListView(ListView):
     model = Materials
     context_object_name = 'materials'
 
-class MaterialsCreateView(CreateFormValidationMixin, CreateView):
+class MaterialsCreateView(FormValidationMixin, CreateView):
     model = Materials
     form_class = MaterialsForm
     template_name = 'administration_forms.html'
     success_url = reverse_lazy('materials_administration')
 
-class MaterialsUpdateView(UpdateFormValidationMixin, UpdateView):
+class MaterialsUpdateView(FormValidationMixin, UpdateView):
     model = Materials
     form_class = MaterialsForm
     template_name = 'administration_forms.html'
@@ -226,13 +226,13 @@ class SeasonListView(ListView):
     model = Season
     context_object_name = 'seasons'
 
-class SeasonCreateView(CreateFormValidationMixin, CreateView):
+class SeasonCreateView(FormValidationMixin, CreateView):
     model = Season
     form_class = SeasonForm
     template_name = 'administration_forms.html'
     success_url = reverse_lazy('season_administration')
 
-class SeasonUpdateView(UpdateFormValidationMixin, UpdateView):
+class SeasonUpdateView(FormValidationMixin, UpdateView):
     model = Season
     form_class = SeasonForm
     template_name = 'administration_forms.html'
@@ -254,13 +254,13 @@ class SupplierListView(ListView):
     model = Supplier
     context_object_name = 'suppliers'
 
-class SupplierCreateView(CreateFormValidationMixin, CreateView):
+class SupplierCreateView(FormValidationMixin, CreateView):
     model = Supplier
     form_class = SupplierForm
     template_name = 'administration_forms.html'
     success_url = reverse_lazy('supplier_administration')
 
-class SupplierUpdateView(UpdateFormValidationMixin, UpdateView):    
+class SupplierUpdateView(FormValidationMixin, UpdateView):    
     model = Supplier
     form_class = SupplierForm
     template_name = 'administration_forms.html'

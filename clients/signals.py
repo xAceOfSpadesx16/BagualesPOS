@@ -11,4 +11,9 @@ def create_current_account(sender, instance: Client, created: bool, **kwargs):
     """
     if created:
         with atomic():
-            CustomerAccount.objects.create(client=instance, active=True, notes= f"{instance.name} {instance.last_name} - {_('Customer account.')}")
+            CustomerAccount.objects.create(
+                client=instance, 
+                notes= f"{instance.name} {instance.last_name} - {_('Customer account.')}", 
+                active=instance.approved_customer_account
+            )
+
