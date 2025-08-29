@@ -1,0 +1,66 @@
+{% extends "index.html" %}
+{% load static %}
+
+{% block head_css %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'style/table.css' %}">
+{% endblock head_css %}
+
+
+
+{% block content %}
+<h2>Detalle de Cuenta Corriente</h2>
+<div>
+    <strong>Cliente:</strong> {{ customer_account.client.name }} {{ customer_account.client.last_name }}<br>
+    <strong>DNI:</strong> {{ customer_account.client.dni }}<br>
+    <strong>Saldo actual:</strong> ${{ customer_account.get_balance|default:0|floatformat:2 }}<br>
+    <strong>Estado:</strong> {% if customer_account.is_active %} Activa {% else %} Inactiva {% endif %}
+</div>
+
+<h3>Asientos Contables</h3>
+<div class="table-container">
+    <table class="responsive-table scroll">
+        <thead>
+            <tr>
+                <th>Fecha</th>
+                <th>Tipo de Movimiento</th>
+                <th>Monto</th>
+                <th>Referencia</th>
+                <th>Notas</th>
+                <th>Relacionado</th>
+                <th>Creado por</th>
+                <th>Venta</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for record in customer_account.balance_records.all %}
+            <tr>
+                <td>{{ record.created_at|date:"d/m/Y H:i" }}</td>
+                <td>{{ record.get_movement_type_display }}</td>
+                <td class="text-end">{% if record.amount < 0 %}<span style="color:red">{{ record.amount }}</span>{% else %}{{ record.amount }}{% endif %}</td>
+                <td>{{ record.reference|default:"-" }}</td>
+                <td>{{ record.notes|default:"-" }}</td>
+                <td>
+                    {% if record.related_to %}
+                    #{{ record.related_to.id }}
+                    {% else %}
+                    -
+                    {% endif %}
+                </td>
+                <td>{{ record.created_by.get_full_name|default:record.created_by.username }}</td>
+                <td>
+                    {{ record.sale.id|default:"-" }}
+                </td>
+
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="8" class="text-center">No hay registros contables en esta cuenta.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+
+

@@ -2,9 +2,9 @@ from .base import *
 
 
 TEMPLATES[0].get('DIRS').append(BASE_DIR/"templates_dev")
-print(BASE_DIR)
-# LIVERELOAD 
 
+
+# Livereload settings
 indice_statics = INSTALLED_APPS.index('django.contrib.staticfiles')
 
 INSTALLED_APPS.insert(indice_statics, 'livereload')
@@ -14,9 +14,6 @@ MIDDLEWARE += [
 ]
 LIVERELOAD_HOST= env.str('LIVERELOAD_HOST')
 LIVERELOAD_PORT= env.int('LIVERELOAD_PORT')
-
-print(f"LIVERELOAD_HOST: {LIVERELOAD_HOST}")
-print(f"LIVERELOAD_PORT: {LIVERELOAD_PORT}")
 
 SECURE_CROSS_ORIGIN_OPENER_POLICY = None
 

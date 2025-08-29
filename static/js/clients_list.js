@@ -1,5 +1,5 @@
 import { ClientFetcher } from "./requests/fetchers/client_fetchers.js";
-import { saveObject, updateObject } from "./admin/admin_utils.js";
+import { saveObject } from "./admin/admin_utils.js";
 import { Modal } from "./modal.js";
 
 

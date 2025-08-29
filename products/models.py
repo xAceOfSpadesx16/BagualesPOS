@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 from django.db.models import Model
 from django.db.models.fields import CharField, IntegerField, BooleanField, DateTimeField, EmailField
 from django.db.models.fields.files import ImageField
-from django.db.models.fields.related import ForeignKey
+from django.db.models.fields.related import ForeignKey, ManyToManyField
 from django.db.models.deletion import SET_NULL
 from django.db.models.indexes import Index
 from django.utils.timezone import now
@@ -16,7 +16,9 @@ if TYPE_CHECKING:
     from inventory.models import Inventory
 
 class Category(Model):
-    name = CharField(_('name'), max_length=50)
+    name = CharField(_('name'), max_length=50, unique=True)
+    created_at = DateTimeField(auto_now_add=True, editable=False)
+    updated_at = DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.name
@@ -29,8 +31,25 @@ class Category(Model):
         ]
 
 
+class Subcategory(Model):
+    name = CharField(_('name'), max_length=50, unique=True)
+    created_at = DateTimeField(auto_now_add=True, editable=False)
+    updated_at = DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = _('subcategory')
+        verbose_name_plural = _('subcategories')
+        indexes = [
+            Index(fields=['name'], name='subcategory_name_idx'),
+        ]
+
 class Season(Model):
-    name = CharField(_('name'), max_length=50)
+    name = CharField(_('name'), max_length=50, unique=True)
+    created_at = DateTimeField(auto_now_add=True, editable=False)
+    updated_at = DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.name
@@ -44,8 +63,10 @@ class Season(Model):
 
 
 class Color(Model):
-    name = CharField(_('name'),max_length=50)
+    name = CharField(_('name'),max_length=50, unique=True)
     code = CharField(_('code'), max_length=7)
+    created_at = DateTimeField(auto_now_add=True, editable=False)
+    updated_at = DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.name
@@ -59,7 +80,7 @@ class Color(Model):
 
 
 class Gender(Model):
-    name = CharField(_('name'), max_length=50)
+    name = CharField(_('name'), max_length=50, unique=True)
     created_at = DateTimeField(auto_now_add=True, editable=False)
     updated_at = DateTimeField(auto_now=True)
 
@@ -74,8 +95,10 @@ class Gender(Model):
         ]
     
 class LetterSize(Model):
-    short_name = CharField(_('short name'), max_length=4)
-    name = CharField(_('name'), max_length=50)
+    short_name = CharField(_('short name'), max_length=4, unique=True)
+    name = CharField(_('name'), max_length=50, unique=True)
+    created_at = DateTimeField(auto_now_add=True, editable=False)
+    updated_at = DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.name
@@ -89,7 +112,9 @@ class LetterSize(Model):
 
 
 class Materials(Model):
-    name = CharField(_('name'),max_length=50)
+    name = CharField(_('name'),max_length=50, unique=True)
+    created_at = DateTimeField(auto_now_add=True, editable=False)
+    updated_at = DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.name
@@ -103,9 +128,13 @@ class Materials(Model):
 
 
 class Supplier(Model):
-    name = CharField(_('name'), max_length=50)
-    phone_number = PhoneNumberField(null=True, verbose_name=_( 'phone number'))
-    email = EmailField(_('email'), null=True)
+    name = CharField(_('name'), max_length=50, unique=True)
+    phone_number = PhoneNumberField(null=True, blank=True, verbose_name=_( 'phone number'))
+    email = EmailField(_('email'), null=True, blank=True, unique=True)
+    address = CharField(_('address'), max_length=100, null=True, blank=True)
+
+    created_at = DateTimeField(auto_now_add=True, editable=False)
+    updated_at = DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.name
@@ -119,10 +148,12 @@ class Supplier(Model):
 
 
 class Brand(Model):
-    name = CharField(_('name'), max_length=50)
-    supplier = ForeignKey(Supplier, on_delete=SET_NULL, null=True, verbose_name=_( 'supplier'))
+    name = CharField(_('name'), max_length=50, unique=True)
+    supplier = ForeignKey(Supplier, on_delete=SET_NULL, null=True, blank=True, verbose_name=_( 'supplier'))
     logo = ImageField(_('logo'), upload_to='brands/', null=True, blank=True)
-
+    created_at = DateTimeField(auto_now_add=True, editable=False)
+    updated_at = DateTimeField(auto_now=True)
+    
     def __str__(self):
         return self.name
     
@@ -150,6 +181,7 @@ class Product(Model):
     color = ForeignKey(Color, on_delete=SET_NULL, null=True, verbose_name=_('color'))
     brand = ForeignKey(Brand, on_delete=SET_NULL, null=True, verbose_name=_('brand'))
     category = ForeignKey(Category, on_delete=SET_NULL, null=True, verbose_name=_('category'))
+    subcategories = ManyToManyField(Subcategory, blank=True, related_name='products', verbose_name=_('subcategories'))
     season = ForeignKey(Season, on_delete=SET_NULL, null=True, verbose_name=_('season'))
     created_at = DateTimeField(_('created at'), auto_now_add=True, editable=False)
     updated_at = DateTimeField(_('updated at'), auto_now=True)

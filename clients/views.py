@@ -51,7 +51,6 @@ class ClientCreateView(FormValidationMixin, FetchRequestMixin, CreateView):
     http_method_names = ['get', 'post']
 
 
-
 class ClientUpdateView(FormValidationMixin, FetchRequestMixin, UpdateView):
     model = Client
     form_class = ClientForm

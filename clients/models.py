@@ -1,12 +1,11 @@
 from __future__ import annotations
 from django.db.models import Model
-from django.db.models.fields import CharField, DateTimeField, BooleanField, FloatField, TextField, DecimalField, DateField
+from django.db.models.fields import CharField, DateTimeField, BooleanField, TextField, DecimalField, DateField
 from django.db.models.fields.related import ForeignKey, OneToOneField
 from django.db.models.deletion import SET_NULL, PROTECT
 from django.db.models.aggregates import Sum
 from django.db.models.constraints import UniqueConstraint
 from django.db.models.query_utils import Q
-from django.db.models.enums import TextChoices
 from django.db.models.indexes import Index
 from django.core.validators import RegexValidator, validate_email
 from django.contrib.auth import get_user_model
@@ -97,6 +96,10 @@ class CustomerAccount(Model):
     opening_date = DateTimeField(auto_now_add=True, verbose_name=_('opening date'))
 
     @property
+    def is_active(self):
+        return self.active
+
+    @property
     def get_balance(self):
         """
         Returns the current balance of the account by summing all movements.
@@ -130,7 +133,7 @@ class CustomerAccount(Model):
         self.save()
         
     def __str__(self):
-        return f"{self.client.get_full_name()} - {self.opening_date}"
+        return f"{self.client.get_full_name} - {self.opening_date}"
     
 class CustomerBalanceRecord(Model):
 
@@ -246,11 +249,11 @@ class CustomerBalanceRecord(Model):
             if self.pk:
                 try:
                     old = CustomerBalanceRecord.objects.get(pk=self.pk)
-                    future_balance = self.customer_account.get_balance() - old.amount + self.amount
+                    future_balance = self.customer_account.get_balance - old.amount + self.amount
                 except CustomerBalanceRecord.DoesNotExist:
-                    future_balance = self.customer_account.get_balance() + self.amount
+                    future_balance = self.customer_account.get_balance + self.amount
             else:
-                future_balance = self.customer_account.get_balance() + self.amount
+                future_balance = self.customer_account.get_balance + self.amount
             if future_balance is not None:
                 if future_balance < 0:
                     raise ValidationError({NON_FIELD_ERRORS: _('Balance cannot be negative.')})
