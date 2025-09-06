@@ -1,6 +1,6 @@
 import { GenderFetcher } from "../requests/fetchers/gender_fetchers.js";
 import { Modal } from "../modal.js";
-import { saveObject, updateObject, deleteObject } from "./admin_utils.js";
+import { saveObject, deleteObject } from "./admin_utils.js";
 
 
 document.addEventListener('click', (e) => {
@@ -19,10 +19,11 @@ document.addEventListener('click', (e) => {
 
     if (target.closest('.edit-btn')) {
         const button = target.closest('.edit-btn');
-        const genderId = button.getAttribute('data-object-id');
+        const genderId = button.dataset.objectId;
+
         GenderFetcher.getGenderUpdateForm(genderId).then(data => {
             data.text().then(html => {
-                const updateGender = (e) => updateObject(e, (id, formData) => GenderFetcher.updateGender(id, formData));
+                const updateGender = (e) => saveObject(e, (id, formData) => GenderFetcher.updateGender(id, formData));
                 const modal = new Modal({ title: 'Editar Genero', content: html, onSubmit: updateGender, requireCloseConfirmation: true, confirmButtonDataAttr: { 'data-object-id': genderId } });
                 modal.openModal();
             })

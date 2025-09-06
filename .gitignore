@@ -29,6 +29,7 @@ MANIFEST
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
+staticfiles/*
 
 # Environments
 .env
@@ -38,3 +39,6 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+.env.development
+.env.production
+.env.test

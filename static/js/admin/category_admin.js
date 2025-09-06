@@ -1,6 +1,6 @@
 import { CategoryFetcher } from "../requests/fetchers/category_fetchers.js";
 import { Modal } from "../modal.js";
-import { saveObject, updateObject, deleteObject } from "./admin_utils.js";
+import { saveObject, deleteObject } from "./admin_utils.js";
 
 
 document.addEventListener('click', (e) => {
@@ -21,13 +21,12 @@ document.addEventListener('click', (e) => {
     if (target.closest('.edit-btn')) {
 
         const button = target.closest('.edit-btn');
-
-        const categoryId = button.getAttribute('data-object-id');
+        const categoryId = button.dataset.objectId;
 
 
         CategoryFetcher.categoryUpdateForm(categoryId).then(data => {
             data.text().then(html => {
-                const updateCategory = (e) => updateObject(e, (id, formData) => CategoryFetcher.categoryUpdate(id, formData));
+                const updateCategory = (e) => saveObject(e, (id, formData) => CategoryFetcher.categoryUpdate(id, formData));
                 const modal = new Modal({ title: 'Editar Marca', content: html, onSubmit: updateCategory, requireCloseConfirmation: true, confirmButtonDataAttr: { 'data-object-id': categoryId } });
                 modal.openModal();
             })

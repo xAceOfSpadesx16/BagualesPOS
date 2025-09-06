@@ -66,7 +66,7 @@ class SaleClientForm(ModelForm):
         fields = ('client',)
         widgets = {
             "client": autocomplete.ModelSelect2(
-                url="client-autocomplete",
+                url="client_autocomplete",
                 attrs = {
                     "data-placeholder": _("Search a client..."),
                     "data-ajax--delay": 250,

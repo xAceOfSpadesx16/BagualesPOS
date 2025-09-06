@@ -24,6 +24,8 @@ class Fetcher {
             headers.append('X-CSRFToken', getCookie('csrftoken'));
         }
 
+        headers.append('X-Requested-With', 'XMLHttpRequest');
+
         const options = {
             method,
             headers,

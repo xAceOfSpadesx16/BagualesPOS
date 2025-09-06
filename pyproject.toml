@@ -1,0 +1,19 @@
+[project]
+name = "bagualespos"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13.3"
+dependencies = [
+    "Django==5.2",
+    "django-autocomplete-light==3.12.1",
+    "django-environ==0.12.0",
+    "gunicorn==23.0.0",
+    "pillow==11.1.0",
+    "psycopg[binary]==3.2.7",
+]
+
+[project.optional-dependencies]
+dev = [
+    "django-livereload-server==0.5.1",
+]

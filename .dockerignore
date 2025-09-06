@@ -1,0 +1,45 @@
+# Ignorar entornos virtuales locales
+.venv
+venv
+ENV
+env
+
+uv.lock
+
+# Ignorar archivos de Python compilados
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pyc
+
+# Ignorar configuraciones de entorno o secretas
+.env
+.env.*
+*.env
+
+# Ignorar cachés de herramientas de Python
+*.egg-info/
+.eggs/
+*.pytest_cache/
+.coverage
+.cache/
+pip-wheel-metadata/
+
+# Ignorar configuraciones de editores
+.vscode/
+.idea/
+*.swp
+
+# Ignorar dependencias locales de frontend si tenés (por si usás Node o Angular en otra parte del proyecto)
+node_modules/
+dist/
+build/
+
+# Ignorar carpetas de Git
+.git/
+.gitignore
+
+# Ignorar archivos temporales del sistema operativo
+.DS_Store
+Thumbs.db

@@ -1,6 +1,6 @@
 import { ColorFetcher } from "../requests/fetchers/color_fetchers.js";
 import { Modal } from "../modal.js";
-import { saveObject, updateObject, deleteObject } from "./admin_utils.js";
+import { saveObject, deleteObject } from "./admin_utils.js";
 
 
 document.addEventListener('click', (e) => {
@@ -21,11 +21,11 @@ document.addEventListener('click', (e) => {
 
         const button = target.closest('.edit-btn');
 
-        const colorId = button.getAttribute('data-object-id');
+        const colorId = button.dataset.objectId;
 
         ColorFetcher.colorUpdateForm(colorId).then(data => {
             data.text().then(html => {
-                const updateColor = (e) => updateObject(e, (id, formData) => ColorFetcher.updateColor(id, formData));
+                const updateColor = (e) => saveObject(e, (id, formData) => ColorFetcher.updateColor(id, formData));
                 const modal = new Modal({ title: 'Editar Color', content: html, onSubmit: updateColor, requireCloseConfirmation: true, confirmButtonDataAttr: { 'data-object-id': colorId } });
                 modal.openModal();
             })

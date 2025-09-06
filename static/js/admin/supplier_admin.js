@@ -1,7 +1,7 @@
 import { SupplierFetcher } from "../requests/fetchers/supplier_fetchers.js";
 
 import { Modal } from "../modal.js";
-import { saveObject, updateObject, deleteObject } from "./admin_utils.js";
+import { saveObject, deleteObject } from "./admin_utils.js";
 
 
 document.addEventListener('click', (e) => {
@@ -20,10 +20,11 @@ document.addEventListener('click', (e) => {
 
     if (target.closest('.edit-btn')) {
         const button = target.closest('.edit-btn');
-        const supplierId = button.getAttribute('data-object-id');
+        const supplierId = button.dataset.objectId;
+
         SupplierFetcher.getUpdateForm(supplierId).then(data => {
             data.text().then(html => {
-                const updateSupplier = (e) => updateObject(e, (id, formData) => SupplierFetcher.updateSupplier(id, formData));
+                const updateSupplier = (e) => saveObject(e, (id, formData) => SupplierFetcher.updateSupplier(id, formData));
                 const modal = new Modal({ title: 'Editar Proveedor', content: html, onSubmit: updateSupplier, requireCloseConfirmation: true, confirmButtonDataAttr: { 'data-object-id': supplierId } });
                 modal.openModal();
             })

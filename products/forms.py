@@ -3,21 +3,7 @@ from django.forms.boundfield import BoundField
 
 from products.models import Product, Brand, Category, Color, Gender, LetterSize, Materials, Season, Supplier
 
-
-class CustomBoundField(BoundField):
-    def css_classes(self, extra_classes=None):
-        return "form-group"
-
-class FormGroupMixin:
-    def __getitem__(self, name):
-        return CustomBoundField(self, self.fields[name], name)
-
-class RequiredSuffixMixin:
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        for field_name, field in self.fields.items():
-            if field.required:
-                field.label_suffix = ' *'
+from utils.mixins import FormGroupMixin, RequiredSuffixMixin
 
 
 class AdministrationForm(FormGroupMixin, RequiredSuffixMixin, ModelForm): ...
@@ -81,7 +67,7 @@ class GenderForm(AdministrationForm):
 class LetterSizeForm(AdministrationForm):
     class Meta:
         model = LetterSize
-        fields = ['name']
+        fields = ['short_name', 'name']
 
 class MaterialsForm(AdministrationForm):
     class Meta:
