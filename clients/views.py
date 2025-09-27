@@ -163,14 +163,20 @@ class CustomerAccountSoftDelete(View):
         return JsonResponse({'success': True, 'message': _('Customer account deactivated successfully.')}, status=200)
 
 
-class CustomerAccountDetailView(DetailView):
-    model = CustomerAccount
+class CustomerAccountDetailView(ListView):
+    model = CustomerBalanceRecord
     template_name = 'customer_account_detail.html'
-    context_object_name = 'customer_account'
+    context_object_name = 'balance_records'
+    paginate_by = 20
     http_method_names = ['get']
 
     def get_queryset(self):
-        return super().get_queryset().select_related('client').prefetch_related('balance_records', 'balance_records__created_by', 'balance_records__related_to', 'balance_records__sale')
+        return CustomerBalanceRecord.objects.filter(customer_account_id=self.kwargs['pk']).with_related().with_related_records()
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['customer_account'] = CustomerAccount.objects.select_related('client').get(pk=self.kwargs['pk'])
+        return context
 
 
 class CustomerAccountUpdateView(FormValidationMixin, FetchRequestMixin, UpdateView):

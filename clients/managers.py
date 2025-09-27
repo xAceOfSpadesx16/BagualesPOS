@@ -1,7 +1,11 @@
 from django.db.models import Sum
 from django.db.models.manager import Manager
 from django.db.models.query import QuerySet
-from django.db.models.query_utils import Q
+from django.db.models import (
+    Sum, Manager, QuerySet, Q, F, Value, Exists, OuterRef, DecimalField, Case, When
+)
+from django.db.models.functions import Coalesce
+from decimal import Decimal
 from clients.choices import MovementType
 
 
@@ -113,6 +117,35 @@ class BalanceRecordsQueryset(QuerySet):
         """
         return self.debit().total_amount()
 
+    def effective(self):
+        reversals = self.model.objects.filter(
+            related_to=OuterRef('pk'),
+            movement_type=MovementType.REVERSAL,
+        )
+        return (
+            self.exclude(movement_type=MovementType.REVERSAL)
+                .annotate(_has_reversal=Exists(reversals))
+                .filter(_has_reversal=False)
+        )
+
+    def client_balance(self):
+        net = Sum(
+            Case(
+                # Debe (ventas/cargos) -> restan
+                When(movement_type=MovementType.DEBIT, then=-F('amount')),
+                # A favor (pagos/devoluciones) -> suman
+                When(movement_type__in=[MovementType.CREDIT, MovementType.REFUND], then=F('amount')),
+                # Ajustes: dependen del original -> si corrige un DEBIT → suman; si corrige un CREDIT → restan
+                When(Q(movement_type=MovementType.ADJUSTMENT) & Q(related_to__movement_type=MovementType.DEBIT), then=F('amount')),
+                When(Q(movement_type=MovementType.ADJUSTMENT) & Q(related_to__movement_type=MovementType.CREDIT), then=-F('amount')),
+                # cualquier otra cosa no suma
+                default=Value(Decimal('0.00')),
+                output_field=DecimalField(max_digits=12, decimal_places=2),
+            )
+        )
+        return self.aggregate(total=Coalesce(net, Value(Decimal('0.00'))))['total'] or Decimal('0.00')
+
+
 class BalanceRecordsManager(Manager):
     def get_queryset(self):
         """
@@ -191,3 +224,9 @@ class BalanceRecordsManager(Manager):
     def debit_total(self):
         """Returns the total sum of debit movements."""
         return self.get_queryset().debit_total()
+
+    def effective(self):
+        return self.get_queryset().effective()
+
+    def client_balance(self):
+        return self.get_queryset().client_balance()

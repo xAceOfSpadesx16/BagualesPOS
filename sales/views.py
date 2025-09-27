@@ -144,7 +144,11 @@ class ClientUpdateView(PatchMethodMixin, View):
 
 class ProductAutocomplete(autocomplete.Select2QuerySetView):
     def get_queryset(self):
-        qs = Product.objects.select_related('letter_size', 'gender', 'material', 'color', 'brand', 'category', 'season').filter(is_deleted=False).all().order_by('name')
+        qs = Product.objects.select_related('letter_size', 'gender', 'material', 'color', 'brand', 'category', 'season')\
+            .filter(is_deleted=False)\
+            .all()\
+            .order_by('name')
+        
         search_term = self.request.GET.get('q', '')
         if search_term:
             search_terms = search_term.split()

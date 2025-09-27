@@ -1,0 +1,24 @@
+/* Positivo = Haber */
+.pos {
+    color: #15803d;
+    font-weight: 600;
+}
+
+/* negativo = debe */
+.neg {
+    color: #b91c1c;
+    font-weight: 600;
+}
+
+.badge {
+    margin-left: .25rem;
+    padding: .1rem .35rem;
+    border-radius: .25rem;
+    background: #eef;
+    color: #334;
+    font-size: .75rem;
+}
+
+.text-end {
+    text-align: right;
+}
