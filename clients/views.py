@@ -19,7 +19,7 @@ from django.views.generic.edit import CreateView, UpdateView
 
 from clients.models import CustomerBalanceRecord, Client, CustomerAccount
 from clients.choices import MovementType
-from clients.forms import ClientForm, CustomerAccountForm
+from clients.forms import ClientForm, CustomerAccountForm, BalanceRecordForm
 
 class ClientsListView(ListView):
     template_name = 'clients_list.html'
@@ -106,6 +106,23 @@ class BalanceRecordDetailView(DetailView):
     context_object_name = 'record'
     http_method_names = ['get']
 
+
+class BalanceRecordCreateView(FormValidationMixin, CreateView):
+    model = CustomerBalanceRecord
+    form_class = BalanceRecordForm
+    template_name = 'balance_record_form.html'
+    http_method_names = ['get', 'post']
+
+    def get_success_url(self):
+        self.success_url = reverse_lazy('customer_account_detail', kwargs={'pk': self.object.customer_account.id})
+        return super().get_success_url()
+    
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        cuenta = get_object_or_404(CustomerAccount, pk=self.kwargs['pk'])
+        kwargs.update(customer_account=cuenta, usuario_creador=self.request.user)
+        return kwargs
 
 class BalanceRecordCreateAPI(View):
     http_method_names = ['post']

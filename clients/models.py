@@ -129,7 +129,7 @@ class CustomerAccount(Model):
         self.save()
         
     def __str__(self):
-        return f"{self.client.get_full_name} - {self.opening_date}"
+        return f"{_('Customer Account')} N° {self.id} {self.client.get_full_name}"
 
 
 class CustomerBalanceRecord(Model):
@@ -153,7 +153,7 @@ class CustomerBalanceRecord(Model):
     objects: BalanceRecordsManager = BalanceRecordsManager()
 
     def __str__(self):
-        return f'{self.customer_account} - {self.amount} - {self.movement_type}'
+        return f'{self.customer_account} - ${self.amount} - {self.movement_type} - {self.created_at.strftime("%d/%m/%Y %H:%M:%S")}'
 
     class Meta:
         verbose_name = _('customer balance record')
@@ -171,6 +171,11 @@ class CustomerBalanceRecord(Model):
             )
         ]
         ordering = ['-created_at']
+
+
+    def _validate_same_account(self):
+        if self.related_to and self.related_to.customer_account_id != self.customer_account_id:
+            raise ValidationError({'related_to': _("The related movement must belong to the same customer account.")})
 
 
     def validate_credit(self):
@@ -203,6 +208,7 @@ class CustomerBalanceRecord(Model):
         """
         if not self.related_to:
             raise ValidationError({NON_FIELD_ERRORS: _("Refund must reference an original record.")})
+        self._validate_same_account()
 
     def validate_reversal(self):
         """
@@ -214,13 +220,15 @@ class CustomerBalanceRecord(Model):
             ValidationError: if `related_to` is missing or if already reversed.
         """
         if not self.related_to:
-            raise ValidationError({NON_FIELD_ERRORS: _("Reversal must reference an original record.")})
+            raise ValidationError({"related_to": _("Reversal must reference an original record.")})
+        self._validate_same_account()
         if self.related_to.related_records.filter(movement_type=MovementType.REVERSAL).exists():
-            raise ValidationError({NON_FIELD_ERRORS: _("This movement has already been reversed.")})
+            raise ValidationError({"related_to": _("This movement has already been reversed.")})
 
     def validate_adjustment(self):
         if not self.related_to:
-            raise ValidationError({NON_FIELD_ERRORS: _("Adjustment must reference an original record.")})
+            raise ValidationError({"related_to": _("Adjustment must reference an original record.")})
+        self._validate_same_account()
 
     def validate_movement_type(self):
         validators = {

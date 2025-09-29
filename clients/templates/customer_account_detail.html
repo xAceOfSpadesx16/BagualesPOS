@@ -17,6 +17,14 @@
 </div>
 
 <h3>Asientos</h3>
+
+<div class="new-object-container">
+    <button id="new-object-button" data-account-id="{{ customer_account.id }}">
+        Crea asiento
+    </button>
+</div>
+
+</div>
 <div class="table-container">
     <table class="responsive-table scroll">
         <thead>
@@ -91,4 +99,12 @@
         </tbody>
     </table>
 </div>
+{% endblock %}
+
+{% block body_scripts %}
+<script>
+    document.getElementById("new-object-button").addEventListener("click", function() {
+        window.location.href = "{% url 'balance_record_create' pk=customer_account.id %}";
+    });
+</script>
 {% endblock %}

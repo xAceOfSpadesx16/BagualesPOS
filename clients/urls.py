@@ -1,5 +1,5 @@
 from django.urls import path
-from clients.views import ClientAutocomplete, ClientsListView, ClientRetrieveView, ClientCreateView, ClientDeleteView, ClientUpdateView, ClientRestoreView, BalanceRecordCreateAPI, BalanceRecordDetailView, CustomerAccountSoftDelete, CustomerAccountDetailView, CustomerAccountUpdateView
+from clients.views import ClientAutocomplete, ClientsListView, ClientRetrieveView, ClientCreateView, ClientDeleteView, ClientUpdateView, ClientRestoreView, BalanceRecordCreateAPI, BalanceRecordDetailView, CustomerAccountSoftDelete, CustomerAccountDetailView, CustomerAccountUpdateView, BalanceRecordCreateView
 
 urlpatterns = [
     path('', ClientsListView.as_view(), name='clients'),
@@ -12,6 +12,7 @@ urlpatterns = [
     path('cc/<int:pk>/', CustomerAccountDetailView.as_view(), name='customer_account_detail'),
     path('cc/<int:pk>/delete/', CustomerAccountSoftDelete.as_view(), name='customer_account_soft_delete'),
     path('cc/<int:pk>/update/', CustomerAccountUpdateView.as_view(), name='customer_account_update'),
+    path('cc/<int:pk>/record/create/', BalanceRecordCreateView.as_view(), name='balance_record_create'),
     path('cc/record/<int:pk>/', BalanceRecordDetailView.as_view(), name='balance_record_detail'),
     path('cc/record/create/', BalanceRecordCreateAPI.as_view(), name='balance_record_create_api'),
 ]

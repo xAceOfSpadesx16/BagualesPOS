@@ -22,3 +22,16 @@
 .text-end {
     text-align: right;
 }
+
+#new-object-button {
+    background: linear-gradient(145deg, #D4A017, #FFC107);
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 6px;
+    cursor: pointer;
+    text-transform: capitalize;
+    letter-spacing: 0.5px;
+    transition: all 0.3s ease;
+    font-size: 0.8rem;
+}
