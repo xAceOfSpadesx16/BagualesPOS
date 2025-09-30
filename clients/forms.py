@@ -30,14 +30,14 @@ class ClientForm(AdministrationForm):
 
 class BalanceRecordForm(AdministrationForm):
 
-    def __init__(self, *args, customer_account=None, usuario_creador=None, **kwargs):
+    def __init__(self, *args, customer_account=None, created_by=None, **kwargs):
         super().__init__(*args, **kwargs)
         # Asegurar instancia con cuenta
         self.instance.customer_account = customer_account or self.instance.customer_account
         if self.instance.customer_account is None and self.instance.pk is None:
             raise ImproperlyConfigured(_("A CustomerAccount must be provided to create a new BalanceRecord."))
 
-        self._usuario_creador = usuario_creador
+        self._created_by = created_by
 
         # related_to: solo movimientos de la misma cuenta (UX)
         qs = CustomerBalanceRecord.objects.filter(
@@ -72,7 +72,7 @@ class BalanceRecordForm(AdministrationForm):
 
 
     def save(self, commit=True):
-        self.instance.created_by = self._usuario_creador
+        self.instance.created_by = self._created_by
         return super().save(commit)
 
 

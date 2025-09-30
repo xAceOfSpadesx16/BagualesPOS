@@ -114,14 +114,15 @@ class BalanceRecordCreateView(FormValidationMixin, CreateView):
     http_method_names = ['get', 'post']
 
     def get_success_url(self):
-        self.success_url = reverse_lazy('customer_account_detail', kwargs={'pk': self.object.customer_account.id})
-        return super().get_success_url()
+        return reverse_lazy('customer_account_detail', kwargs={'pk': self.object.customer_account.id})
+        # self.success_url = reverse_lazy('customer_account_detail', kwargs={'pk': self.object.customer_account.id})
+        # return super().get_success_url()
     
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        cuenta = get_object_or_404(CustomerAccount, pk=self.kwargs['pk'])
-        kwargs.update(customer_account=cuenta, usuario_creador=self.request.user)
+        account = get_object_or_404(CustomerAccount, pk=self.kwargs['pk'])
+        kwargs.update(customer_account=account, created_by=self.request.user)
         return kwargs
 
 class BalanceRecordCreateAPI(View):
