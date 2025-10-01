@@ -43,6 +43,7 @@
     min-width: 120px;
     max-width: 400px;
     overflow: visible;
+    vertical-align: middle;
 }
 
 .scroll th {
@@ -57,17 +58,21 @@
 
 .scroll tbody tr {
     transition: background 0.2s ease;
-    height: 40px;
+    min-height: 40px;
 }
 
 .scroll tbody tr:hover {
     background: rgba(212, 160, 23, 0.05);
 }
 
+.scroll td img, .scroll td svg {
+    vertical-align: middle;
+}
 
 .delete-btn,
 .edit-btn,
-.restore-btn {
+.restore-btn,
+.view-btn {
     padding: 4px 8px;
     font-size: 10px;
     border-radius: 4px;
@@ -86,6 +91,16 @@
 
 .edit-btn:hover {
     background: #5bc0de;
+    color: white;
+}
+
+.restore-btn:hover {
+    background: #0275d8;
+    color: white;
+}
+
+.view-btn:hover {
+    background: #5cb85c;
     color: white;
 }
 
@@ -133,7 +148,4 @@
         padding: 8px 10px;
     }
 
-    .delete-btn {
-        padding: 3px 6px;
-    }
 }

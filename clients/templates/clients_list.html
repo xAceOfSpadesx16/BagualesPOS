@@ -5,6 +5,7 @@
 {% block head_css %}
     {{ block.super }}
 <link rel="stylesheet" href="{% static 'style/client_list.css' %}">
+<link rel="stylesheet" href="{% static 'style/admin_forms.css' %}">
 {% endblock head_css %}
 
 {% block new_object_button %}
@@ -32,7 +33,9 @@
     {% if clients %}
         {% for client in clients %}
             <tr {% if client.is_deleted %} class="deleted_client" {% endif %}>
-                <td><a href="{% url 'client_detail' client.id %}">{{ client.get_full_name }}</a></td>
+                <td>
+                    {{ client.get_full_name }}
+                </td>
                 <td>{{ client.dni }}</td>
                 <td>{{ client.cuit }}</td>
                 <td><input type="checkbox" {% if client.approved_customer_account %} checked {% endif %} disabled></td>
@@ -43,36 +46,20 @@
                 </td>
                 {% if not client.is_deleted %}
                 <td>
+                    <button class="view-btn" data-url="{% url 'client_detail' client.id %}" type="button">
+                        <img src="{% static 'icons/show.svg' %}" alt="Ver detalles" width="20" height="20">
+                    </button>
                     <button class="edit-btn" data-object-id="{{ client.id }}" type="button">
-                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                            <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"/>
-                        </svg>
+                        <img src="{% static 'icons/edit.svg' %}" alt="Editar" width="20" height="20">
                     </button>
                     <button class="delete-btn client-action" data-action="delete" data-object-id="{{ client.id }}">
-                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                            <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
-                            <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/>
-                        </svg>
+                        <img src="{% static 'icons/delete.svg' %}" alt="Eliminar" width="20" height="20">
                     </button>
                 </td>
                 {% else %}
                 <td>
                     <button class="restore-btn client-action" data-action="restore" data-object-id="{{ client.id }}">
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="#000000"
-                            stroke-width="0.5"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            >
-                            <path d="M3.06 13a9 9 0 1 0 .49 -4.087" />
-                            <path d="M3 4.001v5h5" />
-                            <path d="M12 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" />
-                        </svg>
+                        <img src="{% static 'icons/restore.svg' %}" alt="Restaurar" width="20" height="20">
                     </button>
                 </td>
                 {% endif %}

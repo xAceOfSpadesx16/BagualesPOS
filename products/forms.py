@@ -56,7 +56,10 @@ class ColorForm(AdministrationForm):
         model = Color
         fields = ['name', 'code']
         widgets = {
-            'code': TextInput(attrs={'type': 'color'})
+            'code': TextInput(attrs={'type': 'color'}),
+        }
+        labels = {
+            'code': 'Color',
         }
 
 class GenderForm(AdministrationForm):
