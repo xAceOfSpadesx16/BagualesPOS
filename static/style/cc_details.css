@@ -35,3 +35,12 @@
     transition: all 0.3s ease;
     font-size: 0.8rem;
 }
+
+.account-info {
+    margin-bottom: 1rem;
+    font-size: small;
+}
+
+.account-info p {
+    margin: 0.2rem 0;
+}
