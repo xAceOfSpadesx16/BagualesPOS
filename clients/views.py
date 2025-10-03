@@ -11,8 +11,6 @@ from django.forms.models import model_to_dict
 from django.shortcuts import get_object_or_404
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
-from django.db import transaction
-from django.core.exceptions import ValidationError
 
 from utils.mixins import FormValidationMixin, FetchRequestMixin
 from django.views.generic.edit import CreateView, UpdateView
@@ -25,7 +23,7 @@ class ClientsListView(ListView):
     template_name = 'clients_list.html'
     model = Client
     context_object_name = 'clients'
-    paginate_by = 20
+    paginate_by = 5
     http_method_names = ['get']
     ordering = ['is_deleted', 'name', 'last_name']
 
@@ -139,7 +137,7 @@ class CustomerAccountDetailView(ListView):
     model = CustomerBalanceRecord
     template_name = 'customer_account_detail.html'
     context_object_name = 'balance_records'
-    paginate_by = 20
+    paginate_by = 5
     http_method_names = ['get']
 
     def get_queryset(self):

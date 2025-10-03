@@ -5,109 +5,128 @@
     {{ block.super }}
     <link rel="stylesheet" href="{% static 'style/table.css' %}">
     <link rel="stylesheet" href="{% static 'style/cc_details.css' %}">
+    <link rel="stylesheet" href="{% static 'style/pagination.css' %}">
 {% endblock head_css %}
 
 {% block content %}
-<div class="account-info">
-    <h2>Detalle de Cuenta Corriente</h2>
-    <p>
-        <strong>Cliente:</strong> {{ customer_account.client.name }} {{ customer_account.client.last_name }}
-    </p>
-    <p>
-        <strong>D.N.I. Nro.:</strong> {{ customer_account.client.dni }}
-    </p>
-    <p>
-        <strong>C.U.I.T. Nro.:</strong> {{ customer_account.client.cuit|default:"-" }}
-    </p>
-    <p>
-        <strong>Saldo actual:</strong> ${{ customer_account.balance|default:0|floatformat:2 }}
-    </p>
-    <p>
-        <strong>Estado:</strong> {% if customer_account.is_active %} Activa {% else %} Inactiva {% endif %}
-    </p>
-</div>
 
+<div class="cc-header">
+    <div class="account-info">
+        <h2>Detalle de Cuenta Corriente</h2>
+        <p><strong>Cliente:</strong> {{ customer_account.client.name }} {{ customer_account.client.last_name }}</p>
+        <p><strong>D.N.I. Nro.:</strong> {{ customer_account.client.dni }}</p>
+        <p><strong>C.U.I.T. Nro.:</strong> {{ customer_account.client.cuit|default:"-" }}</p>
+        <p><strong>Saldo actual:</strong> ${{ customer_account.balance|default:0|floatformat:2 }}</p>
+        <p><strong>Estado:</strong> {% if customer_account.is_active %} Activa {% else %} Inactiva {% endif %}</p>
+    </div>
 
-<div class="new-object-container">
-    <button id="new-object-button" data-account-id="{{ customer_account.id }}">
-        Crea asiento
-    </button>
+    <div class="cc-actions">
+        <button id="new-object-button" data-account-id="{{ customer_account.id }}">
+            Crea asiento
+        </button>
+    </div>
 </div>
 
 </div>
 <div class="table-container">
-    <table class="responsive-table scroll">
-        <thead>
-            <tr>
-                <th>Fecha</th>
-                <th>Tipo de Movimiento</th>
-                <th class="text-end">Monto</th>
-                <th>Referencia</th>
-                <th>Notas</th>
-                <th>Relacionado</th>
-                <th>Creado por</th>
-                <th>Venta</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for record in balance_records %}
-            <tr>
-                <td>{{ record.created_at|date:"d/m/Y H:i" }}</td>
-                <td>
-                    {{ record.get_movement_type_display }}
-                    {% if record.movement_type == 'REVERSAL' and record.related_to %}
-                        <small class="badge">de #{{ record.related_to.id }}</small>
-                    {% endif %}
-                </td>
-                <td class="text-end">
-                    {% with mt=record.movement_type rt=record.related_to %}
-                        {# NEGATIVO (debe): DEBIT, AJUSTE de CREDIT, REVERSAL de CREDIT #}
-                        {% if mt == 'DEBIT' %}
-                            <span class="neg">-{{ record.amount|floatformat:2 }}</span>
-                        {% elif mt == 'ADJUSTMENT' and rt and rt.movement_type == 'CREDIT' %}
-                            <span class="neg">-{{ record.amount|floatformat:2 }}</span>
-                        {% elif mt == 'REVERSAL' and rt and rt.movement_type == 'CREDIT' %}
-                            <span class="neg">-{{ record.amount|floatformat:2 }}</span>
 
-                        {# POSITIVO (a favor): CREDIT, REFUND, AJUSTE de DEBIT, REVERSAL de DEBIT #}
-                        {% elif mt == 'CREDIT' or mt == 'REFUND' %}
-                            <span class="pos">+{{ record.amount|floatformat:2 }}</span>
-                        {% elif mt == 'ADJUSTMENT' and rt and rt.movement_type == 'DEBIT' %}
-                            <span class="pos">+{{ record.amount|floatformat:2 }}</span>
-                        {% elif mt == 'REVERSAL' and rt and rt.movement_type == 'DEBIT' %}
-                            <span class="pos">+{{ record.amount|floatformat:2 }}</span>
+<div class="cc-main">
+    <div class="cc-table-parent">
+        <div class="table-container">
+            <table class="responsive-table scroll">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>N°</th>
+                        <th>Tipo de Movimiento</th>
+                        <th class="text-end">Monto</th>
+                        <th>Referencia</th>
+                        <th>Notas</th>
+                        <th>Relacionado</th>
+                        <th>Creado por</th>
+                        <th>Venta</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in balance_records %}
+                    <tr>
+                        <td>{{ record.created_at|date:"d/m/Y H:i" }}</td>
+                        <td>{{ record.id }}</td>
+                        <td>
+                            {{ record.get_movement_type_display }}
+                            {% if record.movement_type == 'REVERSAL' and record.related_to %}
+                                <small class="badge">de #{{ record.related_to.id }}</small>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            {% with mt=record.movement_type rt=record.related_to %}
+                                {# NEGATIVO (debe): DEBIT, AJUSTE de CREDIT, REVERSAL de CREDIT #}
+                                {% if mt == 'DEBIT' %}
+                                    <span class="neg">-{{ record.amount|floatformat:2 }}</span>
+                                {% elif mt == 'ADJUSTMENT' and rt and rt.movement_type == 'CREDIT' %}
+                                    <span class="neg">-{{ record.amount|floatformat:2 }}</span>
+                                {% elif mt == 'REVERSAL' and rt and rt.movement_type == 'CREDIT' %}
+                                    <span class="neg">-{{ record.amount|floatformat:2 }}</span>
 
-                        {# Fallback (por si hubiera datos legacy sin related_to) #}
-                        {% else %}
-                            {{ record.amount|floatformat:2 }}
-                        {% endif %}
-                    {% endwith %}
-                </td>
-                <td>{{ record.reference|default:"-" }}</td>
-                <td>{{ record.notes|default:"-" }}</td>
-                <td>
-                    {% if record.related_to %}
-                        #{{ record.related_to.id }}
-                    {% else %}
-                        -
-                    {% endif %}
-                </td>
-                <td>
-                    {% if record.created_by %}
-                        {{ record.created_by.get_full_name|default:record.created_by.username }}
-                    {% else %}
-                        -
-                    {% endif %}
-                </td>
-                <td>{{ record.sale.id|default:"-" }}</td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="8" class="text-center">No hay registros contables en esta cuenta.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+                                {# POSITIVO (a favor): CREDIT, REFUND, AJUSTE de DEBIT, REVERSAL de DEBIT #}
+                                {% elif mt == 'CREDIT' or mt == 'REFUND' %}
+                                    <span class="pos">+{{ record.amount|floatformat:2 }}</span>
+                                {% elif mt == 'ADJUSTMENT' and rt and rt.movement_type == 'DEBIT' %}
+                                    <span class="pos">+{{ record.amount|floatformat:2 }}</span>
+                                {% elif mt == 'REVERSAL' and rt and rt.movement_type == 'DEBIT' %}
+                                    <span class="pos">+{{ record.amount|floatformat:2 }}</span>
+
+                                {# Fallback (por si hubiera datos legacy sin related_to) #}
+                                {% else %}
+                                    {{ record.amount|floatformat:2 }}
+                                {% endif %}
+                            {% endwith %}
+                        </td>
+                        <td>{{ record.reference|default:"-" }}</td>
+                        <td>{{ record.notes|default:"-" }}</td>
+                        <td>
+                            {% if record.related_to %}
+                                #{{ record.related_to.id }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if record.created_by %}
+                                {{ record.created_by.get_full_name|default:record.created_by.username }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>{{ record.sale.id|default:"-" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center">No hay registros contables en esta cuenta.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="pagination">
+        <span class="step-links">
+        {% if page_obj.has_previous %}
+            <a href="?page=1">&lt;&lt;</a>
+            <a href="?page={{ page_obj.previous_page_number }}">&lt;</a>
+        {% endif %}
+
+        <span class="current">
+            Pagina {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+        </span>
+
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}">&gt;</a>
+            <a href="?page={{ page_obj.paginator.num_pages }}">&gt;&gt;</a>
+        {% endif %}
+        </span>
+    </div>
 </div>
 {% endblock %}
 
