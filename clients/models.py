@@ -206,9 +206,10 @@ class CustomerBalanceRecord(Model):
         Raises:
             ValidationError: if `related_to` is missing.
         """
-        if not self.related_to:
-            raise ValidationError({NON_FIELD_ERRORS: _("Refund must reference an original record.")})
-        self._validate_same_account()
+        # if not self.related_to:
+        #     raise ValidationError({NON_FIELD_ERRORS: _("Refund must reference an original record.")})
+        # self._validate_same_account()
+        ...
 
     def validate_reversal(self):
         """

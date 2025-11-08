@@ -39,7 +39,6 @@ class BalanceRecordForm(AdministrationForm):
 
         self._created_by = created_by
 
-        # related_to: solo movimientos de la misma cuenta (UX)
         qs = CustomerBalanceRecord.objects.filter(
             customer_account=self.instance.customer_account
         ).exclude(pk=self.instance.pk).exclude(movement_type=MovementType.REVERSAL)
