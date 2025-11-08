@@ -24,6 +24,15 @@ document.addEventListener('click', (e) => {
             });
     }
 
+
+    else if (target.closest('.view-btn')) {
+        const button = target.closest('.view-btn');
+        const url = button.dataset.url;
+        if (!url) return console.error('Falta data-url en .view-btn');
+
+        window.location.href = url;
+    }
+
     else if (target.closest('.edit-btn')) {
         const button = target.closest('.edit-btn');
         const clientId = button.dataset.objectId;

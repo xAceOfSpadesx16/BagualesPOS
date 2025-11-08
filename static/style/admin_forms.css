@@ -34,7 +34,7 @@
 }
 
 /* ===== CAMPOS DE FORMULARIO ===== */
-.form-group input:not([type="file"]),
+.form-group input:not([type="file"], [type="checkbox"], [type="color"]),
 .form-group select,
 .form-group textarea {
     width: 100%;
@@ -74,10 +74,32 @@
     padding-right: 35px !important;
 }
 
-/* .required::after {
-    content: " *";
-    color: #dc2626;
-} */
+.form-group input[type="checkbox"] {
+    width: auto;
+    margin-right: 0.5rem;
+}
+
+.form-group input[type="color"] {
+    width: 40px;
+    height: 40px;
+    border: solid 1px #cbd5e0;
+    padding: 0;
+    background: none;
+    cursor: pointer;
+    border-radius: 6px;
+
+}
+
+.form-group:has(input[type="color"]) {
+    display: flex;
+    align-items: center;
+}
+
+.form-group:has(input[type="color"]) label {
+    flex-shrink: 0;
+    margin-right: 1rem;
+}
+
 
 /* ===== MANEJO DE ERRORES ===== */
 .errorlist {

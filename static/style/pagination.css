@@ -1,0 +1,64 @@
+root {
+    --cc-accent: #D4A017;
+    --cc-width: 95%;
+}
+
+.pagination {
+    width: var(--cc-width);
+    margin: 0 auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    /* padding: 8px 0 16px; */
+    padding-bottom: 10px;
+}
+
+/* Contenedor interno de los links */
+.step-links {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+/* Estilos de botones de paginado (autónomos, no requieren otras hojas) */
+.pagination a {
+    color: var(--cc-accent);
+    text-decoration: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid rgba(212, 160, 23, .3);
+    transition: all .2s ease;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.pagination a:hover {
+    background: linear-gradient(145deg, var(--cc-accent), #FFC107);
+    color: #fff;
+    border-color: transparent;
+    box-shadow: 0 2px 8px rgba(212, 160, 23, .2);
+}
+
+.pagination .current {
+    padding: 6px 12px;
+    background: rgba(212, 160, 23, .1);
+    color: var(--cc-accent);
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+
+    .pagination {
+        padding: 6px 0 12px;
+    }
+
+    .pagination a,
+    .pagination .current {
+        padding: 5px 9px;
+        font-size: 12px;
+    }
+
+}

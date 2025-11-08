@@ -11,21 +11,19 @@ from django.forms.models import model_to_dict
 from django.shortcuts import get_object_or_404
 from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy as _
-from django.db import transaction
-from django.core.exceptions import ValidationError
 
 from utils.mixins import FormValidationMixin, FetchRequestMixin
 from django.views.generic.edit import CreateView, UpdateView
 
 from clients.models import CustomerBalanceRecord, Client, CustomerAccount
 from clients.choices import MovementType
-from clients.forms import ClientForm, CustomerAccountForm
+from clients.forms import ClientForm, CustomerAccountForm, BalanceRecordForm
 
 class ClientsListView(ListView):
     template_name = 'clients_list.html'
     model = Client
     context_object_name = 'clients'
-    paginate_by = 20
+    paginate_by = 5
     http_method_names = ['get']
     ordering = ['is_deleted', 'name', 'last_name']
 
@@ -107,50 +105,22 @@ class BalanceRecordDetailView(DetailView):
     http_method_names = ['get']
 
 
-class BalanceRecordCreateAPI(View):
-    http_method_names = ['post']
+class BalanceRecordCreateView(FormValidationMixin, CreateView):
+    model = CustomerBalanceRecord
+    form_class = BalanceRecordForm
+    template_name = 'balance_record_form.html'
+    http_method_names = ['get', 'post']
+    object: CustomerBalanceRecord
 
-    def post(self, request, *args, **kwargs):
-        try:
-            data = json.loads(request.body)
-            customer_account_id = data.get('customer_account_id')
-            if not customer_account_id:
-                return JsonResponse({'success': False, 'error': _('Current account ID is required.')}, status=400)
-            amount = data.get('amount')
-            movement_type = data.get('movement_type')
-            notes = data.get('notes', '')
-            reference = data.get('reference', '')
-            related_to_id = data.get('related_to')
-            sale_id = data.get('sale_id')
-            created_by = request.user
-            customer_account = get_object_or_404(CustomerAccount, pk=customer_account_id)
-            related_to = None
-            if related_to_id:
-                related_to = get_object_or_404(CustomerBalanceRecord, pk=related_to_id)
-            sale = None
-            if sale_id:
-                from sales.models import Sale
-                sale = get_object_or_404(Sale, pk=sale_id)
-            # Validación centralizada en el modelo
-            try:
-                with transaction.atomic():
-                    record = CustomerBalanceRecord(
-                        customer_account=customer_account,
-                        amount=amount,
-                        movement_type=movement_type,
-                        notes=notes,
-                        reference=reference,
-                        related_to=related_to,
-                        sale=sale,
-                        created_by=created_by
-                    )
-                    record.full_clean()
-                    record.save()
-                return JsonResponse({'success': True, 'record': model_to_dict(record)}, status=201)
-            except ValidationError as ve:
-                return JsonResponse({'success': False, 'error': ve.message_dict}, status=400)
-        except Exception as e:
-            return JsonResponse({'success': False, 'error': str(e)}, status=400)
+    def get_success_url(self):
+        return reverse_lazy('customer_account_detail', kwargs={'pk': self.object.customer_account.id})
+    
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        account = get_object_or_404(CustomerAccount, pk=self.kwargs['pk'])
+        kwargs.update(customer_account=account, created_by=self.request.user)
+        return kwargs
 
 
 class CustomerAccountSoftDelete(View):
@@ -163,14 +133,20 @@ class CustomerAccountSoftDelete(View):
         return JsonResponse({'success': True, 'message': _('Customer account deactivated successfully.')}, status=200)
 
 
-class CustomerAccountDetailView(DetailView):
-    model = CustomerAccount
+class CustomerAccountDetailView(ListView):
+    model = CustomerBalanceRecord
     template_name = 'customer_account_detail.html'
-    context_object_name = 'customer_account'
+    context_object_name = 'balance_records'
+    paginate_by = 5
     http_method_names = ['get']
 
     def get_queryset(self):
-        return super().get_queryset().select_related('client').prefetch_related('balance_records', 'balance_records__created_by', 'balance_records__related_to', 'balance_records__sale')
+        return CustomerBalanceRecord.objects.filter(customer_account_id=self.kwargs['pk']).with_related().with_related_records()
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['customer_account'] = CustomerAccount.objects.select_related('client').get(pk=self.kwargs['pk'])
+        return context
 
 
 class CustomerAccountUpdateView(FormValidationMixin, FetchRequestMixin, UpdateView):

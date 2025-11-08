@@ -1,0 +1,113 @@
+/* === Estados de monto === */
+.pos {
+    color: #15803d;
+    font-weight: 600;
+}
+
+.neg {
+    color: #b91c1c;
+    font-weight: 600;
+}
+
+.badge {
+    margin-left: .25rem;
+    padding: .1rem .35rem;
+    border-radius: .25rem;
+    background: #eef;
+    color: #334;
+    font-size: .75rem;
+}
+
+.text-end {
+    text-align: right;
+}
+
+.cc-header {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    width: var(--cc-width);
+    margin: 0 auto;
+    gap: 10px;
+}
+
+.account-info {
+    width: 100%;
+    text-align: center;
+    font-size: .9rem;
+}
+
+.cc-actions {
+    margin-left: 0;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    margin-top: 6px;
+}
+
+.account-info h2 {
+    margin: 0 0 .35rem;
+    font-size: 1.15rem;
+    font-weight: 700;
+}
+
+.account-info p {
+    margin: .15rem 0;
+    color: #374151;
+}
+
+/* === Botón crear asiento === */
+#new-object-button {
+    background: linear-gradient(145deg, var(--clr, #D4A017), #FFC107);
+    color: #fff;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 6px;
+    cursor: pointer;
+    text-transform: capitalize;
+    letter-spacing: 0.5px;
+    transition: transform .15s ease, box-shadow .2s ease, background .2s ease;
+    font-size: 0.85rem;
+    box-shadow: 0 2px 8px rgba(212, 160, 23, .2);
+}
+
+#new-object-button:hover {
+    transform: translateY(-1px);
+}
+
+#new-object-button:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 4px rgba(212, 160, 23, .2);
+}
+
+:root {
+    --cc-table-parent-height: 35%;
+    --cc-table-parent-min: 200px;
+    --cc-gap: 8px;
+    --cc-width: 95%;
+    --cc-accent: #D4A017;
+}
+
+.cc-main {
+    width: 100%;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--cc-gap);
+}
+
+.cc-table-parent {
+    height: var(--cc-table-parent-height);
+    /* height: auto; */
+    min-height: var(--cc-table-parent-min);
+    display: flex;
+    align-items: stretch;
+    width: 100%;
+}
+
+.table-container {
+    height: 80%;
+    margin: 0px auto;
+}

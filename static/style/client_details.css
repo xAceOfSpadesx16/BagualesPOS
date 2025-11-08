@@ -1,0 +1,253 @@
+/* ===========================================
+    CLIENT DETAIL – PALETA PERSONALIZADA (Opción A)
+    Scroll interno en .client-detail-container (no en el body)
+    Usa únicamente: --bg-light, --bg-dark, --clr, --clr-alpha, --img-bg-color
+   =========================================== */
+
+/* Ajustes de alto disponibles (tunear si tu header/navbar ocupa más/menos) */
+:root {
+    --alto-cabecera-aplicacion: 140px;
+    /* alto total de header + nav + grad-bar, etc. */
+    --margen-vertical-del-box: 64px;
+    /* margen top+bottom del box (32px + 32px) */
+}
+
+/* ---------- Contenedor principal (con scroll interno) ---------- */
+.client-detail-container {
+    position: relative;
+    max-width: 980px;
+    margin: 32px 20px;
+    padding: 24px 24px 20px 24px;
+
+    background: #fff;
+    border: 1px solid var(--clr-alpha, #9c9c9c60);
+    border-radius: 14px;
+    box-shadow: 0 10px 24px rgba(112, 112, 112, 0.12);
+    color: var(--bg-dark, #707070);
+
+    /* Scroll interno y altura máxima */
+    max-height: calc(100dvh - var(--alto-cabecera-aplicacion) - var(--margen-vertical-del-box));
+    overflow: auto;
+    overscroll-behavior: contain;
+    /* evita “arrastrar” el scroll al body */
+    scrollbar-gutter: stable;
+    /* evita reflow al aparecer scrollbar */
+    scrollbar-width: thin;
+    /* Firefox */
+    scrollbar-color: var(--clr, #D4A017) var(--bg-light, #efefef);
+    /* Firefox */
+}
+
+/* franja decorativa superior en dorado */
+.client-detail-container::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto auto 0;
+    height: 4px;
+    width: 100%;
+    background: linear-gradient(90deg, var(--clr, #D4A017), rgba(212, 160, 23, 0.15));
+}
+
+/* Scrollbar WebKit */
+.client-detail-container::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+.client-detail-container::-webkit-scrollbar-track {
+    background: var(--bg-light, #efefef);
+    border-radius: 6px;
+}
+
+.client-detail-container::-webkit-scrollbar-thumb {
+    background: var(--clr, #D4A017);
+    border-radius: 6px;
+    border: 2px solid #fff;
+}
+
+/* ---------- Título ---------- */
+.client-detail-container>h1 {
+    font-size: 22px;
+    font-weight: 800;
+    margin: 0 0 18px 0;
+    color: var(--bg-dark, #707070);
+    letter-spacing: .2px;
+    padding-left: 12px;
+    border-left: 6px solid var(--clr, #D4A017);
+}
+
+/* ---------- Panel de información ---------- */
+.client-info {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 16px;
+    background: #fff;
+    border: 1px solid var(--clr-alpha, #9c9c9c60);
+    border-radius: 10px;
+    width: 70vw;
+}
+
+/* fila "Label: Valor" */
+.client-info p {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    align-items: center;
+    margin: 0;
+    padding: 10px 12px;
+    border-radius: 8px;
+    color: var(--bg-dark, #707070);
+    position: relative;
+}
+
+.client-info p:nth-child(odd) {
+    background: var(--img-bg-color, #fffbf0);
+}
+
+.client-info p:nth-child(even) {
+    background: var(--bg-light, #efefef);
+}
+
+.client-info p strong {
+    font-weight: 800;
+    color: var(--bg-dark, #707070);
+}
+
+/* enlaces (ej: cuenta corriente) */
+.client-info a {
+    color: var(--clr, #D4A017);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color .2s ease, color .2s ease;
+}
+
+.client-info a:hover {
+    border-bottom-color: var(--clr, #D4A017);
+}
+
+/* checkbox disabled con acento */
+.client-info input[type="checkbox"][disabled] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--clr, #D4A017);
+    cursor: not-allowed;
+}
+
+/* ---------- Botones de acción (scoped) ---------- */
+.client-detail-container>.edit-btn,
+.client-detail-container>.delete-btn,
+.client-detail-container>.restore-btn,
+.client-detail-container>.view-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+
+    height: 38px;
+    padding: 0 14px;
+    margin-top: 16px;
+    margin-right: 10px;
+
+    background: #fff;
+    color: var(--bg-dark, #707070);
+    border: 1px solid var(--clr-alpha, #9c9c9c60);
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(112, 112, 112, .08);
+
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: .2px;
+    cursor: pointer;
+
+    transition: transform .06s ease, background .2s ease, border-color .2s ease, box-shadow .2s ease;
+}
+
+/* iconos dentro del botón */
+.client-detail-container>.edit-btn img,
+.client-detail-container>.delete-btn img,
+.client-detail-container>.restore-btn img,
+.client-detail-container>.view-btn img {
+    width: 18px;
+    height: 18px;
+    display: block;
+    pointer-events: none;
+    opacity: .9;
+    transition: opacity .2s ease;
+}
+
+/* hover común: resalta en dorado y fondo cálido */
+.client-detail-container>.edit-btn:hover,
+.client-detail-container>.delete-btn:hover,
+.client-detail-container>.restore-btn:hover,
+.client-detail-container>.view-btn:hover {
+    transform: translateY(-1px);
+    background: var(--img-bg-color, #fffbf0);
+    border-color: var(--clr, #D4A017);
+    box-shadow: 0 6px 16px rgba(112, 112, 112, .16);
+}
+
+.client-detail-container>.edit-btn:hover img,
+.client-detail-container>.delete-btn:hover img,
+.client-detail-container>.restore-btn:hover img,
+.client-detail-container>.view-btn:hover img {
+    opacity: 1;
+}
+
+/* focus accesible en dorado */
+.client-detail-container>.edit-btn:focus-visible,
+.client-detail-container>.delete-btn:focus-visible,
+.client-detail-container>.restore-btn:focus-visible,
+.client-detail-container>.view-btn:focus-visible {
+    outline: 3px solid rgba(212, 160, 23, 0.35);
+    outline-offset: 2px;
+}
+
+/* active */
+.client-detail-container>.edit-btn:active,
+.client-detail-container>.delete-btn:active,
+.client-detail-container>.restore-btn:active,
+.client-detail-container>.view-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(112, 112, 112, .12);
+}
+
+/* ---------- Utilidades ---------- */
+.client-detail-container .muted {
+    color: rgba(112, 112, 112, .8);
+}
+
+/* ---------- Responsivo ---------- */
+@media (max-width: 720px) {
+    .client-detail-container {
+        margin: 16px;
+        padding: 16px;
+        border-radius: 12px;
+    }
+
+    .client-detail-container>h1 {
+        font-size: 20px;
+        padding-left: 10px;
+        border-left-width: 5px;
+    }
+
+    .client-info {
+        padding: 12px;
+        gap: 8px;
+    }
+
+    .client-info p {
+        grid-template-columns: 1fr;
+        /* label arriba, valor abajo */
+        gap: 6px;
+        padding: 12px 10px;
+    }
+
+    .client-detail-container>.edit-btn,
+    .client-detail-container>.delete-btn,
+    .client-detail-container>.restore-btn,
+    .client-detail-container>.view-btn {
+        height: 40px;
+        margin-top: 14px;
+        margin-right: 8px;
+    }
+}
