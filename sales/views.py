@@ -1,175 +1,290 @@
-from django.views.generic import TemplateView, CreateView, View, UpdateView
-from django.http import JsonResponse
+from decimal import Decimal
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework.exceptions import ValidationError as DRFValidationError
 from django.shortcuts import get_object_or_404
-from django.db.models import Q
-from django.http import HttpRequest
-from django.utils.translation import gettext_lazy as _
-from django.urls import reverse_lazy
+from django.db import transaction
+from django.db.models import Sum, Count, Avg, F
+from django.db.models.functions import TruncMonth, TruncDate
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.utils import timezone
+import datetime
 
-from dal import autocomplete
+from cash.models import CashSession
+from cash.choices import SessionStatus
+from .models import Sale, SaleDetail, PayMethod
+from .serializers import SaleSerializer, SaleDetailSerializer, PayMethodSerializer
 
-from json import loads
+class PayMethodViewSet(viewsets.ModelViewSet):
+    queryset = PayMethod.objects.all()
+    serializer_class = PayMethodSerializer
 
-from sales.models import Sale, SaleDetail
+class SaleViewSet(viewsets.ModelViewSet):
+    queryset = Sale.objects.all()
+    serializer_class = SaleSerializer
 
-from sales.forms import SearchProductForm, CloseSaleForm, SaleClientForm
-
-from utils.mixins import PatchMethodMixin
-
-from products.models import Product
-
-from clients.models import Client
-
-class SalesIndex(TemplateView):
-    template_name = 'sales.html'
-
-    def get_context_data(self, **kwargs):
-        sale = Sale.objects.get_table_active_sale(self.request.user)
-        if not sale:
-            sale: Sale = Sale.objects.create(seller=self.request.user)
-            self.request.session['active_sale_id'] = sale.id
-        kwargs['sale'] = sale
-        kwargs['product_form'] = SearchProductForm()
-        kwargs['client_form'] = SaleClientForm(instance=sale)
-
-        return super().get_context_data(**kwargs)
-
-class SaleDetailDelete(View):
-    http_method_names = ['delete']
-
-    def delete(self, request: HttpRequest, pk, *args, **kwargs):
+    def perform_create(self, serializer):
+        """Create sale and auto-assign to active cash session"""
+        # Get active cash session for current user
+        active_session = CashSession.objects.filter(
+            user=self.request.user,
+            status=SessionStatus.OPEN
+        ).first()
         
-        sale_detail = get_object_or_404(SaleDetail, id=pk)
-        sale_detail.delete()
-        
-        return JsonResponse({"message": _('Record deleted successfully'), "total_sale_amount": sale_detail.order.formatted_total_amount}, status=200)
-
-
-class SaleDetailCreate(CreateView):
-    model = SaleDetail
-
-    http_method_names = ['post']
-
-
-    def post(self, request: HttpRequest, *args, **kwargs):
-        form = SearchProductForm(loads(request.body), request=self.request)
-        if form.is_valid():
-            created = False
-            form_instance: SaleDetail = form.save(commit=False)
-
-            if SaleDetail.objects.filter(product=form_instance.product, order=form_instance.order).exists():
-
-                sale_detail = SaleDetail.objects.get(product=form_instance.product, order=form_instance.order)
-                sale_detail.quantity += form_instance.quantity
-                sale_detail.save()
-                instance = sale_detail
-
-            else:
-                form_instance.save()
-                instance = form_instance
-                created = True
-
-
-            product = instance.product
-            quantity = instance.quantity
-            sale_price = instance.formatted_sale_price
-            total_price = instance.formatted_total_price
-
-            return JsonResponse({
-                'product': {
-                    'name': product.name,
-                },
-                'quantity': quantity,
-                'sale_price': sale_price,
-                'total_price': total_price,
-                'total_sale_amount': instance.order.formatted_total_amount,
-                'id': instance.pk,
-                'created': created,
+        if not active_session:
+            raise DRFValidationError({
+                'detail': 'Debe abrir una sesión de caja antes de crear ventas. '
+                         'Use POST /api/cash/cash-sessions/open/ para abrir una sesión.'
             })
-        else:
-            return JsonResponse({'error': form.errors.as_json()}, status=400)
-
-class CloseSale(PatchMethodMixin, UpdateView):
-    form_class = CloseSaleForm
-    model = Sale
-    http_method_names = ['patch', 'get']
-    success_url = reverse_lazy('sales')
-    template_name = 'close_details_sale.html'
-
-
-    def patch(self, request: HttpRequest, pk, *args, **kwargs):
-        self.object = self.get_object()
-        form = CloseSaleForm(loads(request.body), instance=self.object)
-        if form.is_valid():
-            instance = form.save(commit=False)
-            instance.closed = True
-            instance.save()
-            return JsonResponse({'redirect_url': self.success_url}, status=200)
         
-        else:
-            return self.form_invalid(form)
+        # Auto-assign session and seller
+        serializer.save(
+            seller=self.request.user,
+            cash_session=active_session
+        )
 
 
-class SaleQuantityDetailUpdate(PatchMethodMixin, View):
-
-    def patch(self, request: HttpRequest, pk, *args, **kwargs):
-        body = loads(request.body)
-        quantity = body.get('quantity')
-        sale_detail = get_object_or_404(SaleDetail, id=pk)
-        sale_detail.quantity = int(quantity)
-        sale_detail.save()
-        data = {
-            'quantity': sale_detail.quantity,
-            'sale_price': sale_detail.formatted_sale_price,
-            'total_price': sale_detail.formatted_total_price,
-            'total_sale_amount': sale_detail.order.formatted_total_amount,
-        }
-        return JsonResponse(data)
-
-class ClientUpdateView(PatchMethodMixin, View):
-    def patch(self, request: HttpRequest, pk, *args, **kwargs):
-        body = loads(request.body)
-        client_id = body.get('client')
-        sale = get_object_or_404(Sale, id=pk)
-        if not client_id:
-            sale.client = None
-            sale.save()
-            return JsonResponse({"message": _("Client deleted successfully")})
+    @action(detail=True, methods=['post'])
+    @transaction.atomic
+    def close(self, request, pk=None):
+        """Close a sale after validation"""
+        sale = self.get_object()
         
-        client = get_object_or_404(Client, id=client_id)
-        sale.client = client
-        sale.save()
-        return JsonResponse({"message": _("Client updated successfully")})
-
-
-class ProductAutocomplete(autocomplete.Select2QuerySetView):
-    def get_queryset(self):
-        qs = Product.objects.select_related('letter_size', 'gender', 'material', 'color', 'brand', 'category', 'season')\
-            .filter(is_deleted=False)\
-            .all()\
-            .order_by('name')
+        # Validation: sale must have at least one detail
+        if not sale.details.exists():
+            return Response(
+                {'error': 'Cannot close a sale without items'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         
-        search_term = self.request.GET.get('q', '')
-        if search_term:
-            search_terms = search_term.split()
-            q_objects = []
-            for term in search_terms:
-                q_objects.append(
-                    Q(name__istartswith=term) |
-                    Q(numeric_size__istartswith=term) |
-                    Q(details__istartswith=term) |
-                    Q(letter_size__name__istartswith=term) |
-                    Q(gender__name__istartswith=term) |
-                    Q(material__name__istartswith=term) |
-                    Q(color__name__istartswith=term) |
-                    Q(brand__name__istartswith=term) |
-                    Q(category__name__istartswith=term) |
-                    Q(season__name__istartswith=term) |
-                    Q(internal_code__istartswith=term)
+        # Set payment method if provided
+        pay_method_id = request.data.get('pay_method')
+        if pay_method_id:
+            sale.pay_method_id = pay_method_id
+        
+        # If it's a credit sale, validate customer account
+        if sale.client and hasattr(sale.client, 'customer_account'):
+            customer_account = sale.client.customer_account
+            
+            # Check if account is active
+            if not customer_account.active:
+                return Response(
+                    {'error': 'Customer account is not active'},
+                    status=status.HTTP_400_BAD_REQUEST
                 )
-            qs = qs.filter(*q_objects)
-        return qs[:50]
+            
+            # Check credit limit if applicable
+            if customer_account.credit_limit is not None:
+                current_balance = customer_account.balance
+                future_balance = current_balance - sale.total_amount  # Debit reduces balance
+                max_debt = customer_account.credit_limit * Decimal('-1')
+                
+                if future_balance < max_debt:
+                    return Response({
+                        'error': f'Credit limit exceeded. Available credit: {customer_account.credit_limit + current_balance}'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Close the sale with full model validation
+        sale.closed = True
+        try:
+            sale.full_clean()
+        except DjangoValidationError as e:
+            return Response(
+                {'error': e.message_dict if hasattr(e, 'message_dict') else e.messages},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        sale.save()
+        
+        # The signals will handle:
+        # - Creating CustomerBalanceRecord for credit sales
+        # - Updating payment_status automatically
+        
+        return Response(self.get_serializer(sale).data)
 
-    def get_result_label(self, item: Product):
-        return f"{item.name} {item.color.name if item.color else 'Sin Color'} {item.brand.name if item.brand else 'Sin Marca'} T-{item.letter_size.name if item.letter_size else item.numeric_size}"
+    @action(detail=True, methods=['post'])
+    @transaction.atomic
+    def cancel(self, request, pk=None):
+        """Cancel a sale and restore stock for all its items"""
+        sale = self.get_object()
 
+        if sale.canceled:
+            return Response(
+                {'error': 'Sale is already canceled'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Restore stock for each detail
+        from inventory.models import Inventory
+        for detail in sale.details.select_related('product').all():
+            if detail.product and hasattr(detail.product, 'inventory'):
+                stock = Inventory.objects.select_for_update().get(
+                    pk=detail.product.inventory.pk
+                )
+                stock.quantity += detail.quantity
+                stock.save()
+
+        sale.canceled = True
+        sale.save()
+
+        return Response(self.get_serializer(sale).data)
+
+    filterset_fields = ['closed', 'pay_method', 'seller', 'payment_status', 'canceled']
+    search_fields = ['client__name', 'client__last_name', 'client__dni']
+    ordering_fields = ['created_at', 'total_amount']
+
+    @action(detail=False, methods=['get'])
+    def summary(self, request):
+        """
+        Returns a summary of sales metrics.
+        """
+        total_sales = Sale.objects.filter(closed=True, canceled=False).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+        total_transactions = Sale.objects.filter(closed=True, canceled=False).count()
+        average_ticket = Sale.objects.filter(closed=True, canceled=False).aggregate(Avg('total_amount'))['total_amount__avg'] or 0
+        total_products_sold = SaleDetail.objects.filter(order__closed=True, order__canceled=False).aggregate(Sum('quantity'))['quantity__sum'] or 0
+
+        return Response({
+            'total_sales': total_sales,
+            'total_transactions': total_transactions,
+            'average_ticket': average_ticket,
+            'total_products_sold': total_products_sold
+        })
+
+    @action(detail=False, methods=['get'], url_path='top-products')
+    def top_products(self, request):
+        """
+        Returns the top selling products.
+        """
+        limit = int(request.query_params.get('limit', 5))
+        
+        top_products = SaleDetail.objects.filter(order__closed=True, order__canceled=False).values(
+            'product__name'
+        ).annotate(
+            product_name=F('product__name'),
+            total_quantity=Sum('quantity'),
+            total_revenue=Sum(F('quantity') * F('sale_price'))
+        ).order_by('-total_quantity')[:limit]
+
+        return Response(top_products)
+
+    @action(detail=False, methods=['get'], url_path='sales-by-category')
+    def sales_by_category(self, request):
+        """
+        Returns sales grouped by category.
+        """
+        data = SaleDetail.objects.filter(order__closed=True, order__canceled=False).values(
+            'product__category__name'
+        ).annotate(
+            name=F('product__category__name'),
+            value=Sum(F('quantity') * F('sale_price'))
+        ).order_by('-value')
+
+        # Add colors dynamically or static mapping could be done in frontend
+        # For now just return name and value
+        return Response(data)
+
+    @action(detail=False, methods=['get'], url_path='sales-by-day')
+    def sales_by_day(self, request):
+        """
+        Returns sales grouped by day for the last 7 days.
+        """
+        end_date = timezone.now()
+        start_date = end_date - datetime.timedelta(days=6)
+
+        sales = Sale.objects.filter(
+            closed=True,
+            canceled=False,
+            created_at__date__range=[start_date.date(), end_date.date()]
+        ).annotate(
+            day=TruncDate('created_at')
+        ).values('day').annotate(
+            ventas=Sum('total_amount'),
+            productos=Sum('details__quantity')
+        ).order_by('day')
+
+        # Format for frontend
+        formatted_data = []
+        current = start_date.date()
+        sales_dict = {s['day']: s for s in sales}
+
+        while current <= end_date.date():
+            s = sales_dict.get(current, {'ventas': 0, 'productos': 0})
+            formatted_data.append({
+                'day': current.strftime('%a'), # Mon, Tue, etc.
+                'full_date': current.strftime('%Y-%m-%d'),
+                'ventas': s['ventas'] or 0,
+                'productos': s['productos'] or 0
+            })
+            current += datetime.timedelta(days=1)
+
+        return Response(formatted_data)
+
+    @action(detail=False, methods=['get'], url_path='sales-by-month')
+    def sales_by_month(self, request):
+        """
+        Returns sales grouped by month for the last 6 months.
+        """
+
+
+        end_date = timezone.now()
+        start_date = end_date - datetime.timedelta(days=30*5)
+
+        sales = Sale.objects.filter(
+            closed=True,
+            canceled=False,
+            created_at__date__gte=start_date.date()
+        ).annotate(
+            month=TruncMonth('created_at')
+        ).values('month').annotate(
+            ventas=Sum('total_amount'),
+            transacciones=Count('id')
+        ).order_by('month')
+
+        formatted_data = []
+        current = start_date.replace(day=1)
+        sales_dict = {s['month'].date(): s for s in sales if s['month']}
+
+        while current.date() <= end_date.date():
+            # Adjust current to match TruncMonth result (first of month)
+            month_key = current.date().replace(day=1)
+            s = sales_dict.get(month_key, {'ventas': 0, 'transacciones': 0})
+            
+            formatted_data.append({
+                'month': current.strftime('%b'), # Jan, Feb
+                'full_date': current.strftime('%Y-%m'),
+                'ventas': s['ventas'] or 0,
+                'transacciones': s['transacciones'] or 0
+            })
+            current += datetime.timedelta(days=30)
+
+        return Response(formatted_data)
+
+class SaleDetailViewSet(viewsets.ModelViewSet):
+    queryset = SaleDetail.objects.all()
+    serializer_class = SaleDetailSerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        product = serializer.validated_data['product']
+        order = serializer.validated_data['order']
+        quantity = serializer.validated_data.get('quantity', 1)
+
+        # Check if product already exists in this sale
+        existing_detail = SaleDetail.objects.filter(order=order, product=product).first()
+        
+        if existing_detail:
+            existing_detail.quantity += quantity
+            try:
+                existing_detail.full_clean()
+            except DjangoValidationError as e:
+                raise DRFValidationError(
+                    e.message_dict if hasattr(e, 'message_dict') else e.messages
+                )
+            existing_detail.save()
+            return Response(self.get_serializer(existing_detail).data, status=status.HTTP_200_OK)
+        
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)

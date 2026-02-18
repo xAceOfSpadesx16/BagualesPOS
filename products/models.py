@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 from django.db.models import Model
-from django.db.models.fields import CharField, IntegerField, BooleanField, DateTimeField, EmailField
+from django.db.models.fields import CharField, IntegerField, BooleanField, DateTimeField, EmailField, DecimalField
 from django.db.models.fields.files import ImageField
 from django.db.models.fields.related import ForeignKey, ManyToManyField
 from django.db.models.deletion import SET_NULL
@@ -26,6 +26,7 @@ class Category(Model):
     class Meta:
         verbose_name = _('category')
         verbose_name_plural = _('categories')
+        ordering = ['name']
         indexes = [
             Index(fields=['name'], name='category_name_idx'),
         ]
@@ -160,6 +161,7 @@ class Brand(Model):
     class Meta:
         verbose_name = _('brand')
         verbose_name_plural = _('brands')
+        ordering = ['name']
         indexes = [
             Index(fields=['name'], name='brand_name_idx'),
         ]
@@ -169,8 +171,8 @@ class Product(Model):
     inventory: Inventory
     name = CharField(_('name'),max_length=50)
     numeric_size = IntegerField(_('numeric size'), null=True, blank=True)
-    cost_price = IntegerField(_('cost price'))
-    sale_price = IntegerField(_('sale price'))
+    cost_price = DecimalField(_('cost price'), max_digits=10, decimal_places=2)
+    sale_price = DecimalField(_('sale price'), max_digits=10, decimal_places=2)
     internal_code = CharField(_('internal code'), max_length=50, editable=False, null=True, blank=True)
     details = CharField(_('details'),max_length=64, null=True, blank=True)
     image = ImageField(_('image'),upload_to='products/', null=True, blank=True)
@@ -207,6 +209,7 @@ class Product(Model):
     class Meta:
         verbose_name = _('product')
         verbose_name_plural = _('products')
+        ordering = ['name']
         indexes = [
             Index(fields=['name'], name='product_name_idx'),
             Index(fields=['numeric_size'], name='product_numeric_size_idx'),

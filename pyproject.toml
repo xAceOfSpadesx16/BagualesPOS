@@ -6,14 +6,97 @@ readme = "README.md"
 requires-python = ">=3.13.3"
 dependencies = [
     "Django==5.2",
+    "djangorestframework==3.16.1",
     "django-autocomplete-light==3.12.1",
     "django-environ==0.12.0",
     "gunicorn==23.0.0",
     "pillow==11.1.0",
     "psycopg[binary]==3.2.7",
+    "django-cors-headers==4.6.0",
+    "django-filter==24.3",
+    "djangorestframework-simplejwt==5.3.1",
+    "django-polymorphic==4.4.1",
+    "django-rest-polymorphic==0.1.10",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "django-livereload-server==0.5.1",
+    "pytest==8.3.4",
+    "pytest-django==4.9.0",
+    "pytest-cov==6.0.0",
+    "coverage[toml]==7.6.9",
+    "tblib==3.0.0",
 ]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["*"]
+
+[tool.pytest.ini_options]
+# Pytest configuration for BagualesPOS
+DJANGO_SETTINGS_MODULE = "BagualesPOS.settings.testing"
+
+# Test discovery
+python_files = ["tests.py", "test_*.py", "*_tests.py"]
+python_classes = ["Test*", "*Tests", "*TestCase"]
+python_functions = ["test_*"]
+
+# Output options
+addopts = [
+    "--verbose",
+    "--strict-markers",
+    "--tb=short",
+    "--disable-warnings",
+    "-ra",  # Show summary of all test outcomes
+]
+
+# Test paths
+testpaths = [
+    "cash",
+    "devices",
+    "sales",
+    "products",
+    "clients",
+    "inventory",
+    "users",
+    "records",
+]
+
+# Markers (for categorizing tests)
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+    "api: marks tests as API tests",
+]
+
+[tool.coverage.run]
+source = ["."]
+omit = [
+    "*/migrations/*",
+    "*/tests/*",
+    "*/tests.py",
+    "*/__pycache__/*",
+    "*/venv/*",
+    "*/env/*",
+    "manage.py",
+    "*/settings/*",
+    "*/wsgi.py",
+    "*/asgi.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "@abstractmethod",
+]
+precision = 2
+show_missing = true
+
+[tool.coverage.html]
+directory = "htmlcov"

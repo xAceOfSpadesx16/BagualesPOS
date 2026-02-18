@@ -1,26 +1,44 @@
 from __future__ import annotations
 from django.contrib.auth.models import AbstractUser
-from django.contrib.auth.models import BaseUserManager
+
 from django.contrib.auth import get_user_model
-from django.db.models import Model, CASCADE
+from django.db.models import Model, CASCADE, ManyToManyField
 from django.db.models.fields import CharField, EmailField, DateTimeField
 from django.db.models.fields.related import OneToOneField
 from django.utils.translation import gettext_lazy as _
 
 from utils import PhoneNumberField
 
-class CustomUserManager(BaseUserManager):
-    def create_user(self, username, password, **extra_fields):
-        if not username:
-            raise ValueError('El nombre de usuario debe ser proporcionado')
-        user = self.model(username=username, **extra_fields)
-        user.set_password(password)
-        user.save()
-        return user
+
 
 class CustomUser(AbstractUser):
     profile: Profile
     email = EmailField(null=True, verbose_name= _('email'))
+    branch = ManyToManyField(
+        'core.Branch',
+        blank=True,
+        related_name='users',
+        verbose_name=_('branches'),
+        help_text=_('Branches this user has access to')
+    )
+    
+    # Override groups and user_permissions to avoid clashes with auth.User
+    groups = ManyToManyField(
+        'auth.Group',
+        verbose_name=_('groups'),
+        blank=True,
+        help_text=_('The groups this user belongs to.'),
+        related_name='customuser_set',
+        related_query_name='customuser',
+    )
+    user_permissions = ManyToManyField(
+        'auth.Permission',
+        verbose_name=_('user permissions'),
+        blank=True,
+        help_text=_('Specific permissions for this user.'),
+        related_name='customuser_set',
+        related_query_name='customuser',
+    )
 
     USERNAME_FIELD = 'username'
     REQUIRED_FIELDS = ['password']

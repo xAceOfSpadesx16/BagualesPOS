@@ -1,157 +1,88 @@
-import json
-from functools import reduce
-import operator
-from django.db.models import Q
-from django.views.generic import ListView
-from dal import autocomplete
-from django.views.generic.detail import DetailView
-from django.views import View
-from django.http import JsonResponse, HttpResponseRedirect
-from django.forms.models import model_to_dict
-from django.shortcuts import get_object_or_404
-from django.urls import reverse_lazy
+from rest_framework import viewsets, status
 from django.utils.translation import gettext_lazy as _
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from django.shortcuts import get_object_or_404
+from .models import Client, CustomerAccount, CustomerBalanceRecord
+from .serializers import (
+    ClientSerializer, 
+    CustomerAccountSerializer, 
+    CustomerBalanceRecordSerializer
+)
 
-from utils.mixins import FormValidationMixin, FetchRequestMixin
-from django.views.generic.edit import CreateView, UpdateView
-
-from clients.models import CustomerBalanceRecord, Client, CustomerAccount
-from clients.choices import MovementType
-from clients.forms import ClientForm, CustomerAccountForm, BalanceRecordForm
-
-class ClientsListView(ListView):
-    template_name = 'clients_list.html'
-    model = Client
-    context_object_name = 'clients'
-    paginate_by = 5
-    http_method_names = ['get']
-    ordering = ['is_deleted', 'name', 'last_name']
-
-    def get_queryset(self):
-        return super().get_queryset().prefetch_related('customer_account', 'customer_account__balance_records')
-
-
-class ClientRetrieveView(DetailView):
-    model = Client
-    template_name = 'client_detail.html'
-    context_object_name = 'client'
-    http_method_names = ['get']
+class ClientViewSet(viewsets.ModelViewSet):
+    queryset = Client.objects.all()
+    serializer_class = ClientSerializer
+    ordering = ['name', 'last_name']
 
     def get_queryset(self):
-        return super().get_queryset().prefetch_related('customer_account')
+        queryset = super().get_queryset()
+        return queryset
 
+    filterset_fields = ['is_deleted', 'chosen_billing_type']
+    search_fields = ['name', 'last_name', 'dni', 'email', 'cuit']
+    ordering_fields = ['name', 'last_name', 'created_at']
 
-class ClientCreateView(FormValidationMixin, FetchRequestMixin, CreateView):
-    model = Client
-    form_class = ClientForm
-    template_name = 'client_form.html'
-    success_url = reverse_lazy('clients')
-    http_method_names = ['get', 'post']
+    def perform_destroy(self, instance):
+        instance.soft_delete()
 
-
-class ClientUpdateView(FormValidationMixin, FetchRequestMixin, UpdateView):
-    model = Client
-    form_class = ClientForm
-    template_name = 'client_form.html'
-    success_url = reverse_lazy('clients')
-    http_method_names = ['get', 'post']
-
-
-
-class ClientDeleteView(FetchRequestMixin, View):
-    http_method_names = ['post']
-    success_url = reverse_lazy('clients')
-
-    def post(self, request, pk, *args, **kwargs):
-        client = get_object_or_404(Client, id=pk)
-        client.soft_delete()
-        return HttpResponseRedirect(self.success_url)
-
-
-class ClientRestoreView(FetchRequestMixin, View):
-    http_method_names = ['post']
-    success_url = reverse_lazy('clients')
-
-    def post(self, request, pk, *args, **kwargs):
-        client = get_object_or_404(Client, id=pk)
+    @action(detail=True, methods=['post'])
+    def restore(self, request, pk=None):
+        client = self.get_object()
         client.restore()
-        return HttpResponseRedirect(self.success_url)
+        return Response({'status': _('client restored')}, status=status.HTTP_200_OK)
 
+class CustomerAccountViewSet(viewsets.ModelViewSet):
+    queryset = CustomerAccount.objects.all()
+    serializer_class = CustomerAccountSerializer
 
-class ClientAutocomplete(autocomplete.Select2QuerySetView):
-    http_method_names = ['get']
+    @action(detail=True, methods=['post'])
+    def deactivate(self, request, pk=None):
+        account = self.get_object()
+        account.deactivate()
+        return Response({'status': _('account deactivated')}, status=status.HTTP_200_OK)
 
-    def get_queryset(self):
-        qs = Client.objects.filter(is_deleted=False).order_by('name')
-        search_term = self.request.GET.get('q', '')
-        if search_term and len(search_term) > 1:
-            search_terms = search_term.split()
-            q_objects = []
-            for term in search_terms:
-                q_objects.append(
-                    Q(name__istartswith=term) |
-                    Q(last_name__istartswith=term) |
-                    Q(dni__istartswith=term) |
-                    Q(cuit__istartswith=term)
-                )
-            qs = qs.filter(reduce(operator.or_, q_objects))
-        return qs[:20]
+    @action(detail=False, methods=['get'])
+    def summary(self, request):
+        """
+        Returns a summary of all customer accounts.
+        """
+        from django.db.models import Sum
+        from decimal import Decimal
+        
+        active_accounts = CustomerAccount.objects.filter(active=True)
+        
+        # Calculate total credit limit
+        total_credit_limit = active_accounts.aggregate(
+            Sum('credit_limit')
+        )['credit_limit__sum'] or Decimal('0.00')
+        
+        # Calculate current balance by iterating (balance is a property, not a field)
+        current_balance = Decimal('0.00')
+        for account in active_accounts:
+            current_balance += account.balance
+        
+        # Available credit calculation:
+        # If balance is positive, client has credit (overpaid)
+        # If balance is negative, client owes money
+        # Available = limit + balance (since negative balance reduces available)
+        available_credit = total_credit_limit + current_balance
+        
+        # Get total debit and credit from balance records (effective only)
+        total_debit = CustomerBalanceRecord.objects.effective().by_debit().total_amount()
+        total_credit = CustomerBalanceRecord.objects.effective().by_credit().total_amount()
 
+        return Response({
+            'credit_limit': total_credit_limit,
+            'current_balance': current_balance,
+            'available_credit': available_credit,
+            'total_debit': total_debit,
+            'total_credit': total_credit
+        })
 
-class BalanceRecordDetailView(DetailView):
-    model = CustomerBalanceRecord
-    template_name = 'balance_record_detail.html'
-    context_object_name = 'record'
-    http_method_names = ['get']
+class CustomerBalanceRecordViewSet(viewsets.ModelViewSet):
+    queryset = CustomerBalanceRecord.objects.all()
+    serializer_class = CustomerBalanceRecordSerializer
 
-
-class BalanceRecordCreateView(FormValidationMixin, CreateView):
-    model = CustomerBalanceRecord
-    form_class = BalanceRecordForm
-    template_name = 'balance_record_form.html'
-    http_method_names = ['get', 'post']
-    object: CustomerBalanceRecord
-
-    def get_success_url(self):
-        return reverse_lazy('customer_account_detail', kwargs={'pk': self.object.customer_account.id})
-    
-
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        account = get_object_or_404(CustomerAccount, pk=self.kwargs['pk'])
-        kwargs.update(customer_account=account, created_by=self.request.user)
-        return kwargs
-
-
-class CustomerAccountSoftDelete(View):
-    http_method_names = ['post']
-
-    def post(self, request, *args, **kwargs):
-        customer_account_id = kwargs.get('customer_account_id')
-        customer_account = get_object_or_404(CustomerAccount, pk=customer_account_id)
-        customer_account.deactivate()
-        return JsonResponse({'success': True, 'message': _('Customer account deactivated successfully.')}, status=200)
-
-
-class CustomerAccountDetailView(ListView):
-    model = CustomerBalanceRecord
-    template_name = 'customer_account_detail.html'
-    context_object_name = 'balance_records'
-    paginate_by = 5
-    http_method_names = ['get']
-
-    def get_queryset(self):
-        return CustomerBalanceRecord.objects.filter(customer_account_id=self.kwargs['pk']).with_related().with_related_records()
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['customer_account'] = CustomerAccount.objects.select_related('client').get(pk=self.kwargs['pk'])
-        return context
-
-
-class CustomerAccountUpdateView(FormValidationMixin, FetchRequestMixin, UpdateView):
-    model = CustomerAccount
-    form_class = CustomerAccountForm
-    template_name = 'customer_account_form.html'
-    success_url = reverse_lazy('customer_account_detail')
-    http_method_names = ['get', 'post']
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)

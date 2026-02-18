@@ -3,6 +3,7 @@ from django.forms import BoundField
 from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
 from django.http import HttpResponseForbidden
+from django.db import models
 
 # VIEWS MIXINS
 class PatchMethodMixin(object):
@@ -27,14 +28,23 @@ class FetchRequestMixin:
         return super().dispatch(request, *args, **kwargs)
 
 # MODELS MIXINS
-class SoftDeleteMixin:
+
+class SoftDeleteMixin(models.Model):
     is_deleted = BooleanField(_('deleted'), default=False)
     deleted_at = DateTimeField(_('deleted at'), null=True, blank=True)
+
+    class Meta:
+        abstract = True
 
     def soft_delete(self, *args, **kwargs):
         self.is_deleted = True
         self.deleted_at = now()
         super().save(*args, **kwargs)
+
+    def restore(self):
+        self.is_deleted = False
+        self.deleted_at = None
+        super().save()
 
 # FORM MIXINS
 class CustomBoundField(BoundField):

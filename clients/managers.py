@@ -54,7 +54,6 @@ class BalanceRecordsQueryset(QuerySet):
         """
         return self.prefetch_related('related_records')
 
-    #Filters
     def from_date(self, date):
         """
         Filters records from a given date (inclusive). Raises ValueError if date is not a date/datetime.
@@ -62,7 +61,9 @@ class BalanceRecordsQueryset(QuerySet):
         from datetime import date as dt_date, datetime
         if not isinstance(date, (dt_date, datetime)):
             raise ValueError("date must be a date or datetime object")
-        return self.filter(created_at__gte=date)
+        if isinstance(date, datetime):
+            return self.filter(created_at__gte=date)
+        return self.filter(created_at__date__gte=date)
 
     def to_date(self, date):
         """
@@ -71,25 +72,37 @@ class BalanceRecordsQueryset(QuerySet):
         from datetime import date as dt_date, datetime
         if not isinstance(date, (dt_date, datetime)):
             raise ValueError("date must be a date or datetime object")
-        return self.filter(created_at__lte=date)
+        if isinstance(date, datetime):
+            return self.filter(created_at__lte=date)
+        return self.filter(created_at__date__lte=date)
 
     def search(self, query):
         """
         Performs a basic search on reference, client, or amount fields.
         """
-        return self.filter(
-            Q(sale_id=query) |
-            Q(client__name__icontains=query) |
+        base_query = (
+            Q(customer_account__client__name__icontains=query) |
             Q(reference__icontains=query) |
-            Q(notes__icontains=query) |
-            Q(amount=query)
+            Q(notes__icontains=query)
         )
+        
+        # Try to search by amount or ID if query is numeric
+        try:
+            val = float(query)
+            base_query |= Q(amount=query)
+            # Only search sale_id if it's an integer
+            if val.is_integer():
+                base_query |= Q(sale_id=int(val))
+        except ValueError:
+            pass
+            
+        return self.filter(base_query)
     
     def for_client(self, client_id):
         """
         Filters records for a specific client id.
         """
-        return self.filter(current_account__client_id=client_id)
+        return self.filter(customer_account__client_id=client_id)
 
     def newest(self):
         """Returns records ordered from newest to oldest."""
@@ -109,13 +122,13 @@ class BalanceRecordsQueryset(QuerySet):
         """
         Returns the total sum of credit movements.
         """
-        return self.credit().total_amount()
+        return self.by_credit().total_amount()
 
     def debit_total(self):
         """
         Returns the total sum of debit movements.
         """
-        return self.debit().total_amount()
+        return self.by_debit().total_amount()
 
     def effective(self):
         reversals = self.model.objects.filter(
@@ -155,23 +168,23 @@ class BalanceRecordsManager(Manager):
     
     def credit(self):
         """Returns all credit movements."""
-        return self.get_queryset().credit()
+        return self.get_queryset().by_credit()
     
     def debit(self):
         """Returns all debit movements."""
-        return self.get_queryset().debit()
+        return self.get_queryset().by_debit()
     
     def adjustment(self):
         """Returns all adjustment movements."""
-        return self.get_queryset().adjustment()
+        return self.get_queryset().by_adjustment()
     
     def refund(self):
         """Returns all refund movements."""
-        return self.get_queryset().refund()
+        return self.get_queryset().by_refund()
     
     def reversal(self):
         """Returns all reversal movements."""
-        return self.get_queryset().reversal()
+        return self.get_queryset().by_reversal()
     
     def reconciled(self):
         """Returns all reconciled records."""

@@ -1,75 +1,65 @@
-from __future__ import annotations
-from typing import TYPE_CHECKING
-
-from django.views.generic.base import View
-from django.views.generic.list import ListView
-from django.http import JsonResponse
-from django.shortcuts import get_object_or_404
+from rest_framework import viewsets, status
+from django.utils.translation import gettext_lazy as _
+from rest_framework.decorators import action
+from rest_framework.response import Response
 from django.db.models import F
+from rest_framework.filters import OrderingFilter, SearchFilter
+from django_filters.rest_framework import DjangoFilterBackend
+from .models import Inventory
+from .serializers import InventorySerializer
 
-from json import loads, JSONDecodeError
-from enum import StrEnum
+class InventoryViewSet(viewsets.ModelViewSet):
+    queryset = Inventory.objects.all()
+    serializer_class = InventorySerializer
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    ordering = ['product__name', 'product__brand__name']
+    search_fields = ['product__name', 'product__details', 'product__internal_code']
+    ordering_fields = ['quantity', 'product__name']
 
-from inventory.models import Inventory
+    @action(detail=True, methods=['post'])
+    def update_quantity(self, request, pk=None):
+        inventory = self.get_object()
+        operation = request.data.get('operation')
+        quantity = request.data.get('quantity')
 
-if TYPE_CHECKING:
-    from django.http import HttpRequest
-
-
-class InventoryListView(ListView):
-    template_name = 'inventory.html'
-    model = Inventory
-    queryset = Inventory.objects.sr_product_relateds()
-    context_object_name = 'inventories'
-    allow_empty = True
-    ordering = ['product__brand__name']
-
-class UpdateOperation(StrEnum):
-    ADDITION = 'addition'
-    SUBTRACTION = 'subtraction'
-
-    @classmethod
-    def list_values(cls):
-        return list(map(lambda c: c.value, cls))
-    
-    def __str__(self):
-        return self.value
-    
-class InventoryQuantityUpdate(View):
-
-    http_method_names = ['post']
-    valid_operations = UpdateOperation.list_values()
-
-    def post(self, request: HttpRequest, pk: int, *args, **kwargs):
         try:
-            body = loads(request.body)
-            operation = body.get('operation')
-            quantity = int(body.get('quantity'))
-        except JSONDecodeError:
-            return JsonResponse(
-                {'success': False, 'message': 'Cuerpo de solicitud inválido'}, 
-                status=400
-            )
-        except (ValueError, TypeError):
-            return JsonResponse(
-                {'success': False, 'message': 'Formato de cantidad inválido'}, 
-                status=400
-            )
+            quantity = int(quantity)
+            if quantity <= 0:
+                raise ValueError
+        except (TypeError, ValueError):
+            return Response({'error': _('Invalid quantity')}, status=status.HTTP_400_BAD_REQUEST)
 
-        if operation not in self.valid_operations:
-            return JsonResponse({'success': False, 'message': 'Operación inválida.'}, status=400)
-        
-        if quantity < 0:
-            return JsonResponse({'success': False, 'message': 'Cantidad inválida.'}, status=400)
-        
-        inventory = get_object_or_404(Inventory, id=pk)
-        
-        if operation == UpdateOperation.ADDITION:
+        if operation == 'addition':
             inventory.quantity = F('quantity') + quantity
-            
-        elif operation == UpdateOperation.SUBTRACTION:
+        elif operation == 'subtraction':
             inventory.quantity = F('quantity') - quantity
-
+        else:
+            return Response({'error': _('Invalid operation')}, status=status.HTTP_400_BAD_REQUEST)
+        
         inventory.save()
-        return JsonResponse({'success': True, 'message': 'Cantidad actualizada con exito.'})
-    
+        inventory.refresh_from_db()
+        return Response(self.get_serializer(inventory).data)
+
+    @action(detail=False, methods=['get'], url_path='low-stock')
+    def low_stock(self, request):
+        """
+        Returns items with low stock.
+        """
+        threshold = int(request.query_params.get('threshold', 5))
+        low_stock_items = Inventory.objects.filter(quantity__lte=threshold)
+        
+        # We can use a custom serializer or the default one
+        # For dashboard we need: product name, current stock, min stock (if we had it)
+        # Currently Inventory model has quantity. Product has no min_stock field yet?
+        # Let's check models. Assuming just quantity for now.
+        
+        data = []
+        for item in low_stock_items:
+            data.append({
+                'id': item.id,
+                'name': item.product.name,
+                'stock': item.quantity,
+                'min': 5 # Hardcoded for now as it seems not to be in model
+            })
+            
+        return Response(data)

@@ -1,11 +1,10 @@
-from django.views.generic import View, TemplateView
-from django.views.generic.list import ListView
-
+from rest_framework import viewsets
 from sales.models import Sale
+from sales.serializers import SaleSerializer
 
-class RecordsIndex(ListView):
-    model = Sale
-    context_object_name = 'sales'
-    paginate_by = 8
-    template_name = 'records.html'
+class RecordsViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Sale.objects.select_related('client', 'pay_method').order_by('-id').all()
+    serializer_class = SaleSerializer
+    filterset_fields = ['closed', 'pay_method', 'seller']
+    search_fields = ['client__name', 'client__last_name', 'client__dni']
+    ordering_fields = ['created_at', 'total_amount']

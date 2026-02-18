@@ -1,11 +1,24 @@
-version: "3.9"
+# Docker Compose configuration for running tests
+# Reuses dev Dockerfile with testing settings
 
 services:
-  web:
+  web_test:
     build:
+      dockerfile: docker/Dockerfile.dev
       context: .
-      dockerfile: docker/Dockerfile.testing
+    environment:
+      - DJANGO_SETTINGS_MODULE=BagualesPOS.settings.testing
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
     volumes:
-      - .:/app
-    env_file:
-      - .env.test
+      - .:/app:delegated
+    working_dir: /app
+    # Override entrypoint to prevent dev server from starting
+    entrypoint: []
+    command: >
+      sh -c "
+        echo 'Running migrations...' &&
+        uv run --python 3.13 python manage.py migrate --noinput &&
+        echo 'Running tests...' &&
+        uv run --python 3.13 python manage.py test -v 2
+      "

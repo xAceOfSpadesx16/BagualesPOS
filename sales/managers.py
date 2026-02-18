@@ -7,8 +7,7 @@ if TYPE_CHECKING:
     from users.models import CustomUser
 
 class SalesQueryset(QuerySet):
-    def soft_delete(self):
-        return self.update(is_deleted=True, deleted_at=now())
+    # soft_delete removed - model has no is_deleted field
     
     def select_rel_seller(self):
         return self.select_related('seller')

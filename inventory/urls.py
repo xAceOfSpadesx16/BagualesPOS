@@ -1,7 +1,10 @@
-from django.urls import path
-from inventory.views import InventoryListView, InventoryQuantityUpdate
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import InventoryViewSet
+
+router = DefaultRouter()
+router.register(r'inventory', InventoryViewSet)
 
 urlpatterns = [
-    path('', InventoryListView.as_view(), name='inventory'),
-    path('update/<int:pk>/', InventoryQuantityUpdate.as_view(), name='inventory_update'),
+    path('', include(router.urls)),
 ]

@@ -19,7 +19,7 @@ RUN uv venv $UV_PROJECT_ENVIRONMENT
 ENV PATH="$UV_PROJECT_ENVIRONMENT/bin:$PATH"
 
 # uv venv
-RUN uv pip install -r pyproject.toml --extra dev --python $UV_PROJECT_ENVIRONMENT/bin/python
+RUN uv pip install .[dev]
 
 # Copy the application code
 COPY .. .

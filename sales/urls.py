@@ -1,15 +1,12 @@
-from django.urls import path
-from sales.views import SaleDetailDelete, SaleDetailCreate, SaleQuantityDetailUpdate, SalesIndex, ProductAutocomplete, CloseSale, ClientUpdateView
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import SaleViewSet, SaleDetailViewSet, PayMethodViewSet
 
-
-
+router = DefaultRouter()
+router.register(r'sales', SaleViewSet)
+router.register(r'sale-details', SaleDetailViewSet)
+router.register(r'pay-methods', PayMethodViewSet)
 
 urlpatterns = [
-    path('', SalesIndex.as_view(), name='sales'),
-    path('create-detail/', SaleDetailCreate.as_view(), name='sale-detail-create'),
-    path('update-detail-quantity/<int:pk>/', SaleQuantityDetailUpdate.as_view(), name='sale-detail-update'),
-    path('delete-detail/<int:pk>/', SaleDetailDelete.as_view(), name='sale-detail-delete'),
-    path('product-autocomplete/', ProductAutocomplete.as_view(), name='product-autocomplete'),
-    path('close/<int:pk>/', CloseSale.as_view(), name='close-sale'),
-    path('update-client/<int:pk>/', ClientUpdateView.as_view(), name='update-client')
+    path('', include(router.urls)),
 ]

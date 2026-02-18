@@ -43,3 +43,10 @@ venv.bak/
 .env.production
 .env.test
 .vscode/
+
+# Frontend
+node_modules
+yarn-error.log
+
+planning/
+frontend/

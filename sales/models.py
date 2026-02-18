@@ -1,15 +1,18 @@
 from django.db.models import Model
-from django.db.models.fields import DateTimeField, BooleanField, CharField, IntegerField
+from django.db.models.fields import DateTimeField, BooleanField, CharField, IntegerField, DecimalField
 from django.db.models.fields.related import ForeignKey
 from django.db.models.deletion import CASCADE, SET_NULL
 from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
+from django.core.exceptions import ValidationError
 
 from sales.managers import SalesManager
+from sales.choices import PaymentStatus
 from products.models import Product
-from clients.models import Client
+from clients.models import Client, CustomerBalanceRecord
 
 from utils.formats import formatted_integer
+from decimal import Decimal
 
 class PayMethod(Model):
     name = CharField(max_length=50, verbose_name= _('name'))
@@ -26,8 +29,12 @@ class PayMethod(Model):
 class Sale(Model):
     seller = ForeignKey(get_user_model(), on_delete=SET_NULL, null=True, verbose_name= _('seller'))
     client = ForeignKey(Client, on_delete=SET_NULL, null=True, blank=True, verbose_name= _('client'))
-    total_amount = IntegerField(default=0, verbose_name= _('total amount'))
+    total_amount = DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'), verbose_name= _('total amount'))
     pay_method = ForeignKey(PayMethod, on_delete=SET_NULL, null=True, verbose_name= _('payment method'))
+    payment_status = CharField(max_length=20, choices=PaymentStatus.choices, default=PaymentStatus.PENDING, verbose_name= _('payment status'))
+    account_record = ForeignKey(CustomerBalanceRecord, on_delete=SET_NULL, null=True, blank=True, related_name='sales', verbose_name=_('account record'))
+    cash_session = ForeignKey('cash.CashSession', on_delete=SET_NULL, null=True, blank=True, related_name='sales', verbose_name=_('cash session'))
+    branch = ForeignKey('core.Branch', on_delete=SET_NULL, null=True, blank=True, related_name='sales', verbose_name=_('branch'), help_text=_('Branch where this sale was made'))
     canceled = BooleanField(default=False, verbose_name= _('canceled'))
     closed = BooleanField(default=False, verbose_name= _('closed'))
     created_at = DateTimeField(auto_now_add=True, verbose_name= _('created at'))
@@ -35,29 +42,63 @@ class Sale(Model):
 
     objects: SalesManager = SalesManager()
 
-
     class Meta:
         verbose_name = _('sale')
         verbose_name_plural = _('sales')
+        ordering = ['-created_at']
 
     def __str__(self):
         return f'{_('sale')} {self.pk} - {self.seller.get_full_name()} - {self.created_at} {f"- {self.client.name}" if self.client else ""}'
     
     @property
     def formatted_total_amount(self):
-        return formatted_integer(self.total_amount)
+        return formatted_integer(int(self.total_amount))
+    
+    @property
+    def is_credit_sale(self):
+        """Returns True if this is a credit sale (cliente con cuenta corriente)"""
+        return self.client and hasattr(self.client, 'customer_account') and self.client.customer_account.active
+    
+    def clean(self):
+        """Validate sale before saving"""
+        super().clean()
+
+        
+        # New validation: cash_session required for closed sales
+        if self.closed and not self.cash_session:
+            raise ValidationError({
+                'cash_session': _('Cash session is required for closed sales.')
+            })
+        
+        # New validation: pay_method required for closed sales
+        if self.closed and not self.pay_method:
+            raise ValidationError({
+                'pay_method': _('Payment method is required for closed sales.')
+            })
+    
+    def save(self, *args, **kwargs):
+        """Auto-populate branch from cash_session if available"""
+        # Auto-populate branch from cash_session.cash_register.branch
+        if self.cash_session and not self.branch:
+            if hasattr(self.cash_session.cash_register, 'branch'):
+                self.branch = self.cash_session.cash_register.branch
+        
+        super().save(*args, **kwargs)
+
     
 
 class SaleDetail(Model):
     order = ForeignKey(Sale, on_delete=CASCADE, related_name='details', verbose_name= _('order'))
     product = ForeignKey(Product, on_delete= SET_NULL, null=True, verbose_name= _('product'))
     quantity = IntegerField(default=1, help_text='Cantidad', verbose_name= _('quantity'))
-    sale_price = IntegerField(verbose_name= _('sale price'))
+    sale_price = DecimalField(max_digits=10, decimal_places=2, verbose_name= _('sale price'))
+    cost_price = DecimalField(max_digits=10, decimal_places=2, verbose_name= _('cost price'))
     created_at = DateTimeField(auto_now_add=True, verbose_name= _('created at'))
 
     class Meta:
         verbose_name = _('sale detail')
         verbose_name_plural = _('sale details')
+        ordering = ['-created_at']
 
     def __str__(self):
         return f'{self.product} - {self.quantity} - {self.sale_price}'
@@ -67,14 +108,75 @@ class SaleDetail(Model):
         return self.quantity * self.sale_price
     
     @property
+    def get_total_cost(self):
+        return self.quantity * self.cost_price
+    
+    @property
+    def profit(self):
+        """Calculate profit for this sale detail"""
+        return self.get_total_price - self.get_total_cost
+    
+    @property
+    def profit_margin(self):
+        """Calculate profit margin as percentage"""
+        if self.get_total_price > 0:
+            return Decimal(str((self.profit / self.get_total_price) * 100))
+        return Decimal('0.00')
+    
+    @property
     def formatted_total_price(self):
-        return formatted_integer(self.get_total_price)
+        return formatted_integer(int(self.get_total_price))
     
     @property
     def formatted_sale_price(self):
-        return formatted_integer(self.sale_price)
-
+        return formatted_integer(int(self.sale_price))
     
+    @property
+    def formatted_cost_price(self):
+        return formatted_integer(int(self.cost_price))
+    
+    def clean(self):
+        """Validate before saving"""
+        super().clean()
+        
+        # Validate product exists
+        if not self.product:
+            raise ValidationError({'product': _('Product is required.')})
+        
+        # Validate positive quantity
+        if self.quantity <= 0:
+            raise ValidationError({'quantity': _('Quantity must be greater than zero.')})
+        
+        # Prevent adding items to closed or canceled sales
+        if self.order_id and self.order.closed:
+            raise ValidationError({'order': _('Cannot add or modify items in a closed sale.')})
+        if self.order_id and self.order.canceled:
+            raise ValidationError({'order': _('Cannot add or modify items in a canceled sale.')})
+        
+        # Validate stock availability (only for new or increased quantity)
+        if hasattr(self.product, 'inventory'):
+            old_quantity = 0
+            if self.pk:
+                try:
+                    old_instance = SaleDetail.objects.get(pk=self.pk)
+                    old_quantity = old_instance.quantity
+                except SaleDetail.DoesNotExist:
+                    pass
+            
+            quantity_diff = self.quantity - old_quantity
+            if quantity_diff > 0:  # Only check if increasing quantity
+                available_stock = self.product.inventory.quantity
+                if available_stock < quantity_diff:
+                    raise ValidationError({
+                        'quantity': _(f'Insufficient stock. Available: {available_stock}, Requested: {quantity_diff}')
+                    })
+
     def save(self, *args, **kwargs):
-        self.sale_price = self.product.sale_price
+        # Capture prices from product if not set
+        if self.product:
+            if self.sale_price is None:
+                self.sale_price = self.product.sale_price
+            if self.cost_price is None:
+                self.cost_price = self.product.cost_price
         super().save(*args, **kwargs)
+
