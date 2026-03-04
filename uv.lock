@@ -21,6 +21,7 @@ dependencies = [
     { name = "django-cors-headers" },
     { name = "django-environ" },
     { name = "django-filter" },
+    { name = "django-multitenant" },
     { name = "django-polymorphic" },
     { name = "django-rest-polymorphic" },
     { name = "djangorestframework" },
@@ -47,6 +48,7 @@ requires-dist = [
     { name = "django-cors-headers", specifier = "==4.6.0" },
     { name = "django-environ", specifier = "==0.12.0" },
     { name = "django-filter", specifier = "==24.3" },
+    { name = "django-multitenant", specifier = "==3.2.0" },
     { name = "django-polymorphic", specifier = "==4.4.1" },
     { name = "django-rest-polymorphic", specifier = "==0.1.10" },
     { name = "djangorestframework", specifier = "==3.16.1" },
@@ -154,6 +156,12 @@ sdist = { url = "https://files.pythonhosted.org/packages/50/bc/dc19ae39c23533292
 wheels = [
     { url = "https://files.pythonhosted.org/packages/09/b1/92f1c30b47c1ebf510c35a2ccad9448f73437e5891bbd2b4febe357cc3de/django_filter-24.3-py3-none-any.whl", hash = "sha256:c4852822928ce17fb699bcfccd644b3574f1a2d80aeb2b4ff4f16b02dd49dc64", size = 95011, upload-time = "2024-08-02T13:27:55.616Z" },
 ]
+
+[[package]]
+name = "django-multitenant"
+version = "3.2.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/51/49/0cea002d9e7ee31a9b190f947485776917a84a3ebdeb7045e89e9c825bc5/django-multitenant-3.2.0.tar.gz", hash = "sha256:ac73c3b19a8abf02cdeb1315c184481c8e9b15b9a5aa8dd94292d511fc72c1c8", size = 18282, upload-time = "2023-03-29T12:05:30.077Z" }
 
 [[package]]
 name = "django-polymorphic"

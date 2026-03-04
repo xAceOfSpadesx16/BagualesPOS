@@ -4,15 +4,17 @@ from rest_framework.test import APITestCase
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from devices.models import Device, CashRegister, PriceChecker, StockTerminal
+from utils.tests import TenantTestCase
 
 User = get_user_model()
 
-class DeviceViewSetTestCase(APITestCase):
+class DeviceViewSetTestCase(TenantTestCase, APITestCase):
     def setUp(self):
-        self.user = User.objects.create_user(username='admin', password='password')
+        super().setUp()
+        # Already have self.user from TenantTestCase # User.objects.create_user(username='admin', password='password')
         self.client.force_authenticate(user=self.user)
         
-        self.cr = CashRegister.objects.create(code='CR-01', name='Cash Register 1', is_active=True, is_online=True)
+        self.cr = CashRegister.objects.create(company=self.company, code='CR-01', name='Cash Register 1', is_active=True, is_online=True)
         self.pc = PriceChecker.objects.create(code='PC-01', name='Price Checker 1', is_active=True, is_online=False)
         self.st = StockTerminal.objects.create(code='ST-01', name='Stock Terminal 1', is_active=False)
         

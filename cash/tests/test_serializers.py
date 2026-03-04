@@ -1,7 +1,8 @@
 from django.test import TestCase
 from cash.serializers import OpenCashSessionSerializer, CloseCashSessionSerializer
+from utils.tests import TenantTestCase
 
-class SerializerValidationTestCase(TestCase):
+class SerializerValidationTestCase(TenantTestCase, TestCase):
     """Tests for serializer validations"""
     
     def test_open_session_serializer_negative_balance_validation(self):

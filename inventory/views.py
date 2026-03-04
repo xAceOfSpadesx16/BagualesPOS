@@ -16,6 +16,20 @@ class InventoryViewSet(viewsets.ModelViewSet):
     search_fields = ['product__name', 'product__details', 'product__internal_code']
     ordering_fields = ['quantity', 'product__name']
 
+    def get_queryset(self):
+        user = self.request.user
+        queryset = super().get_queryset()
+        
+        # Filter by branch if provided in query params
+        branch_id = self.request.query_params.get('branch')
+        if branch_id:
+            queryset = queryset.filter(branch_id=branch_id)
+        # Otherwise filter by user's assigned branches
+        elif hasattr(user, 'branch') and user.branch.exists():
+            queryset = queryset.filter(branch__in=user.branch.all())
+            
+        return queryset
+
     @action(detail=True, methods=['post'])
     def update_quantity(self, request, pk=None):
         inventory = self.get_object()
@@ -46,7 +60,7 @@ class InventoryViewSet(viewsets.ModelViewSet):
         Returns items with low stock.
         """
         threshold = int(request.query_params.get('threshold', 5))
-        low_stock_items = Inventory.objects.filter(quantity__lte=threshold)
+        low_stock_items = self.get_queryset().filter(quantity__lte=threshold)
         
         # We can use a custom serializer or the default one
         # For dashboard we need: product name, current stock, min stock (if we had it)
@@ -63,3 +77,27 @@ class InventoryViewSet(viewsets.ModelViewSet):
             })
             
         return Response(data)
+
+    @action(detail=True, methods=['get'], url_path='other-branches')
+    def other_branches(self, request, pk=None):
+        """
+        Returns the availability of the product associated with this inventory
+        in branches other than the one(s) the current user belongs to.
+        """
+        inventory = self.get_object()
+        user = request.user
+        
+        # Base query for the same product
+        qs = Inventory.objects.filter(product=inventory.product)
+        
+        # Exclude the user's branches if they have any
+        if hasattr(user, 'branch') and user.branch.exists():
+            qs = qs.exclude(branch__in=user.branch.all())
+        else:
+            # If user has no branches assigned (unlikely but possible), 
+            # exclude the branch of the current inventory item
+            qs = qs.exclude(branch=inventory.branch)
+            
+        # Serialize and return
+        serializer = self.get_serializer(qs, many=True)
+        return Response(serializer.data)

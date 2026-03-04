@@ -2,6 +2,7 @@ from django.test import TestCase, RequestFactory
 from django.contrib.admin.sites import AdminSite
 from devices.admin import DeviceParentAdmin, CashRegisterAdmin, PriceCheckerAdmin, StockTerminalAdmin, DeviceConfigAdmin
 from devices.models import Device, CashRegister, PriceChecker, StockTerminal, DeviceConfig
+from utils.tests import TenantTestCase
 
 class MockSuperUser:
     def has_perm(self, perm, obj=None):
@@ -10,21 +11,22 @@ class MockSuperUser:
 class HelperAdminSite(AdminSite):
     pass
 
-class DeviceAdminTestCase(TestCase):
+class DeviceAdminTestCase(TenantTestCase, TestCase):
     def setUp(self):
+        super().setUp()
         self.site = HelperAdminSite()
         self.factory = RequestFactory()
         self.user = MockSuperUser()
 
     def test_device_parent_admin(self):
         admin = DeviceParentAdmin(Device, self.site)
-        cr = CashRegister.objects.create(code='CR-01', name='Cash Register')
+        cr = CashRegister.objects.create(company=self.company, code='CR-01', name='Cash Register')
         
         self.assertEqual(admin.get_device_type(cr), 'CashRegister')
 
     def test_cash_register_admin(self):
         admin = CashRegisterAdmin(CashRegister, self.site)
-        cr = CashRegister.objects.create(code='CR-01', name='Cash Register')
+        cr = CashRegister.objects.create(company=self.company, code='CR-01', name='Cash Register')
         
         # Test has_open_session method
         self.assertFalse(admin.has_open_session(cr))

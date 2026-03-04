@@ -7,7 +7,10 @@ from django.db.models import (
 from django.db.models.functions import Coalesce
 from decimal import Decimal
 from clients.choices import MovementType
-
+from django_multitenant.models import TenantManager
+from django.utils import timezone
+import datetime as dt
+from datetime import date as dt_date, datetime
 
 class BalanceRecordsQueryset(QuerySet):
 
@@ -58,23 +61,27 @@ class BalanceRecordsQueryset(QuerySet):
         """
         Filters records from a given date (inclusive). Raises ValueError if date is not a date/datetime.
         """
-        from datetime import date as dt_date, datetime
         if not isinstance(date, (dt_date, datetime)):
             raise ValueError("date must be a date or datetime object")
         if isinstance(date, datetime):
             return self.filter(created_at__gte=date)
-        return self.filter(created_at__date__gte=date)
+        
+        # Convert date to datetime at 00:00:00 aware of timezone to avoid __date lookup issues on SQLite
+        start_of_day = timezone.make_aware(dt.datetime.combine(date, dt.time.min))
+        return self.filter(created_at__gte=start_of_day)
 
     def to_date(self, date):
         """
         Filters records up to a given date (inclusive). Raises ValueError if date is not a date/datetime.
         """
-        from datetime import date as dt_date, datetime
         if not isinstance(date, (dt_date, datetime)):
             raise ValueError("date must be a date or datetime object")
         if isinstance(date, datetime):
             return self.filter(created_at__lte=date)
-        return self.filter(created_at__date__lte=date)
+            
+        # Convert date to datetime at 23:59:59 aware of timezone to avoid __date lookup issues on SQLite
+        end_of_day = timezone.make_aware(dt.datetime.combine(date, dt.time.max))
+        return self.filter(created_at__lte=end_of_day)
 
     def search(self, query):
         """
@@ -159,12 +166,19 @@ class BalanceRecordsQueryset(QuerySet):
         return self.aggregate(total=Coalesce(net, Value(Decimal('0.00'))))['total'] or Decimal('0.00')
 
 
-class BalanceRecordsManager(Manager):
+class BalanceRecordsManager(TenantManager):
     def get_queryset(self):
         """
-        Returns the custom queryset for account records.
+        Returns the custom queryset for account records with tenant filtering.
         """
-        return BalanceRecordsQueryset(self.model, using=self._db)
+        # Get the base queryset from TenantManager (which applies tenant filtering)
+        from django_multitenant.utils import get_current_tenant
+        qs = BalanceRecordsQueryset(self.model, using=self._db)
+        # Apply tenant filtering if tenant is set
+        tenant = get_current_tenant()
+        if tenant:
+            qs = qs.filter(company=tenant)
+        return qs
     
     def credit(self):
         """Returns all credit movements."""

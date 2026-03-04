@@ -3,6 +3,7 @@ from django.test import TestCase, TransactionTestCase
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from django.core.exceptions import ValidationError
+from utils.tests import TenantTestCase, create_test_branch
 
 from devices.models import CashRegister
 from cash.models import CashSession, CashMovement
@@ -14,17 +15,20 @@ from inventory.models import Inventory
 User = get_user_model()
 
 
-class ModelPropertiesTestCase(TestCase):
+class ModelPropertiesTestCase(TenantTestCase, TestCase):
     """Tests for model properties"""
     
     def setUp(self):
+        super().setUp()
         self.user = User.objects.create_user(
             username='proptest',
             password='test',
             first_name='Prop',
             last_name='Test'
         )
-        self.cash_register = CashRegister.objects.create(
+        self.branch = create_test_branch(company=self.company, code="TB_CASH_01")
+        self.cash_register = CashRegister.objects.create(company=self.company, 
+            branch=self.branch,
             code='PROP-01',
             name='Property Test Register',
             is_active=True
@@ -32,7 +36,7 @@ class ModelPropertiesTestCase(TestCase):
         
     def test_total_cash_sales_property(self):
         """Test total_cash_sales property"""
-        session = CashSession.objects.create(
+        session = CashSession.objects.create(company=self.company, 
             cash_register=self.cash_register,
             user=self.user,
             opening_balance=Decimal('1000.00'),
@@ -40,13 +44,14 @@ class ModelPropertiesTestCase(TestCase):
         )
         
         # Create products for sales
-        category = Category.objects.create(name='TestCat')
-        brand = Brand.objects.create(name='TestBrand')
+        category = Category.objects.create(company=self.company, name='TestCat')
+        brand = Brand.objects.create(company=self.company, name='TestBrand')
         season = Season.objects.create(name='TestSeason')
         color = Color.objects.create(name='TestColor', code='#123456')
         gender = Gender.objects.create(name='TestGender')
         
         product = Product.objects.create(
+            company=self.company,
             name='TestProduct',
             category=category,
             brand=brand,
@@ -63,10 +68,10 @@ class ModelPropertiesTestCase(TestCase):
         inventory.save()
         
         # Create pay method
-        pay_method = PayMethod.objects.create(name='Cash')
+        pay_method = PayMethod.objects.create(company=self.company, name='Cash')
         
         # Create sale
-        sale = Sale.objects.create(
+        sale = Sale.objects.create(company=self.company, 
             seller=self.user,
             cash_session=session,
             pay_method=pay_method,
@@ -75,7 +80,7 @@ class ModelPropertiesTestCase(TestCase):
         )
         
         # Create detail
-        SaleDetail.objects.create(
+        SaleDetail.objects.create(company=self.company, 
             order=sale,
             product=product,
             quantity=2,
@@ -89,7 +94,7 @@ class ModelPropertiesTestCase(TestCase):
         
     def test_total_cash_in_property(self):
         """Test total_cash_in property"""
-        session = CashSession.objects.create(
+        session = CashSession.objects.create(company=self.company, 
             cash_register=self.cash_register,
             user=self.user,
             opening_balance=Decimal('1000.00'),
@@ -97,7 +102,7 @@ class ModelPropertiesTestCase(TestCase):
         )
         
         # Create cash in movement
-        CashMovement.objects.create(
+        CashMovement.objects.create(company=self.company, 
             cash_session=session,
             type=MovementType.CASH_IN,
             amount=Decimal('500.00'),
@@ -111,7 +116,7 @@ class ModelPropertiesTestCase(TestCase):
         
     def test_total_cash_out_property(self):
         """Test total_cash_out property"""
-        session = CashSession.objects.create(
+        session = CashSession.objects.create(company=self.company, 
             cash_register=self.cash_register,
             user=self.user,
             opening_balance=Decimal('1000.00'),
@@ -119,7 +124,7 @@ class ModelPropertiesTestCase(TestCase):
         )
         
         # Create cash out movement
-        CashMovement.objects.create(
+        CashMovement.objects.create(company=self.company, 
             cash_session=session,
             type=MovementType.CASH_OUT,
             amount=Decimal('200.00'),
@@ -133,7 +138,7 @@ class ModelPropertiesTestCase(TestCase):
         
     def test_expected_balance_property(self):
         """Test expected_balance property"""
-        session = CashSession.objects.create(
+        session = CashSession.objects.create(company=self.company, 
             cash_register=self.cash_register,
             user=self.user,
             opening_balance=Decimal('1000.00'),
@@ -141,14 +146,14 @@ class ModelPropertiesTestCase(TestCase):
         )
         
         # Create movements
-        CashMovement.objects.create(
+        CashMovement.objects.create(company=self.company, 
             cash_session=session,
             type=MovementType.CASH_IN,
             amount=Decimal('300.00'),
             reason='Cash in',
             created_by=self.user
         )
-        CashMovement.objects.create(
+        CashMovement.objects.create(company=self.company, 
             cash_session=session,
             type=MovementType.CASH_OUT,
             amount=Decimal('100.00'),
@@ -162,7 +167,7 @@ class ModelPropertiesTestCase(TestCase):
         
     def test_difference_property_with_closing(self):
         """Test difference property when closing_balance exists"""
-        session = CashSession.objects.create(
+        session = CashSession.objects.create(company=self.company, 
             cash_register=self.cash_register,
             user=self.user,
             opening_balance=Decimal('1000.00'),
@@ -177,7 +182,7 @@ class ModelPropertiesTestCase(TestCase):
         
     def test_sales_count_property(self):
         """Test sales_count property"""
-        session = CashSession.objects.create(
+        session = CashSession.objects.create(company=self.company, 
             cash_register=self.cash_register,
             user=self.user,
             opening_balance=Decimal('1000.00'),
@@ -185,13 +190,14 @@ class ModelPropertiesTestCase(TestCase):
         )
         
         # Create products
-        category = Category.objects.create(name='CountCat')
-        brand = Brand.objects.create(name='CountBrand')
+        category = Category.objects.create(company=self.company, name='CountCat')
+        brand = Brand.objects.create(company=self.company, name='CountBrand')
         season = Season.objects.create(name='CountSeason')
         color = Color.objects.create(name='CountColor', code='#AABBCC')
         gender = Gender.objects.create(name='CountGender')
         
         product = Product.objects.create(
+            company=self.company,
             name='CountProduct',
             category=category,
             brand=brand,
@@ -206,17 +212,17 @@ class ModelPropertiesTestCase(TestCase):
         inventory.quantity = 100
         inventory.save()
         
-        pay_method = PayMethod.objects.create(name='CountCash')
+        pay_method = PayMethod.objects.create(company=self.company, name='CountCash')
         
         # Create closed sales
         for i in range(3):
-            sale = Sale.objects.create(
+            sale = Sale.objects.create(company=self.company, 
                 seller=self.user,
                 cash_session=session,
                 pay_method=pay_method,
                 closed=True
             )
-            SaleDetail.objects.create(
+            SaleDetail.objects.create(company=self.company, 
                 order=sale,
                 product=product,
                 quantity=1,
@@ -225,7 +231,7 @@ class ModelPropertiesTestCase(TestCase):
             )
         
         # Create canceled sale (should not count)
-        canceled_sale = Sale.objects.create(
+        canceled_sale = Sale.objects.create(company=self.company, 
             seller=self.user,
             cash_session=session,
             pay_method=pay_method,
@@ -239,7 +245,7 @@ class ModelPropertiesTestCase(TestCase):
 
     def test_cash_session_str_method(self):
         """Test CashSession __str__ method"""
-        session = CashSession.objects.create(
+        session = CashSession.objects.create(company=self.company, 
             cash_register=self.cash_register,
             user=self.user,
             opening_balance=Decimal('1000.00'),
@@ -253,14 +259,14 @@ class ModelPropertiesTestCase(TestCase):
     
     def test_cash_movement_str_method(self):
         """Test CashMovement __str__ method"""
-        session = CashSession.objects.create(
+        session = CashSession.objects.create(company=self.company, 
             cash_register=self.cash_register,
             user=self.user,
             opening_balance=Decimal('1000.00'),
             status=SessionStatus.OPEN
         )
         
-        movement = CashMovement.objects.create(
+        movement = CashMovement.objects.create(company=self.company, 
             cash_session=session,
             type=MovementType.CASH_IN,
             amount=Decimal('500.00'),
@@ -289,7 +295,7 @@ class ModelPropertiesTestCase(TestCase):
     
     def test_cash_session_validation_closing_balance_required(self):
         """Test validation: closing balance required when closed"""
-        session = CashSession.objects.create(
+        session = CashSession.objects.create(company=self.company, 
             cash_register=self.cash_register,
             user=self.user,
             opening_balance=Decimal('1000.00'),
@@ -308,7 +314,7 @@ class ModelPropertiesTestCase(TestCase):
 
     def test_cash_session_validation_closing_date_required(self):
         """Test validation: closing date required when closed"""
-        session = CashSession.objects.create(
+        session = CashSession.objects.create(company=self.company, 
             cash_register=self.cash_register,
             user=self.user,
             opening_balance=Decimal('1000.00'),
@@ -327,7 +333,7 @@ class ModelPropertiesTestCase(TestCase):
     
     def test_cash_movement_validation_zero_amount(self):
         """Test validation: amount must be greater than zero"""
-        session = CashSession.objects.create(
+        session = CashSession.objects.create(company=self.company, 
             cash_register=self.cash_register,
             user=self.user,
             opening_balance=Decimal('1000.00'),
@@ -349,7 +355,7 @@ class ModelPropertiesTestCase(TestCase):
     
     def test_cash_movement_validation_closed_session(self):
         """Test validation: cannot add movements to closed session"""
-        session = CashSession.objects.create(
+        session = CashSession.objects.create(company=self.company, 
             cash_register=self.cash_register,
             user=self.user,
             opening_balance=Decimal('1000.00'),
@@ -370,3 +376,63 @@ class ModelPropertiesTestCase(TestCase):
             movement.full_clean()
         
         self.assertIn('cash_session', context.exception.message_dict)
+
+
+# ============================================================
+# Tests consolidated from test_branch_validation.py
+# ============================================================
+class CashSessionBranchValidationTest(TestCase):
+    """Branch access validation tests - consolidated from test_branch_validation.py"""
+    
+    def setUp(self):
+        super().setUp()
+        from core.models import Company, Branch
+        
+        self.company = Company.objects.create(name='Test Company', is_active=True)
+        self.branch_a = Branch.objects.create(company=self.company, name='Branch A', code='BR-A', is_active=True)
+        self.branch_b = Branch.objects.create(company=self.company, name='Branch B', code='BR-B', is_active=True)
+        
+        self.user_branch_a = User.objects.create_user(username='user_a', password='testpass123', email='usera@example.com')
+        self.user_branch_a.branch.add(self.branch_a)
+        
+        self.user_branch_b = User.objects.create_user(username='user_b', password='testpass123', email='userb@example.com')
+        self.user_branch_b.branch.add(self.branch_b)
+        
+        self.user_global = User.objects.create_user(username='user_global', password='testpass123', email='global@example.com')
+        
+        self.register_a = CashRegister.objects.create(company=self.company, name='Register A', code='REG-BV-A-001', branch=self.branch_a)
+        self.register_b = CashRegister.objects.create(company=self.company, name='Register B', code='REG-BV-B-001', branch=self.branch_b)
+    
+    def test_user_can_open_session_in_assigned_branch(self):
+        """Test that user assigned to branch A can open session in branch A"""
+        session = CashSession(cash_register=self.register_a, user=self.user_branch_a, opening_balance=Decimal('1000.00'))
+        
+        try:
+            session.full_clean()
+            session.save()
+        except ValidationError:
+            self.fail("User should be able to open session in assigned branch")
+        
+        self.assertIsNotNone(session.pk)
+    
+    def test_user_cannot_open_session_in_unassigned_branch(self):
+        """Test that user assigned to branch A cannot open session in branch B"""
+        session = CashSession(cash_register=self.register_b, user=self.user_branch_a, opening_balance=Decimal('1000.00'))
+        
+        with self.assertRaises(ValidationError) as context:
+            session.full_clean()
+        
+        self.assertIn('user', context.exception.error_dict)
+        self.assertIn('does not have access', str(context.exception))
+    
+    def test_global_user_can_open_session_anywhere(self):
+        """Test that user without branch assignments can open session anywhere"""
+        session_a = CashSession(cash_register=self.register_a, user=self.user_global, opening_balance=Decimal('1000.00'))
+        
+        try:
+            session_a.full_clean()
+            session_a.save()
+        except ValidationError:
+            self.fail("Global user should be able to open sessions in any branch")
+        
+        self.assertIsNotNone(session_a.pk)

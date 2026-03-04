@@ -7,17 +7,40 @@ from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 from django.core.exceptions import ValidationError
+from django_multitenant.models import TenantModel
 
 from cash.choices import SessionStatus
 
 
-class Device(PolymorphicModel):
+
+from django_multitenant.models import TenantManager
+from polymorphic.managers import PolymorphicManager
+
+class TenantPolymorphicManager(PolymorphicManager):
+    """Custom manager that combines TenantManager and PolymorphicManager."""
+    
+    def get_queryset(self):
+        """Override to add tenant filtering."""
+        from django_multitenant.utils import get_current_tenant
+        qs = super().get_queryset()
+        tenant = get_current_tenant()
+        if tenant:
+            return qs.filter(company=tenant)
+        return qs
+
+
+class Device(TenantModel, PolymorphicModel):
+    objects = TenantPolymorphicManager()
     """
     Base polymorphic model for all devices in the system.
     Child classes: CashRegister, PriceChecker, StockTerminal
     """
+    tenant_id = 'company_id'
+    
+    company = ForeignKey('core.Company', on_delete=CASCADE, related_name='devices', verbose_name=_('company'), null=True, blank=True)
+    
     # Identification
-    code = CharField(max_length=50, unique=True, verbose_name=_('code'), 
+    code = CharField(max_length=50, verbose_name=_('code'), 
                     help_text=_('Unique identifier for the device'))
     name = CharField(max_length=200, verbose_name=_('name'))
     
@@ -64,6 +87,7 @@ class Device(PolymorphicModel):
         verbose_name = _('device')
         verbose_name_plural = _('devices')
         ordering = ['name']
+        unique_together = [['company', 'code']]
         indexes = [
             models.Index(fields=['polymorphic_ctype']),
             models.Index(fields=['code']),
@@ -170,11 +194,14 @@ class StockTerminal(Device):
         verbose_name_plural = _('stock terminals')
 
 
-class DeviceConfig(models.Model):
+class DeviceConfig(TenantModel):
     """
     Configuration key-value pairs for devices
     Allows device-specific settings without JSONField
     """
+    tenant_id = 'company_id'
+    
+    company = ForeignKey('core.Company', on_delete=CASCADE, related_name='device_configs', verbose_name=_('company'), null=True, blank=True)
     device = ForeignKey(Device, on_delete=CASCADE, related_name='configurations', 
                        verbose_name=_('device'))
     key = CharField(max_length=100, verbose_name=_('key'),

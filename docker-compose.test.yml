@@ -2,6 +2,22 @@
 # Reuses dev Dockerfile with testing settings
 
 services:
+  db_test:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_DB=baguales_test
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - postgres_test_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   web_test:
     build:
       dockerfile: docker/Dockerfile.dev
@@ -10,9 +26,13 @@ services:
       - DJANGO_SETTINGS_MODULE=BagualesPOS.settings.testing
       - PYTHONDONTWRITEBYTECODE=1
       - PYTHONUNBUFFERED=1
+      - DATABASE_URL=postgres://postgres:postgres@db_test:5432/baguales_test
     volumes:
       - .:/app:delegated
     working_dir: /app
+    depends_on:
+      db_test:
+        condition: service_healthy
     # Override entrypoint to prevent dev server from starting
     entrypoint: []
     command: >
@@ -22,3 +42,6 @@ services:
         echo 'Running tests...' &&
         uv run --python 3.13 python manage.py test -v 2
       "
+
+volumes:
+  postgres_test_data:

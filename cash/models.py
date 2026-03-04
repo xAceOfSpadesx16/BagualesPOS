@@ -7,13 +7,17 @@ from django.utils.translation import gettext_lazy as _
 from django.core.exceptions import ValidationError
 from django.db.models import Sum, Q
 from decimal import Decimal
+from django_multitenant.models import TenantModel
 
 from cash.choices import SessionStatus, MovementType
 from devices.models import CashRegister
 
 
-class CashSession(Model):
+class CashSession(TenantModel):
     """Represents a cash register session (opening to closing)"""
+    tenant_id = 'company_id'
+    
+    company = ForeignKey('core.Company', on_delete=CASCADE, related_name='cash_sessions', verbose_name=_('company'), null=True, blank=True)
     cash_register = ForeignKey(CashRegister, on_delete=PROTECT, related_name='sessions', verbose_name=_('cash register'))
     user = ForeignKey(get_user_model(), on_delete=PROTECT, related_name='cash_sessions', verbose_name=_('user'))
     
@@ -150,8 +154,11 @@ class CashSession(Model):
                 })
 
 
-class CashMovement(Model):
+class CashMovement(TenantModel):
     """Represents a cash movement in a session (cash in/out)"""
+    tenant_id = 'company_id'
+    
+    company = ForeignKey('core.Company', on_delete=CASCADE, related_name='cash_movements', verbose_name=_('company'), null=True, blank=True)
     cash_session = ForeignKey(CashSession, on_delete=CASCADE, related_name='movements', verbose_name=_('cash session'))
     type = CharField(max_length=20, choices=MovementType.choices, verbose_name=_('type'))
     amount = DecimalField(max_digits=12, decimal_places=2, verbose_name=_('amount'))

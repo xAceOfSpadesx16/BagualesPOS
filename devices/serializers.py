@@ -37,7 +37,7 @@ class DeviceSerializer(serializers.ModelSerializer):
 class CashRegisterSerializer(DeviceSerializer):
     """Cash register serializer with session info"""
     current_session_id = serializers.SerializerMethodField()
-    has_open_session = serializers.BooleanField(read_only=True)
+    has_open_session = serializers.SerializerMethodField()
     
     class Meta(DeviceSerializer.Meta):
         model = CashRegister
@@ -46,6 +46,9 @@ class CashRegisterSerializer(DeviceSerializer):
     def get_current_session_id(self, obj):
         session = obj.current_session
         return session.id if session else None
+    
+    def get_has_open_session(self, obj):
+        return obj.has_open_session
 
 
 class PriceCheckerSerializer(DeviceSerializer):

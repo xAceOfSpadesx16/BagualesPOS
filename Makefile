@@ -98,7 +98,7 @@ test-coverage:
 	@echo "Running tests with coverage..."
 	$(DOCKER_TEST) run --rm web_test sh -c " \
 		uv run --python 3.13 coverage run --source='.' manage.py test && \
-		uv run --python 3.13 coverage report && \
+		uv run --python 3.13 coverage report --fail-under=100 && \
 		uv run --python 3.13 coverage html \
 	"
 	@echo "Coverage report generated in htmlcov/index.html"
@@ -107,7 +107,7 @@ test-coverage-app:
 	@echo "Running coverage for app: $(app)"
 	$(DOCKER_TEST) run --rm web_test sh -c " \
 		uv run --python 3.13 coverage run --source='$(app)' manage.py test $(app) && \
-		uv run --python 3.13 coverage report && \
+		uv run --python 3.13 coverage report --fail-under=100 && \
 		uv run --python 3.13 coverage html \
 	"
 	@echo "Coverage report for $(app) generated in htmlcov/index.html"

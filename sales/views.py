@@ -116,13 +116,17 @@ class SaleViewSet(viewsets.ModelViewSet):
 
         # Restore stock for each detail
         from inventory.models import Inventory
-        for detail in sale.details.select_related('product').all():
-            if detail.product and hasattr(detail.product, 'inventory'):
-                stock = Inventory.objects.select_for_update().get(
-                    pk=detail.product.inventory.pk
-                )
-                stock.quantity += detail.quantity
-                stock.save()
+        if sale.branch:
+            for detail in sale.details.select_related('product').all():
+                if detail.product:
+                    try:
+                        stock = Inventory.objects.select_for_update().get(
+                            product=detail.product, branch=sale.branch
+                        )
+                        stock.quantity += detail.quantity
+                        stock.save()
+                    except Inventory.DoesNotExist:
+                        pass
 
         sale.canceled = True
         sale.save()

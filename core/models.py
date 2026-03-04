@@ -1,11 +1,15 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from django_multitenant.models import TenantModel
 
 
-class Company(models.Model):
+class Company(TenantModel):
     """
-    Represents a business entity.
+    Represents a business entity (Tenant).
+    Each company is isolated from others in a multi-tenant architecture.
     """
+    tenant_id = 'id'
+    
     name = models.CharField(
         _("name"),
         max_length=255,
@@ -30,6 +34,15 @@ class Company(models.Model):
         default=True,
         help_text=_("Whether this company is active")
     )
+    owner = models.OneToOneField(
+        'users.CustomUser',
+        on_delete=models.PROTECT,
+        related_name='owned_company',
+        verbose_name=_("owner"),
+        help_text=_("User who owns this company"),
+        null=True,
+        blank=True
+    )
     created_at = models.DateTimeField(_("created at"), auto_now_add=True)
     updated_at = models.DateTimeField(_("updated at"), auto_now=True)
 
@@ -42,10 +55,13 @@ class Company(models.Model):
         return self.name
 
 
-class Branch(models.Model):
+class Branch(TenantModel):
     """
     Represents a physical location or division of a company.
+    Branch data is isolated per tenant (company).
     """
+    tenant_id = 'company_id'
+    
     company = models.ForeignKey(
         Company,
         on_delete=models.CASCADE,

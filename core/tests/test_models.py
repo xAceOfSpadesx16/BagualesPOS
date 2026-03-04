@@ -1,7 +1,15 @@
-from django.test import TestCase
+from unittest.mock import patch
+from django.test import TestCase, RequestFactory
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import AnonymousUser
+from django_multitenant.utils import get_current_tenant, set_current_tenant
+from rest_framework_simplejwt.exceptions import InvalidToken
 from core.models import Company, Branch
+from core.middleware import TenantMiddleware
+
+User = get_user_model()
 
 
 class CompanyModelTest(TestCase):
@@ -193,3 +201,104 @@ class BranchModelTest(TestCase):
         branch2 = Branch.objects.create(**branch2_data)
         self.assertEqual(branch2.code, 'MAIN-001')
         self.assertEqual(branch2.company, company2)
+
+
+# ============================================================
+# Tests consolidated from test_middleware_*.py, test_tenant_isolation.py, test_phase2_integration.py
+# ============================================================
+class MiddlewareTestCase(TestCase):
+    """Middleware tests - consolidated from test_middleware_*.py"""
+    
+    def setUp(self):
+        self.factory = RequestFactory()
+        self.middleware = TenantMiddleware(lambda r: None)
+        
+    def tearDown(self):
+        set_current_tenant(None)
+    
+    def test_middleware_with_regular_user(self):
+        """Test middleware with user that has company"""
+        company = Company.objects.create(name="Test Co", tax_id="123")
+        user = User.objects.create_user(username='regular', password='test', company=company)
+        
+        request = self.factory.get('/')
+        request.user = user
+        
+        self.middleware.process_request(request)
+        
+        current_tenant = get_current_tenant()
+        self.assertEqual(current_tenant, company)
+    
+    def test_middleware_with_unauthenticated_user(self):
+        """Test middleware with unauthenticated user"""
+        request = self.factory.get('/')
+        request.user = AnonymousUser()
+        
+        self.middleware.process_request(request)
+        
+        current_tenant = get_current_tenant()
+        self.assertIsNone(current_tenant)
+
+    def test_middleware_with_invalid_jwt_token(self):
+        """Test middleware when JWT authentication raises InvalidToken — covers except branch"""
+        request = self.factory.get('/')
+        request.user = AnonymousUser()
+        request.META['HTTP_AUTHORIZATION'] = 'Bearer invalid.token.here'
+
+        with patch(
+            'core.middleware.JWTAuthentication.authenticate',
+            side_effect=InvalidToken("Token is invalid")
+        ):
+            self.middleware.process_request(request)
+
+        self.assertIsNone(get_current_tenant())
+
+class TenantIsolationTestCase(TestCase):
+    """Tenant isolation tests - consolidated from test_tenant_isolation.py and test_phase2_integration.py"""
+    
+    def setUp(self):
+        self.company_a = Company.objects.create(name="Company A", tax_id="12345678A")
+        self.user_a = User.objects.create_user(username="user_a", email="usera@example.com", password="password123", company=self.company_a)
+        self.company_a.owner = self.user_a
+        self.company_a.save()
+        
+        self.company_b = Company.objects.create(name="Company B", tax_id="87654321B")
+        self.user_b = User.objects.create_user(username="user_b", email="userb@example.com", password="password123", company=self.company_b)
+        self.company_b.owner = self.user_b
+        self.company_b.save()
+    
+    def tearDown(self):
+        set_current_tenant(None)
+    
+    def test_branch_isolation(self):
+        """Test that branches are isolated per tenant"""
+        set_current_tenant(self.company_a)
+        branch_a1 = Branch.objects.create(company=self.company_a, name="Branch A1", code="A1", address="123 Main St")
+        branch_a2 = Branch.objects.create(company=self.company_a, name="Branch A2", code="A2", address="456 Oak Ave")
+        
+        branches_a = Branch.objects.all()
+        self.assertEqual(branches_a.count(), 2)
+        
+        set_current_tenant(self.company_b)
+        branch_b1 = Branch.objects.create(company=self.company_b, name="Branch B1", code="B1", address="789 Elm St")
+        
+        branches_b = Branch.objects.all()
+        self.assertEqual(branches_b.count(), 1)
+        self.assertIn(branch_b1, branches_b)
+        
+        set_current_tenant(self.company_a)
+        branches_a_again = Branch.objects.all()
+        self.assertEqual(branches_a_again.count(), 2)
+    
+    def test_cross_tenant_prevention(self):
+        """Test that cross-tenant data access is prevented"""
+        set_current_tenant(self.company_a)
+        branch_a = Branch.objects.create(company=self.company_a, name="Branch A", code="A", address="123 Main St")
+        
+        set_current_tenant(self.company_b)
+        
+        with self.assertRaises(Branch.DoesNotExist):
+            Branch.objects.get(id=branch_a.id)
+        
+        all_branches = Branch.objects.all()
+        self.assertEqual(all_branches.count(), 0)

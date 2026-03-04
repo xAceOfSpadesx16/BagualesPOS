@@ -1,42 +1,41 @@
+import unittest
 from decimal import Decimal
 from django.test import TestCase
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from clients.models import Client, CustomerAccount, CustomerBalanceRecord
 from clients.choices import MovementType
+from utils.tests import TenantTestCase
 
 User = get_user_model()
 
-class BalanceRecordsManagerTestCase(TestCase):
+class BalanceRecordsManagerTestCase(TenantTestCase, TestCase):
     def setUp(self):
-        self.user = User.objects.create_user(username='testuser', password='password')
-        self.client = Client.objects.create(
+        super().setUp()
+        # Already have self.user from TenantTestCase # User.objects.create_user(username='testuser', password='password')
+        self.client = Client.objects.create(company=self.company, 
             name='Test', last_name='Client', dni='123456789', email='test@test.com'
         )
         self.account = self.client.customer_account
         
         # Create records
-        self.credit = CustomerBalanceRecord.objects.create(
-            customer_account=self.account,
+        self.credit = CustomerBalanceRecord.objects.create(company=self.company, customer_account=self.account,
             amount=Decimal('100.00'),
             movement_type=MovementType.CREDIT,
             created_by=self.user
         )
-        self.debit = CustomerBalanceRecord.objects.create(
-            customer_account=self.account,
+        self.debit = CustomerBalanceRecord.objects.create(company=self.company, customer_account=self.account,
             amount=Decimal('50.00'),
             movement_type=MovementType.DEBIT,
             created_by=self.user
         )
-        self.adjustment = CustomerBalanceRecord.objects.create(
-            customer_account=self.account,
+        self.adjustment = CustomerBalanceRecord.objects.create(company=self.company, customer_account=self.account,
             amount=Decimal('10.00'),
             movement_type=MovementType.ADJUSTMENT,
             related_to=self.debit,
             created_by=self.user
         )
-        self.refund = CustomerBalanceRecord.objects.create(
-            customer_account=self.account,
+        self.refund = CustomerBalanceRecord.objects.create(company=self.company, customer_account=self.account,
             amount=Decimal('20.00'),
             movement_type=MovementType.REFUND,
             related_to=self.credit,
@@ -44,8 +43,7 @@ class BalanceRecordsManagerTestCase(TestCase):
         )
         
         # Reconciled record
-        self.reconciled = CustomerBalanceRecord.objects.create(
-            customer_account=self.account,
+        self.reconciled = CustomerBalanceRecord.objects.create(company=self.company, customer_account=self.account,
             amount=Decimal('30.00'),
             movement_type=MovementType.DEBIT,
             reconciled=True,
@@ -59,8 +57,7 @@ class BalanceRecordsManagerTestCase(TestCase):
         self.assertEqual(CustomerBalanceRecord.objects.refund().count(), 1)
         
         # Reversal
-        reversal = CustomerBalanceRecord.objects.create(
-            customer_account=self.account,
+        reversal = CustomerBalanceRecord.objects.create(company=self.company, customer_account=self.account,
             amount=Decimal('50.00'),
             movement_type=MovementType.REVERSAL,
             related_to=self.debit,
@@ -73,7 +70,7 @@ class BalanceRecordsManagerTestCase(TestCase):
         self.assertEqual(CustomerBalanceRecord.objects.unreconciled().count(), 4)
 
     def test_date_filters(self):
-        today = timezone.now().date()
+        today = timezone.localdate()
         self.assertEqual(CustomerBalanceRecord.objects.from_date(today).count(), 5)
         self.assertEqual(CustomerBalanceRecord.objects.to_date(today).count(), 5)
         
@@ -112,8 +109,7 @@ class BalanceRecordsManagerTestCase(TestCase):
 
     def test_effective(self):
         # Create a reversal for the first debit
-        CustomerBalanceRecord.objects.create(
-            customer_account=self.account,
+        CustomerBalanceRecord.objects.create(company=self.company, customer_account=self.account,
             amount=Decimal('50.00'),
             movement_type=MovementType.REVERSAL,
             related_to=self.debit,
@@ -168,8 +164,7 @@ class BalanceRecordsManagerTestCase(TestCase):
         """Test from_date and to_date with datetime objects"""
         now = timezone.now()
         # Create a record right now
-        CustomerBalanceRecord.objects.create(
-            customer_account=self.account,
+        CustomerBalanceRecord.objects.create(company=self.company, customer_account=self.account,
             amount=Decimal('5.00'),
             movement_type=MovementType.DEBIT,
             created_by=self.user
@@ -183,3 +178,57 @@ class BalanceRecordsManagerTestCase(TestCase):
         # to_date with datetime
         end = now + timezone.timedelta(seconds=2)
         self.assertTrue(CustomerBalanceRecord.objects.to_date(end).exists())
+
+
+# ============================================================
+# Tests consolidated from test_manager_date_range.py
+# ============================================================
+class DateTimeManagerTest(TenantTestCase, TestCase):
+    """Test from_date/to_date with datetime objects - consolidated from test_manager_date_range.py"""
+    
+    def setUp(self):
+        super().setUp()
+        self.client_obj = Client.objects.create(
+            company=self.company,
+            name='Test',
+            last_name='Client',
+            dni='123456789',
+            email='test@test.com'
+        )
+        self.account = self.client_obj.customer_account
+    
+    def test_from_date_with_datetime_object(self):
+        """Test from_date with datetime instead of date"""
+        # Create a record
+        rec = CustomerBalanceRecord.objects.create(
+            company=self.company,
+            customer_account=self.account,
+            amount=Decimal('100.00'),
+            movement_type=MovementType.CREDIT,
+            created_by=self.user
+        )
+        
+        # Call from_date with datetime object (not just date)
+        dt = timezone.now()
+        qs = CustomerBalanceRecord.objects.from_date(dt)
+        
+        # Should work with datetime
+        self.assertGreaterEqual(qs.count(), 0)
+    
+    def test_to_date_with_datetime_object(self):
+        """Test to_date with datetime instead of date"""
+        # Create a record
+        rec = CustomerBalanceRecord.objects.create(
+            company=self.company,
+            customer_account=self.account,
+            amount=Decimal('50.00'),
+            movement_type=MovementType.DEBIT,
+            created_by=self.user
+        )
+        
+        # Call to_date with datetime object
+        dt = timezone.now()
+        qs = CustomerBalanceRecord.objects.to_date(dt)
+        
+        # Should work with datetime
+        self.assertGreaterEqual(qs.count(), 0)

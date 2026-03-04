@@ -6,6 +6,7 @@ from rest_framework.test import APIClient, APITestCase
 from rest_framework import status
 from unittest.mock import patch
 from django.core.exceptions import ValidationError as DjangoValidationError
+from utils.tests import TenantTestCase
 
 from devices.models import CashRegister
 from cash.models import CashSession, CashMovement
@@ -14,10 +15,11 @@ from cash.choices import SessionStatus, MovementType
 User = get_user_model()
 
 
-class CashSessionAPITestCase(APITestCase):
+class CashSessionAPITestCase(TenantTestCase, APITestCase):
     """Test cases for Cash Session endpoints"""
     
     def setUp(self):
+        super().setUp()
         """Set up test data"""
         # Create users
         self.user1 = User.objects.create_user(
@@ -40,19 +42,19 @@ class CashSessionAPITestCase(APITestCase):
         )
         
         # Create cash registers
-        self.cash_register1 = CashRegister.objects.create(
+        self.cash_register1 = CashRegister.objects.create(company=self.company, 
             code='CAJA-01',
             name='Caja Principal',
             location='Mostrador 1',
             is_active=True
         )
-        self.cash_register2 = CashRegister.objects.create(
+        self.cash_register2 = CashRegister.objects.create(company=self.company, 
             code='CAJA-02',
             name='Caja Secundaria',
             location='Mostrador 2',
             is_active=True
         )
-        self.inactive_register = CashRegister.objects.create(
+        self.inactive_register = CashRegister.objects.create(company=self.company, 
             code='CAJA-03',
             name='Caja Inactiva',
             location='Depósito',
@@ -457,10 +459,11 @@ class CashSessionAPITestCase(APITestCase):
         self.assertIn('expected_balance', response.data)
 
 
-class CashMovementAPITestCase(APITestCase):
+class CashMovementAPITestCase(TenantTestCase, APITestCase):
     """Test cases for Cash Movement endpoints"""
     
     def setUp(self):
+        super().setUp()
         """Set up test data"""
         self.user = User.objects.create_user(
             username='cashier',
@@ -469,7 +472,7 @@ class CashMovementAPITestCase(APITestCase):
             last_name='Pérez'
         )
         
-        self.cash_register = CashRegister.objects.create(
+        self.cash_register = CashRegister.objects.create(company=self.company, 
             code='CAJA-01',
             name='Caja Principal',
             location='Mostrador 1',
@@ -477,7 +480,7 @@ class CashMovementAPITestCase(APITestCase):
         )
         
         # Create open session
-        self.open_session = CashSession.objects.create(
+        self.open_session = CashSession.objects.create(company=self.company, 
             cash_register=self.cash_register,
             user=self.user,
             opening_balance=Decimal('1000.00'),
@@ -485,7 +488,7 @@ class CashMovementAPITestCase(APITestCase):
         )
         
         # Create opening movement
-        CashMovement.objects.create(
+        CashMovement.objects.create(company=self.company, 
             cash_session=self.open_session,
             type=MovementType.OPENING,
             amount=Decimal('1000.00'),
@@ -494,7 +497,7 @@ class CashMovementAPITestCase(APITestCase):
         )
         
         # Create closed session
-        self.closed_session = CashSession.objects.create(
+        self.closed_session = CashSession.objects.create(company=self.company, 
             cash_register=self.cash_register,
             user=self.user,
             opening_balance=Decimal('500.00'),
@@ -557,7 +560,7 @@ class CashMovementAPITestCase(APITestCase):
     def test_list_movements(self):
         """Test listing cash movements"""
         # Create additional movements
-        CashMovement.objects.create(
+        CashMovement.objects.create(company=self.company, 
             cash_session=self.open_session,
             type=MovementType.CASH_IN,
             amount=Decimal('200.00'),
@@ -585,14 +588,14 @@ class CashMovementAPITestCase(APITestCase):
     def test_filter_movements_by_type(self):
         """Test filtering movements by type"""
         # Create different types
-        CashMovement.objects.create(
+        CashMovement.objects.create(company=self.company, 
             cash_session=self.open_session,
             type=MovementType.CASH_IN,
             amount=Decimal('200.00'),
             reason='Test in',
             created_by=self.user
         )
-        CashMovement.objects.create(
+        CashMovement.objects.create(company=self.company, 
             cash_session=self.open_session,
             type=MovementType.CASH_OUT,
             amount=Decimal('50.00'),
@@ -637,17 +640,18 @@ class CashMovementAPITestCase(APITestCase):
         
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
-class ViewEdgeCasesTestCase(APITestCase):
+class ViewEdgeCasesTestCase(TenantTestCase, APITestCase):
     """Tests for view edge cases to achieve 100% coverage"""
     
     def setUp(self):
+        super().setUp()
         self.user = User.objects.create_user(
             username='edgetest',
             password='test',
             first_name='Edge',
             last_name='Test'
         )
-        self.cash_register = CashRegister.objects.create(
+        self.cash_register = CashRegister.objects.create(company=self.company, 
             code='EDGE-01',
             name='Edge Test Register',
             is_active=True
@@ -657,7 +661,7 @@ class ViewEdgeCasesTestCase(APITestCase):
     def test_get_serializer_class_for_list(self):
         """Test get_serializer_class returns list serializer"""
         # Create a session
-        session = CashSession.objects.create(
+        session = CashSession.objects.create(company=self.company, 
             cash_register=self.cash_register,
             user=self.user,
             opening_balance=Decimal('1000.00'),
@@ -677,7 +681,7 @@ class ViewEdgeCasesTestCase(APITestCase):
     def test_cash_movement_perform_create_validation(self):
         """Test CashMovementViewSet perform_create validation"""
         # Create closed session
-        closed_session = CashSession.objects.create(
+        closed_session = CashSession.objects.create(company=self.company, 
             cash_register=self.cash_register,
             user=self.user,
             opening_balance=Decimal('1000.00'),
@@ -734,7 +738,7 @@ class ViewEdgeCasesTestCase(APITestCase):
         """Test current_session endpoint when session exists"""
         
         # Create an open session
-        session = CashSession.objects.create(
+        session = CashSession.objects.create(company=self.company, 
             cash_register=self.cash_register,
             user=self.user,
             opening_balance=Decimal('1000.00'),
@@ -750,7 +754,7 @@ class ViewEdgeCasesTestCase(APITestCase):
     def test_close_session_validation_error_handling(self):
          """Test close session with validation error"""
          
-         session = CashSession.objects.create(
+         session = CashSession.objects.create(company=self.company, 
              cash_register=self.cash_register,
              user=self.user,
              opening_balance=Decimal('1000.00'),
@@ -770,3 +774,162 @@ class ViewEdgeCasesTestCase(APITestCase):
              
              self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
              self.assertIn('error', response.data)
+
+
+# ============================================================
+# Tests consolidated from test_admin.py and test_integration.py
+# ============================================================
+class AdminTestCase(TenantTestCase, TestCase):
+    """Admin functionality tests - consolidated from test_admin.py"""
+    
+    def setUp(self):
+        super().setUp()
+        from django.contrib.admin.sites import AdminSite
+        from cash.admin import CashSessionAdmin
+        
+        self.user = User.objects.create_user(
+            username='admintest',
+            password='test',
+            first_name='Admin',
+            last_name='Test'
+        )
+        self.cash_register = CashRegister.objects.create(company=self.company, 
+            code='ADMIN-01',
+            name='Admin Test Register',
+            is_active=True
+        )
+        self.admin_instance = CashSessionAdmin(CashSession, AdminSite())
+
+    def test_admin_difference_method(self):
+        """Test admin difference method formatting"""
+        
+        # Create session with positive difference
+        session_positive = CashSession.objects.create(company=self.company, 
+            cash_register=self.cash_register,
+            user=self.user,
+            opening_balance=Decimal('1000.00'),
+            closing_balance=Decimal('1200.00'),
+            status=SessionStatus.CLOSED,
+            closing_date=timezone.now()
+        )
+        
+        # Test positive difference (should have + prefix)
+        diff_str = self.admin_instance.difference(session_positive)
+        self.assertTrue(diff_str.startswith('+'))
+        
+        # Create session with negative difference  
+        session_negative = CashSession.objects.create(company=self.company, 
+            cash_register=self.cash_register,
+            user=self.user,
+            opening_balance=Decimal('1000.00'),
+            closing_balance=Decimal('800.00'),
+            status=SessionStatus.CLOSED,
+            closing_date=timezone.now()
+        )
+        
+        # Test negative difference
+        diff_str = self.admin_instance.difference(session_negative)
+        self.assertFalse(diff_str.startswith('+'))
+        self.assertIn('-', diff_str)
+
+
+class CashIntegrationTestCase(TenantTestCase, APITestCase):
+    """Integration tests - consolidated from test_integration.py"""
+    
+    def setUp(self):
+        super().setUp()
+        
+        self.user = User.objects.create_user(
+            username='cashier',
+            password='testpass123',
+            first_name='Juan',
+            last_name='Pérez'
+        )
+        
+        self.cash_register = CashRegister.objects.create(company=self.company, 
+            code='CAJA-01',
+            name='Caja Principal',
+            is_active=True
+        )
+        
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+    
+    def test_complete_session_workflow(self):
+        """Test complete workflow: open -> movements -> close"""
+        # 1. Open session
+        response_open = self.client.post('/api/cash/cash-sessions/open/', {
+            'cash_register': self.cash_register.id,
+            'opening_balance': '1000.00'
+        })
+        
+        self.assertEqual(response_open.status_code, status.HTTP_201_CREATED)
+        session_id = response_open.data['id']
+        
+        # 2. Add cash in movement
+        response_in = self.client.post('/api/cash/cash-movements/', {
+            'cash_session': session_id,
+            'type': MovementType.CASH_IN,
+            'amount': '500.00',
+            'reason': 'Cambio adicional'
+        })
+        
+        self.assertEqual(response_in.status_code, status.HTTP_201_CREATED)
+        
+        # 3. Add cash out movement
+        response_out = self.client.post('/api/cash/cash-movements/', {
+            'cash_session': session_id,
+            'type': MovementType.CASH_OUT,
+            'amount': '100.00',
+            'reason': 'Compra suministros'
+        })
+        
+        self.assertEqual(response_out.status_code, status.HTTP_201_CREATED)
+        
+        # 4. Check summary
+        response_summary = self.client.get(f'/api/cash/cash-sessions/{session_id}/summary/')
+        
+        self.assertEqual(response_summary.status_code, status.HTTP_200_OK)
+        totals = response_summary.data['totals']
+        
+        # Expected: 1000 (opening) + 500 (in) - 100 (out) = 1400
+        self.assertEqual(Decimal(totals['opening_balance']), Decimal('1000.00'))
+        self.assertEqual(Decimal(totals['cash_in']), Decimal('500.00'))
+        self.assertEqual(Decimal(totals['cash_out']), Decimal('100.00'))
+        self.assertEqual(Decimal(totals['expected_balance']), Decimal('1400.00'))
+        
+        # 5. Close session
+        response_close = self.client.post(f'/api/cash/cash-sessions/{session_id}/close/', {
+            'closing_balance': '1450.00',
+            'notes': 'Cierre de turno'
+        })
+        
+        self.assertEqual(response_close.status_code, status.HTTP_200_OK)
+        self.assertEqual(response_close.data['status'], SessionStatus.CLOSED)
+        
+        # Difference should be 1450 - 1400 = 50
+        self.assertEqual(Decimal(response_close.data['difference']), Decimal('50.00'))
+    
+    def test_cannot_open_two_sessions_same_time(self):
+        """Test that user cannot have multiple open sessions"""
+        # Open first session
+        response1 = self.client.post('/api/cash/cash-sessions/open/', {
+            'cash_register': self.cash_register.id,
+            'opening_balance': '1000.00'
+        })
+        
+        self.assertEqual(response1.status_code, status.HTTP_201_CREATED)
+        
+        # Try to open another
+        cash_register2 = CashRegister.objects.create(company=self.company, 
+            code='CAJA-02',
+            name='Caja 2',
+            is_active=True
+        )
+        
+        response2 = self.client.post('/api/cash/cash-sessions/open/', {
+            'cash_register': cash_register2.id,
+            'opening_balance': '500.00'
+        })
+        
+        self.assertEqual(response2.status_code, status.HTTP_400_BAD_REQUEST)

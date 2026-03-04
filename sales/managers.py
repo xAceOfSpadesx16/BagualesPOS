@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 from django.db.models import Manager, QuerySet
+from django_multitenant.models import TenantManager
 from django.utils.timezone import now
 
 if TYPE_CHECKING:
@@ -22,7 +23,7 @@ class SalesQueryset(QuerySet):
         return self.filter(canceled=False, closed=False, seller = seller)
     
 
-class SalesManager(Manager):
+class SalesManager(TenantManager):
 
     def get_queryset(self):
         return SalesQueryset(self.model, using=self._db)

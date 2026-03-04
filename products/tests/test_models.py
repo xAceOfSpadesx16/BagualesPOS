@@ -1,23 +1,28 @@
 from django.test import TestCase
+from django_multitenant.utils import set_current_tenant
 from products.models import (
     Category, Subcategory, Season, Color, Gender, LetterSize, 
     Materials, Supplier, Brand, Product
 )
 from inventory.models import Inventory
+from utils.tests import TenantTestCase, create_test_branch
 
-class ProductModelsTestCase(TestCase):
+class ProductModelsTestCase(TenantTestCase, TestCase):
     def setUp(self):
-        self.category = Category.objects.create(name="Remeras")
+        super().setUp()
+        self.branch = create_test_branch(company=self.company)
+        self.category = Category.objects.create(company=self.company, name="Remeras")
         self.subcategory = Subcategory.objects.create(name="Manga Corta")
         self.season = Season.objects.create(name="Verano")
         self.color = Color.objects.create(name="Rojo", code="#FF0000")
         self.gender = Gender.objects.create(name="Unisex")
         self.size = LetterSize.objects.create(short_name="M", name="Medium")
         self.material = Materials.objects.create(name="Algodon")
-        self.supplier = Supplier.objects.create(name="Proveedor X", email="x@x.com")
-        self.brand = Brand.objects.create(name="Nike", supplier=self.supplier)
+        self.supplier = Supplier.objects.create(company=self.company, name="Proveedor X", email="x@x.com")
+        self.brand = Brand.objects.create(company=self.company, name="Nike", supplier=self.supplier)
         
         self.product = Product.objects.create(
+            company=self.company,
             name="Remera Nike",
             category=self.category,
             brand=self.brand,

@@ -2,7 +2,7 @@ from __future__ import annotations
 from django.db.models import Model
 from django.db.models.fields import CharField, DateTimeField, BooleanField, TextField, DecimalField, DateField, EmailField
 from django.db.models.fields.related import ForeignKey, OneToOneField
-from django.db.models.deletion import SET_NULL, PROTECT
+from django.db.models.deletion import SET_NULL, PROTECT, CASCADE
 from django.db.models.aggregates import Sum
 from django.db.models.constraints import UniqueConstraint
 from django.db.models.query_utils import Q
@@ -13,20 +13,23 @@ from django.utils.translation import gettext_lazy as _
 from django.utils.timezone import now
 from django.core.exceptions import ValidationError, NON_FIELD_ERRORS
 from decimal import Decimal
+from django_multitenant.models import TenantModel
 from clients.managers import BalanceRecordsManager
 from clients.choices import MovementType, BillingType
 from utils.mixins import SoftDeleteMixin
 
 from utils import PhoneNumberField
 
-class Client(SoftDeleteMixin, Model):
+class Client(SoftDeleteMixin, TenantModel):
+    tenant_id = 'company_id'
 
+    company = ForeignKey('core.Company', on_delete=CASCADE, related_name='clients', verbose_name=_('company'), null=True, blank=True)
     name = CharField(_('name'),max_length=50)
     last_name = CharField(_('last_name'), max_length=50)
     phone = PhoneNumberField(null=True, blank=True, verbose_name= _('phone number'))
     dni = CharField(max_length=9, verbose_name= _('dni'))
-    cuit = CharField(max_length=13, null=True, validators=[RegexValidator(r'^\d{2}-\d{8}-\d{1}$', 'Ingrese un CUIT válido.')], unique=True, verbose_name= _('cuit'))
-    email = EmailField(max_length=50, verbose_name= _('email'), unique=True)
+    cuit = CharField(max_length=13, null=True, validators=[RegexValidator(r'^\d{2}-\d{8}-\d{1}$', 'Ingrese un CUIT válido.')], verbose_name= _('cuit'))
+    email = EmailField(max_length=50, verbose_name= _('email'))
     address = CharField(max_length=100, verbose_name= _('address'))
     birth_date = DateField(null=True, blank=True, verbose_name= _('birth date'))
     postal_code = CharField(max_length=10, verbose_name= _('postal code'))
@@ -49,6 +52,7 @@ class Client(SoftDeleteMixin, Model):
     class Meta:
         verbose_name = _('client')
         verbose_name_plural = _('clients')
+        unique_together = [['company', 'email'], ['company', 'cuit']]
         indexes = [
             Index(fields=['dni'], name='dni_index'),
             Index(fields=['cuit'], name='cuit_index'),
@@ -66,7 +70,10 @@ class Client(SoftDeleteMixin, Model):
             raise ValidationError({'email': _('Ingrese un email válido.')})
 
 
-class CustomerAccount(Model):
+class CustomerAccount(TenantModel):
+    tenant_id = 'company_id'
+    
+    company = ForeignKey('core.Company', on_delete=CASCADE, related_name='customer_accounts', verbose_name=_('company'), null=True, blank=True)
     client = OneToOneField(Client, on_delete=PROTECT, related_name='customer_account', verbose_name=_('client'))
     credit_limit = DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, verbose_name=_('credit limit'))
     active = BooleanField(default=True, verbose_name=_('active'))
@@ -115,8 +122,10 @@ class CustomerAccount(Model):
         return f"{_('Customer Account')} N° {self.id} {self.client.get_full_name}"
 
 
-class CustomerBalanceRecord(Model):
-
+class CustomerBalanceRecord(TenantModel):
+    tenant_id = 'company_id'
+    
+    company = ForeignKey('core.Company', on_delete=CASCADE, related_name='customer_balance_records', verbose_name=_('company'), null=True, blank=True)
     customer_account = ForeignKey(CustomerAccount, on_delete=PROTECT, verbose_name=_('customer account'), related_name="balance_records")
     sale = ForeignKey('sales.Sale', blank=True, null=True, on_delete=PROTECT, verbose_name=_('sale'), related_name="sale_balance_records")
     related_to = ForeignKey('self', blank=True, null=True, on_delete=SET_NULL, verbose_name=_('related to'), related_name="related_records")

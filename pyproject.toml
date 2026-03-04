@@ -17,6 +17,7 @@ dependencies = [
     "djangorestframework-simplejwt==5.3.1",
     "django-polymorphic==4.4.1",
     "django-rest-polymorphic==0.1.10",
+    "django-multitenant==3.2.0",
 ]
 
 [project.optional-dependencies]

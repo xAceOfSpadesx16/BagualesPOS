@@ -51,6 +51,9 @@ class BaseViewSet(viewsets.ModelViewSet):
             return self.write_serializer_class
         return self.list_serializer_class
 
+    def get_queryset(self):
+        return self.queryset.model.objects.all()
+
 class CategoryViewSet(BaseViewSet):
     queryset = Category.objects.all()
     list_serializer_class = CategoryListSerializer
@@ -102,6 +105,9 @@ class ProductViewSet(viewsets.ModelViewSet):
     detail_serializer_class = ProductDetailSerializer
     write_serializer_class = ProductCreateUpdateSerializer
     ordering = ['name', 'brand__name']
+    
+    def get_queryset(self):
+        return Product.objects.all()
 
 
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]

@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_multitenant',
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
@@ -58,6 +59,7 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'core.middleware.TenantMiddleware',
 ]
 
 ROOT_URLCONF = 'BagualesPOS.urls'
@@ -80,14 +82,15 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'BagualesPOS.wsgi.application'
 
-# Database - Use fast in-memory SQLite
+# Database - Use PostgreSQL for testing (matches production)
+import environ
+
+env = environ.Env()
+
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': ':memory:',
-        'ATOMIC_REQUESTS': True,
-    }
+    'default': env.db('DATABASE_URL', default='sqlite:///:memory:')
 }
+DATABASES['default']['ATOMIC_REQUESTS'] = True
 
 # Password validation - Disabled for faster tests
 AUTH_PASSWORD_VALIDATORS = []

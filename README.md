@@ -500,7 +500,8 @@ Todos estos recursos usan el patrón List/Write serializers:
 ### Listar Inventario
 **Método**: `GET`  
 **Endpoint**: `/api/inventory/inventory/`  
-**Descripción**: Obtener stock de todos los productos
+**Descripción**: Obtener stock de todos los productos  
+**Filtros**: `?branch=1`
 
 **Response**:
 ```json
@@ -521,6 +522,7 @@ Todos estos recursos usan el patrón List/Write serializers:
       "sale_price": "$100.00",
       "is_active": true
     },
+    "branch": 1,
     "quantity": 50
   }
 ]
@@ -542,6 +544,14 @@ Todos estos recursos usan el patrón List/Write serializers:
   "quantity": 75
 }
 ```
+
+### Disponibilidad en Otras Sucursales
+**Método**: `GET`  
+**Endpoint**: `/api/inventory/inventory/<int:pk>/other-branches/`  
+**Ejemplo**: `/api/inventory/inventory/1/other-branches/`  
+**Descripción**: Retorna la disponibilidad del mismo producto (asociado al registro de inventario solicitado) en todas las demás sucursales del sistema, excluyendo el inventario de la(s) sucursal(es) asignadas al cajero/usuario actual.
+
+**Response**: Array de objetos de Inventario correspondientes a las demás sucursales.
 
 ---
 
@@ -573,6 +583,13 @@ Todos estos recursos usan el patrón List/Write serializers:
     "payment_status": "PAID",
     "is_credit_sale": false,
     "account_record_id": null,
+    "cash_session": 5,
+    "cash_session_data": {
+      "id": 5,
+      "cash_register": "Caja Principal",
+      "opening_date": "2025-01-15T08:00:00Z",
+      "status": "OPEN"
+    },
     "canceled": false,
     "closed": true,
     "created_at": "2025-01-15T10:00:00Z",
@@ -628,6 +645,14 @@ Todos estos recursos usan el patrón List/Write serializers:
 **Descripción**: Cerrar y confirmar una venta (actualiza inventario, crea movimientos)
 
 **Response**: Retorna la venta completa con `closed: true`
+
+### Cancelar Venta
+**Método**: `POST`  
+**Endpoint**: `/api/sales/sales/<int:pk>/cancel/`  
+**Ejemplo**: `/api/sales/sales/1/cancel/`  
+**Descripción**: Cancelar una venta y restaurar el stock al inventario de la sucursal correspondiente.
+
+**Response**: Retorna la venta completa con `canceled: true`
 
 ### Resumen de Ventas
 **Método**: `GET`  
@@ -1407,3 +1432,418 @@ Implementar estas validaciones antes de enviar requests:
 - **Caja**: `closing_balance >= 0`, `opening_balance >= 0`
 - **Clientes**: Email válido, DNI numérico
 - **Dispositivos**: MAC address formato `XX:XX:XX:XX:XX:XX`
+
+
+## Tipos de Datos (Modelos y Tipado Frontend)
+
+A continuación se documentan los campos y relaciones de los modelos del sistema para facilitar la integración y la creación de interfaces estáticas en el Frontend (ej. TypeScript).
+
+### `Company` (App: `core`)
+| Campo | Tipo Backend | Tipo Sugerido Frontend | Notas/Variaciones |
+|-------|--------------|-----------------------|-------|
+| `id` | `PrimaryKey` | `number | null` |  (Opcional) |
+| `name` | `CharField` | `string` |  |
+| `tax_id` | `CharField` | `string | null` |  (Opcional) |
+| `logo` | `FileField` | `string | null` |  (Opcional) |
+| `is_active` | `BooleanField` | `boolean` |  |
+| `owner` | `FK -> CustomUser` | `number | CustomUser | null` | Envía ID, recibe Entidad o ID (Opcional) |
+| `created_at` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+| `updated_at` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+
+### `Branch` (App: `core`)
+| Campo | Tipo Backend | Tipo Sugerido Frontend | Notas/Variaciones |
+|-------|--------------|-----------------------|-------|
+| `id` | `PrimaryKey` | `number | null` |  (Opcional) |
+| `company` | `FK -> Company` | `number | Company` | Envía ID, recibe Entidad o ID |
+| `name` | `CharField` | `string` |  |
+| `code` | `CharField` | `string` |  |
+| `address` | `CharField` | `string | null` |  (Opcional) |
+| `is_active` | `BooleanField` | `boolean` |  |
+| `created_at` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+| `updated_at` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+
+### `Category` (App: `products`)
+| Campo | Tipo Backend | Tipo Sugerido Frontend | Notas/Variaciones |
+|-------|--------------|-----------------------|-------|
+| `id` | `PrimaryKey` | `number | null` |  (Opcional) |
+| `company` | `FK -> Company` | `number | Company | null` | Envía ID, recibe Entidad o ID (Opcional) |
+| `name` | `CharField` | `string` |  |
+| `created_at` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+| `updated_at` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+
+### `Subcategory` (App: `products`)
+| Campo | Tipo Backend | Tipo Sugerido Frontend | Notas/Variaciones |
+|-------|--------------|-----------------------|-------|
+| `id` | `PrimaryKey` | `number | null` |  (Opcional) |
+| `company` | `FK -> Company` | `number | Company | null` | Envía ID, recibe Entidad o ID (Opcional) |
+| `name` | `CharField` | `string` |  |
+| `created_at` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+| `updated_at` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+
+### `Season` (App: `products`)
+| Campo | Tipo Backend | Tipo Sugerido Frontend | Notas/Variaciones |
+|-------|--------------|-----------------------|-------|
+| `id` | `PrimaryKey` | `number | null` |  (Opcional) |
+| `company` | `FK -> Company` | `number | Company | null` | Envía ID, recibe Entidad o ID (Opcional) |
+| `name` | `CharField` | `string` |  |
+| `created_at` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+| `updated_at` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+
+### `Color` (App: `products`)
+| Campo | Tipo Backend | Tipo Sugerido Frontend | Notas/Variaciones |
+|-------|--------------|-----------------------|-------|
+| `id` | `PrimaryKey` | `number | null` |  (Opcional) |
+| `company` | `FK -> Company` | `number | Company | null` | Envía ID, recibe Entidad o ID (Opcional) |
+| `name` | `CharField` | `string` |  |
+| `code` | `CharField` | `string` |  |
+| `created_at` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+| `updated_at` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+
+### `Gender` (App: `products`)
+| Campo | Tipo Backend | Tipo Sugerido Frontend | Notas/Variaciones |
+|-------|--------------|-----------------------|-------|
+| `id` | `PrimaryKey` | `number | null` |  (Opcional) |
+| `company` | `FK -> Company` | `number | Company | null` | Envía ID, recibe Entidad o ID (Opcional) |
+| `name` | `CharField` | `string` |  |
+| `created_at` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+| `updated_at` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+
+### `LetterSize` (App: `products`)
+| Campo | Tipo Backend | Tipo Sugerido Frontend | Notas/Variaciones |
+|-------|--------------|-----------------------|-------|
+| `id` | `PrimaryKey` | `number | null` |  (Opcional) |
+| `company` | `FK -> Company` | `number | Company | null` | Envía ID, recibe Entidad o ID (Opcional) |
+| `short_name` | `CharField` | `string` |  |
+| `name` | `CharField` | `string` |  |
+| `created_at` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+| `updated_at` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+
+### `Materials` (App: `products`)
+| Campo | Tipo Backend | Tipo Sugerido Frontend | Notas/Variaciones |
+|-------|--------------|-----------------------|-------|
+| `id` | `PrimaryKey` | `number | null` |  (Opcional) |
+| `company` | `FK -> Company` | `number | Company | null` | Envía ID, recibe Entidad o ID (Opcional) |
+| `name` | `CharField` | `string` |  |
+| `created_at` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+| `updated_at` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+
+### `Supplier` (App: `products`)
+| Campo | Tipo Backend | Tipo Sugerido Frontend | Notas/Variaciones |
+|-------|--------------|-----------------------|-------|
+| `id` | `PrimaryKey` | `number | null` |  (Opcional) |
+| `company` | `FK -> Company` | `number | Company | null` | Envía ID, recibe Entidad o ID (Opcional) |
+| `name` | `CharField` | `string` |  |
+| `phone_number` | `CharField` | `string | null` |  (Opcional) |
+| `email` | `CharField` | `string | null` |  (Opcional) |
+| `address` | `CharField` | `string | null` |  (Opcional) |
+| `created_at` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+| `updated_at` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+
+### `Brand` (App: `products`)
+| Campo | Tipo Backend | Tipo Sugerido Frontend | Notas/Variaciones |
+|-------|--------------|-----------------------|-------|
+| `id` | `PrimaryKey` | `number | null` |  (Opcional) |
+| `company` | `FK -> Company` | `number | Company | null` | Envía ID, recibe Entidad o ID (Opcional) |
+| `name` | `CharField` | `string` |  |
+| `supplier` | `FK -> Supplier` | `number | Supplier | null` | Envía ID, recibe Entidad o ID (Opcional) |
+| `logo` | `FileField` | `string | null` |  (Opcional) |
+| `created_at` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+| `updated_at` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+
+### `Product` (App: `products`)
+| Campo | Tipo Backend | Tipo Sugerido Frontend | Notas/Variaciones |
+|-------|--------------|-----------------------|-------|
+| `id` | `PrimaryKey` | `number | null` |  (Opcional) |
+| `company` | `FK -> Company` | `number | Company | null` | Envía ID, recibe Entidad o ID (Opcional) |
+| `name` | `CharField` | `string` |  |
+| `numeric_size` | `IntegerField` | `number | null` |  (Opcional) |
+| `cost_price` | `DecimalField` | `string` | DRF serializa decimales a string |
+| `sale_price` | `DecimalField` | `string` | DRF serializa decimales a string |
+| `internal_code` | `CharField` | `string | null` |  (Opcional) |
+| `details` | `CharField` | `string | null` |  (Opcional) |
+| `image` | `FileField` | `string | null` |  (Opcional) |
+| `is_active` | `BooleanField` | `boolean` |  |
+| `gender` | `FK -> Gender` | `number | Gender | null` | Envía ID, recibe Entidad o ID (Opcional) |
+| `letter_size` | `FK -> LetterSize` | `number | LetterSize | null` | Envía ID, recibe Entidad o ID (Opcional) |
+| `material` | `FK -> Materials` | `number | Materials | null` | Envía ID, recibe Entidad o ID (Opcional) |
+| `color` | `FK -> Color` | `number | Color | null` | Envía ID, recibe Entidad o ID (Opcional) |
+| `brand` | `FK -> Brand` | `number | Brand | null` | Envía ID, recibe Entidad o ID (Opcional) |
+| `category` | `FK -> Category` | `number | Category | null` | Envía ID, recibe Entidad o ID (Opcional) |
+| `season` | `FK -> Season` | `number | Season | null` | Envía ID, recibe Entidad o ID (Opcional) |
+| `created_at` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+| `updated_at` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+| `is_deleted` | `BooleanField` | `boolean` |  |
+| `deleted_at` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+| `subcategories` | `M2M -> Subcategory` | `number[] | Subcategory[] | null` | Array de IDs o Entidades (Opcional) |
+
+### `Inventory` (App: `inventory`)
+| Campo | Tipo Backend | Tipo Sugerido Frontend | Notas/Variaciones |
+|-------|--------------|-----------------------|-------|
+| `id` | `PrimaryKey` | `number | null` |  (Opcional) |
+| `company` | `FK -> Company` | `number | Company | null` | Envía ID, recibe Entidad o ID (Opcional) |
+| `branch` | `FK -> Branch` | `number | Branch | null` | Envía ID, recibe Entidad o ID (Opcional) |
+| `product` | `FK -> Product` | `number | Product` | Envía ID, recibe Entidad o ID |
+| `quantity` | `IntegerField` | `number` |  |
+
+### `PayMethod` (App: `sales`)
+| Campo | Tipo Backend | Tipo Sugerido Frontend | Notas/Variaciones |
+|-------|--------------|-----------------------|-------|
+| `id` | `PrimaryKey` | `number | null` |  (Opcional) |
+| `company` | `FK -> Company` | `number | Company | null` | Envía ID, recibe Entidad o ID (Opcional) |
+| `name` | `CharField` | `string` |  |
+| `created_at` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+| `updated_at` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+
+### `Sale` (App: `sales`)
+| Campo | Tipo Backend | Tipo Sugerido Frontend | Notas/Variaciones |
+|-------|--------------|-----------------------|-------|
+| `id` | `PrimaryKey` | `number | null` |  (Opcional) |
+| `company` | `FK -> Company` | `number | Company | null` | Envía ID, recibe Entidad o ID (Opcional) |
+| `seller` | `FK -> CustomUser` | `number | CustomUser | null` | Envía ID, recibe Entidad o ID (Opcional) |
+| `client` | `FK -> Client` | `number | Client | null` | Envía ID, recibe Entidad o ID (Opcional) |
+| `total_amount` | `DecimalField` | `string` | DRF serializa decimales a string |
+| `pay_method` | `FK -> PayMethod` | `number | PayMethod | null` | Envía ID, recibe Entidad o ID (Opcional) |
+| `payment_status` | `CharField` | `string` |  |
+| `account_record` | `FK -> CustomerBalanceRecord` | `number | CustomerBalanceRecord | null` | Envía ID, recibe Entidad o ID (Opcional) |
+| `cash_session` | `FK -> CashSession` | `number | CashSession | null` | Envía ID, recibe Entidad o ID (Opcional) |
+| `branch` | `FK -> Branch` | `number | Branch | null` | Envía ID, recibe Entidad o ID (Opcional) |
+| `canceled` | `BooleanField` | `boolean` |  |
+| `closed` | `BooleanField` | `boolean` |  |
+| `created_at` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+| `updated_at` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+
+### `SaleDetail` (App: `sales`)
+| Campo | Tipo Backend | Tipo Sugerido Frontend | Notas/Variaciones |
+|-------|--------------|-----------------------|-------|
+| `id` | `PrimaryKey` | `number | null` |  (Opcional) |
+| `company` | `FK -> Company` | `number | Company | null` | Envía ID, recibe Entidad o ID (Opcional) |
+| `order` | `FK -> Sale` | `number | Sale` | Envía ID, recibe Entidad o ID |
+| `product` | `FK -> Product` | `number | Product | null` | Envía ID, recibe Entidad o ID (Opcional) |
+| `quantity` | `IntegerField` | `number` |  |
+| `sale_price` | `DecimalField` | `string` | DRF serializa decimales a string |
+| `cost_price` | `DecimalField` | `string` | DRF serializa decimales a string |
+| `created_at` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+
+### `Client` (App: `clients`)
+| Campo | Tipo Backend | Tipo Sugerido Frontend | Notas/Variaciones |
+|-------|--------------|-----------------------|-------|
+| `id` | `PrimaryKey` | `number | null` |  (Opcional) |
+| `is_deleted` | `BooleanField` | `boolean` |  |
+| `deleted_at` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+| `company` | `FK -> Company` | `number | Company | null` | Envía ID, recibe Entidad o ID (Opcional) |
+| `name` | `CharField` | `string` |  |
+| `last_name` | `CharField` | `string` |  |
+| `phone` | `CharField` | `string | null` |  (Opcional) |
+| `dni` | `CharField` | `string` |  |
+| `cuit` | `CharField` | `string | null` |  (Opcional) |
+| `email` | `CharField` | `string` |  |
+| `address` | `CharField` | `string` |  |
+| `birth_date` | `DateField` | `string | null` | Formato ISO 8601 (Opcional) |
+| `postal_code` | `CharField` | `string` |  |
+| `chosen_billing_type` | `CharField` | `string` |  |
+| `created_at` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+| `updated_at` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+| `approved_customer_account` | `BooleanField` | `boolean` |  |
+
+### `CustomerAccount` (App: `clients`)
+| Campo | Tipo Backend | Tipo Sugerido Frontend | Notas/Variaciones |
+|-------|--------------|-----------------------|-------|
+| `id` | `PrimaryKey` | `number | null` |  (Opcional) |
+| `company` | `FK -> Company` | `number | Company | null` | Envía ID, recibe Entidad o ID (Opcional) |
+| `client` | `FK -> Client` | `number | Client` | Envía ID, recibe Entidad o ID |
+| `credit_limit` | `DecimalField` | `string | null` | DRF serializa decimales a string (Opcional) |
+| `active` | `BooleanField` | `boolean` |  |
+| `notes` | `TextField` | `string | null` |  (Opcional) |
+| `opening_date` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+
+### `CustomerBalanceRecord` (App: `clients`)
+| Campo | Tipo Backend | Tipo Sugerido Frontend | Notas/Variaciones |
+|-------|--------------|-----------------------|-------|
+| `id` | `PrimaryKey` | `number | null` |  (Opcional) |
+| `company` | `FK -> Company` | `number | Company | null` | Envía ID, recibe Entidad o ID (Opcional) |
+| `customer_account` | `FK -> CustomerAccount` | `number | CustomerAccount` | Envía ID, recibe Entidad o ID |
+| `sale` | `FK -> Sale` | `number | Sale | null` | Envía ID, recibe Entidad o ID (Opcional) |
+| `related_to` | `FK -> CustomerBalanceRecord` | `number | CustomerBalanceRecord | null` | Envía ID, recibe Entidad o ID (Opcional) |
+| `amount` | `DecimalField` | `string` | DRF serializa decimales a string |
+| `movement_type` | `CharField` | `string` |  |
+| `notes` | `TextField` | `string | null` |  (Opcional) |
+| `reference` | `CharField` | `string | null` |  (Opcional) |
+| `created_by` | `FK -> CustomUser` | `number | CustomUser | null` | Envía ID, recibe Entidad o ID (Opcional) |
+| `created_at` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+| `reconciled` | `BooleanField` | `boolean` |  |
+| `reconciled_at` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+| `reconciled_by` | `FK -> CustomUser` | `number | CustomUser | null` | Envía ID, recibe Entidad o ID (Opcional) |
+
+### `CashSession` (App: `cash`)
+| Campo | Tipo Backend | Tipo Sugerido Frontend | Notas/Variaciones |
+|-------|--------------|-----------------------|-------|
+| `id` | `PrimaryKey` | `number | null` |  (Opcional) |
+| `company` | `FK -> Company` | `number | Company | null` | Envía ID, recibe Entidad o ID (Opcional) |
+| `cash_register` | `FK -> CashRegister` | `number | CashRegister` | Envía ID, recibe Entidad o ID |
+| `user` | `FK -> CustomUser` | `number | CustomUser` | Envía ID, recibe Entidad o ID |
+| `status` | `CharField` | `string` |  |
+| `opening_date` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+| `closing_date` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+| `opening_balance` | `DecimalField` | `string` | DRF serializa decimales a string |
+| `closing_balance` | `DecimalField` | `string | null` | DRF serializa decimales a string (Opcional) |
+| `notes` | `TextField` | `string | null` |  (Opcional) |
+| `created_at` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+| `updated_at` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+
+### `CashMovement` (App: `cash`)
+| Campo | Tipo Backend | Tipo Sugerido Frontend | Notas/Variaciones |
+|-------|--------------|-----------------------|-------|
+| `id` | `PrimaryKey` | `number | null` |  (Opcional) |
+| `company` | `FK -> Company` | `number | Company | null` | Envía ID, recibe Entidad o ID (Opcional) |
+| `cash_session` | `FK -> CashSession` | `number | CashSession` | Envía ID, recibe Entidad o ID |
+| `type` | `CharField` | `string` |  |
+| `amount` | `DecimalField` | `string` | DRF serializa decimales a string |
+| `reason` | `CharField` | `string` |  |
+| `description` | `TextField` | `string | null` |  (Opcional) |
+| `created_by` | `FK -> CustomUser` | `number | CustomUser | null` | Envía ID, recibe Entidad o ID (Opcional) |
+| `created_at` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+
+### `Device` (App: `devices`)
+| Campo | Tipo Backend | Tipo Sugerido Frontend | Notas/Variaciones |
+|-------|--------------|-----------------------|-------|
+| `id` | `PrimaryKey` | `number | null` |  (Opcional) |
+| `polymorphic_ctype` | `FK -> ContentType` | `number | ContentType | null` | Envía ID, recibe Entidad o ID (Opcional) |
+| `company` | `FK -> Company` | `number | Company | null` | Envía ID, recibe Entidad o ID (Opcional) |
+| `code` | `CharField` | `string` |  |
+| `name` | `CharField` | `string` |  |
+| `location` | `CharField` | `string | null` |  (Opcional) |
+| `model` | `CharField` | `string | null` |  (Opcional) |
+| `serial_number` | `CharField` | `string | null` |  (Opcional) |
+| `ip_address` | `GenericIPAddressField` | `string | null` |  (Opcional) |
+| `mac_address` | `CharField` | `string | null` |  (Opcional) |
+| `is_active` | `BooleanField` | `boolean` |  |
+| `is_online` | `BooleanField` | `boolean` |  |
+| `last_seen` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+| `branch` | `FK -> Branch` | `number | Branch | null` | Envía ID, recibe Entidad o ID (Opcional) |
+| `assigned_user` | `FK -> CustomUser` | `number | CustomUser | null` | Envía ID, recibe Entidad o ID (Opcional) |
+| `assigned_date` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+| `notes` | `TextField` | `string | null` |  (Opcional) |
+| `created_at` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+| `updated_at` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+
+### `CashRegister` (App: `devices`)
+| Campo | Tipo Backend | Tipo Sugerido Frontend | Notas/Variaciones |
+|-------|--------------|-----------------------|-------|
+| `id` | `PrimaryKey` | `number | null` |  (Opcional) |
+| `polymorphic_ctype` | `FK -> ContentType` | `number | ContentType | null` | Envía ID, recibe Entidad o ID (Opcional) |
+| `company` | `FK -> Company` | `number | Company | null` | Envía ID, recibe Entidad o ID (Opcional) |
+| `code` | `CharField` | `string` |  |
+| `name` | `CharField` | `string` |  |
+| `location` | `CharField` | `string | null` |  (Opcional) |
+| `model` | `CharField` | `string | null` |  (Opcional) |
+| `serial_number` | `CharField` | `string | null` |  (Opcional) |
+| `ip_address` | `GenericIPAddressField` | `string | null` |  (Opcional) |
+| `mac_address` | `CharField` | `string | null` |  (Opcional) |
+| `is_active` | `BooleanField` | `boolean` |  |
+| `is_online` | `BooleanField` | `boolean` |  |
+| `last_seen` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+| `branch` | `FK -> Branch` | `number | Branch | null` | Envía ID, recibe Entidad o ID (Opcional) |
+| `assigned_user` | `FK -> CustomUser` | `number | CustomUser | null` | Envía ID, recibe Entidad o ID (Opcional) |
+| `assigned_date` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+| `notes` | `TextField` | `string | null` |  (Opcional) |
+| `created_at` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+| `updated_at` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+| `device_ptr` | `FK -> Device` | `number | Device` | Envía ID, recibe Entidad o ID |
+
+### `PriceChecker` (App: `devices`)
+| Campo | Tipo Backend | Tipo Sugerido Frontend | Notas/Variaciones |
+|-------|--------------|-----------------------|-------|
+| `id` | `PrimaryKey` | `number | null` |  (Opcional) |
+| `polymorphic_ctype` | `FK -> ContentType` | `number | ContentType | null` | Envía ID, recibe Entidad o ID (Opcional) |
+| `company` | `FK -> Company` | `number | Company | null` | Envía ID, recibe Entidad o ID (Opcional) |
+| `code` | `CharField` | `string` |  |
+| `name` | `CharField` | `string` |  |
+| `location` | `CharField` | `string | null` |  (Opcional) |
+| `model` | `CharField` | `string | null` |  (Opcional) |
+| `serial_number` | `CharField` | `string | null` |  (Opcional) |
+| `ip_address` | `GenericIPAddressField` | `string | null` |  (Opcional) |
+| `mac_address` | `CharField` | `string | null` |  (Opcional) |
+| `is_active` | `BooleanField` | `boolean` |  |
+| `is_online` | `BooleanField` | `boolean` |  |
+| `last_seen` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+| `branch` | `FK -> Branch` | `number | Branch | null` | Envía ID, recibe Entidad o ID (Opcional) |
+| `assigned_user` | `FK -> CustomUser` | `number | CustomUser | null` | Envía ID, recibe Entidad o ID (Opcional) |
+| `assigned_date` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+| `notes` | `TextField` | `string | null` |  (Opcional) |
+| `created_at` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+| `updated_at` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+| `device_ptr` | `FK -> Device` | `number | Device` | Envía ID, recibe Entidad o ID |
+| `display_promotions` | `BooleanField` | `boolean` |  |
+| `timeout_seconds` | `IntegerField` | `number` |  |
+
+### `StockTerminal` (App: `devices`)
+| Campo | Tipo Backend | Tipo Sugerido Frontend | Notas/Variaciones |
+|-------|--------------|-----------------------|-------|
+| `id` | `PrimaryKey` | `number | null` |  (Opcional) |
+| `polymorphic_ctype` | `FK -> ContentType` | `number | ContentType | null` | Envía ID, recibe Entidad o ID (Opcional) |
+| `company` | `FK -> Company` | `number | Company | null` | Envía ID, recibe Entidad o ID (Opcional) |
+| `code` | `CharField` | `string` |  |
+| `name` | `CharField` | `string` |  |
+| `location` | `CharField` | `string | null` |  (Opcional) |
+| `model` | `CharField` | `string | null` |  (Opcional) |
+| `serial_number` | `CharField` | `string | null` |  (Opcional) |
+| `ip_address` | `GenericIPAddressField` | `string | null` |  (Opcional) |
+| `mac_address` | `CharField` | `string | null` |  (Opcional) |
+| `is_active` | `BooleanField` | `boolean` |  |
+| `is_online` | `BooleanField` | `boolean` |  |
+| `last_seen` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+| `branch` | `FK -> Branch` | `number | Branch | null` | Envía ID, recibe Entidad o ID (Opcional) |
+| `assigned_user` | `FK -> CustomUser` | `number | CustomUser | null` | Envía ID, recibe Entidad o ID (Opcional) |
+| `assigned_date` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+| `notes` | `TextField` | `string | null` |  (Opcional) |
+| `created_at` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+| `updated_at` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+| `device_ptr` | `FK -> Device` | `number | Device` | Envía ID, recibe Entidad o ID |
+| `can_receive_shipments` | `BooleanField` | `boolean` |  |
+| `require_photo` | `BooleanField` | `boolean` |  |
+
+### `DeviceConfig` (App: `devices`)
+| Campo | Tipo Backend | Tipo Sugerido Frontend | Notas/Variaciones |
+|-------|--------------|-----------------------|-------|
+| `id` | `PrimaryKey` | `number | null` |  (Opcional) |
+| `company` | `FK -> Company` | `number | Company | null` | Envía ID, recibe Entidad o ID (Opcional) |
+| `device` | `FK -> Device` | `number | Device` | Envía ID, recibe Entidad o ID |
+| `key` | `CharField` | `string` |  |
+| `value` | `CharField` | `string` |  |
+| `created_at` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+| `updated_at` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+
+### `CustomUser` (App: `users`)
+| Campo | Tipo Backend | Tipo Sugerido Frontend | Notas/Variaciones |
+|-------|--------------|-----------------------|-------|
+| `id` | `PrimaryKey` | `number | null` |  (Opcional) |
+| `password` | `CharField` | `string` |  |
+| `last_login` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+| `is_superuser` | `BooleanField` | `boolean` |  |
+| `username` | `CharField` | `string` |  |
+| `first_name` | `CharField` | `string | null` |  (Opcional) |
+| `last_name` | `CharField` | `string | null` |  (Opcional) |
+| `is_staff` | `BooleanField` | `boolean` |  |
+| `is_active` | `BooleanField` | `boolean` |  |
+| `date_joined` | `DateTimeField` | `string` | Formato ISO 8601 |
+| `email` | `CharField` | `string | null` |  (Opcional) |
+| `company` | `FK -> Company` | `number | Company | null` | Envía ID, recibe Entidad o ID (Opcional) |
+| `branch` | `M2M -> Branch` | `number[] | Branch[] | null` | Array de IDs o Entidades (Opcional) |
+| `groups` | `M2M -> Group` | `number[] | Group[] | null` | Array de IDs o Entidades (Opcional) |
+| `user_permissions` | `M2M -> Permission` | `number[] | Permission[] | null` | Array de IDs o Entidades (Opcional) |
+
+### `Profile` (App: `users`)
+| Campo | Tipo Backend | Tipo Sugerido Frontend | Notas/Variaciones |
+|-------|--------------|-----------------------|-------|
+| `id` | `PrimaryKey` | `number | null` |  (Opcional) |
+| `user` | `FK -> CustomUser` | `number | CustomUser` | Envía ID, recibe Entidad o ID |
+| `phone_number` | `CharField` | `string | null` |  (Opcional) |
+| `dni` | `CharField` | `string | null` |  (Opcional) |
+| `address` | `CharField` | `string | null` |  (Opcional) |
+| `city` | `CharField` | `string | null` |  (Opcional) |
+| `province` | `CharField` | `string | null` |  (Opcional) |
+| `postal_code` | `CharField` | `string | null` |  (Opcional) |
+| `country` | `CharField` | `string | null` |  (Opcional) |
+| `created_at` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+| `updated_at` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+

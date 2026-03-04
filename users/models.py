@@ -1,6 +1,6 @@
 from __future__ import annotations
 from django.contrib.auth.models import AbstractUser
-
+from django.db import models
 from django.contrib.auth import get_user_model
 from django.db.models import Model, CASCADE, ManyToManyField
 from django.db.models.fields import CharField, EmailField, DateTimeField
@@ -14,10 +14,19 @@ from utils import PhoneNumberField
 class CustomUser(AbstractUser):
     profile: Profile
     email = EmailField(null=True, verbose_name= _('email'))
+    company = models.ForeignKey(
+        'core.Company',
+        on_delete=models.CASCADE,
+        related_name='users',
+        verbose_name=_('company'),
+        help_text=_('Company this user belongs to'),
+        null=True,
+        blank=True
+    )
     branch = ManyToManyField(
         'core.Branch',
         blank=True,
-        related_name='users',
+        related_name='branch_users',
         verbose_name=_('branches'),
         help_text=_('Branches this user has access to')
     )

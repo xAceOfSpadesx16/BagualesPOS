@@ -3,13 +3,15 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from devices.models import Device, CashRegister, PriceChecker, StockTerminal, DeviceConfig
+from utils.tests import TenantTestCase
 
 User = get_user_model()
 
-class DeviceModelTestCase(TestCase):
+class DeviceModelTestCase(TenantTestCase, TestCase):
     def setUp(self):
-        self.user = User.objects.create_user(username='testuser', password='password')
-        self.device = Device.objects.create(
+        super().setUp()
+        # Already have self.user from TenantTestCase # User.objects.create_user(username='testuser', password='password')
+        self.device = Device.objects.create(company=self.company, 
             code='DEV-001',
             name='Generic Device',
             location='Main Hall'
@@ -84,30 +86,31 @@ class DeviceModelTestCase(TestCase):
         self.assertIn('dark', str(config))
 
 
-class PolymorphicDeviceTestCase(TestCase):
+class PolymorphicDeviceTestCase(TenantTestCase, TestCase):
     def test_polymorphism(self):
-        CashRegister.objects.create(code='CR-01', name='Cash Register 1')
-        PriceChecker.objects.create(code='PC-01', name='Price Checker 1')
-        StockTerminal.objects.create(code='ST-01', name='Stock Terminal 1')
+        CashRegister.objects.create(company=self.company, code='CR-01', name='Cash Register 1')
+        PriceChecker.objects.create(company=self.company, code='PC-01', name='Price Checker 1')
+        StockTerminal.objects.create(company=self.company, code='ST-01', name='Stock Terminal 1')
         
         devices = Device.objects.all().order_by('code')
         self.assertEqual(devices.count(), 3 if 'Generic Device' not in [d.name for d in devices] else 4) 
         # Note: generic device from other test not here unless persistent DB, checks run in transaction rollback
         
-        # Check types
-        cr = Device.objects.get(code='CR-01')
+        # Check types - use select_subclasses() to get correct polymorphic type
+        cr = Device.objects.all().get(code='CR-01')
         self.assertIsInstance(cr, CashRegister)
         
-        pc = Device.objects.get(code='PC-01')
+        pc = Device.objects.all().get(code='PC-01')
         self.assertIsInstance(pc, PriceChecker)
         
-        st = Device.objects.get(code='ST-01')
+        st = Device.objects.all().get(code='ST-01')
         self.assertIsInstance(st, StockTerminal)
 
 
-class CashRegisterTestCase(TestCase):
+class CashRegisterTestCase(TenantTestCase, TestCase):
     def setUp(self):
-        self.register = CashRegister.objects.create(
+        super().setUp()
+        self.register = CashRegister.objects.create(company=self.company, 
             code='CR-TEST',
             name='Test Register'
         )
@@ -131,8 +134,8 @@ class CashRegisterTestCase(TestCase):
         self.assertFalse(self.register.has_open_session)
         
         # Open session
-        user = User.objects.create_user(username='cashier', password='pwd')
-        session = CashSession.objects.create(
+        user = self.user # User.objects.create_user(username='cashier', password='pwd')
+        session = CashSession.objects.create(company=self.company, 
             cash_register=self.register,
             user=user,
             opening_balance=100,
@@ -150,15 +153,15 @@ class CashRegisterTestCase(TestCase):
         self.assertIsNone(self.register.current_session)
 
 
-class PriceCheckerTestCase(TestCase):
+class PriceCheckerTestCase(TenantTestCase, TestCase):
     def test_defaults(self):
-        pc = PriceChecker.objects.create(code='PC-TEST', name='Test PC')
+        pc = PriceChecker.objects.create(company=self.company, code='PC-TEST', name='Test PC')
         self.assertTrue(pc.display_promotions)
         self.assertEqual(pc.timeout_seconds, 30)
 
 
-class StockTerminalTestCase(TestCase):
+class StockTerminalTestCase(TenantTestCase, TestCase):
     def test_defaults(self):
-        st = StockTerminal.objects.create(code='ST-TEST', name='Test ST')
+        st = StockTerminal.objects.create(company=self.company, code='ST-TEST', name='Test ST')
         self.assertTrue(st.can_receive_shipments)
         self.assertFalse(st.require_photo)

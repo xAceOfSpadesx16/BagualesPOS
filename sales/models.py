@@ -5,6 +5,7 @@ from django.db.models.deletion import CASCADE, SET_NULL
 from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
 from django.core.exceptions import ValidationError
+from django_multitenant.models import TenantModel
 
 from sales.managers import SalesManager
 from sales.choices import PaymentStatus
@@ -14,7 +15,10 @@ from clients.models import Client, CustomerBalanceRecord
 from utils.formats import formatted_integer
 from decimal import Decimal
 
-class PayMethod(Model):
+class PayMethod(TenantModel):
+    tenant_id = 'company_id'
+    
+    company = ForeignKey('core.Company', on_delete=CASCADE, related_name='payment_methods', verbose_name=_('company'), null=True, blank=True)
     name = CharField(max_length=50, verbose_name= _('name'))
     created_at = DateTimeField(auto_now_add=True, editable= False, verbose_name= _('created at'))
     updated_at = DateTimeField(auto_now=True, verbose_name= _('updated at'))
@@ -22,11 +26,15 @@ class PayMethod(Model):
     class Meta:
         verbose_name = _('payment method')
         verbose_name_plural = _('payment methods')
+        unique_together = [['company', 'name']]
 
     def __str__(self):
         return self.name
 
-class Sale(Model):
+class Sale(TenantModel):
+    tenant_id = 'company_id'
+    
+    company = ForeignKey('core.Company', on_delete=CASCADE, related_name='sales', verbose_name=_('company'), null=True, blank=True)
     seller = ForeignKey(get_user_model(), on_delete=SET_NULL, null=True, verbose_name= _('seller'))
     client = ForeignKey(Client, on_delete=SET_NULL, null=True, blank=True, verbose_name= _('client'))
     total_amount = DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'), verbose_name= _('total amount'))
@@ -87,7 +95,10 @@ class Sale(Model):
 
     
 
-class SaleDetail(Model):
+class SaleDetail(TenantModel):
+    tenant_id = 'company_id'
+    
+    company = ForeignKey('core.Company', on_delete=CASCADE, related_name='sale_details', verbose_name=_('company'), null=True, blank=True)
     order = ForeignKey(Sale, on_delete=CASCADE, related_name='details', verbose_name= _('order'))
     product = ForeignKey(Product, on_delete= SET_NULL, null=True, verbose_name= _('product'))
     quantity = IntegerField(default=1, help_text='Cantidad', verbose_name= _('quantity'))
@@ -154,22 +165,29 @@ class SaleDetail(Model):
             raise ValidationError({'order': _('Cannot add or modify items in a canceled sale.')})
         
         # Validate stock availability (only for new or increased quantity)
-        if hasattr(self.product, 'inventory'):
-            old_quantity = 0
-            if self.pk:
-                try:
-                    old_instance = SaleDetail.objects.get(pk=self.pk)
-                    old_quantity = old_instance.quantity
-                except SaleDetail.DoesNotExist:
-                    pass
-            
-            quantity_diff = self.quantity - old_quantity
-            if quantity_diff > 0:  # Only check if increasing quantity
-                available_stock = self.product.inventory.quantity
-                if available_stock < quantity_diff:
-                    raise ValidationError({
-                        'quantity': _(f'Insufficient stock. Available: {available_stock}, Requested: {quantity_diff}')
-                    })
+        if self.product and getattr(self, 'order', None) and self.order.branch:
+            from inventory.models import Inventory
+            try:
+                inventory = Inventory.objects.get(product=self.product, branch=self.order.branch)
+                old_quantity = 0
+                if self.pk:
+                    try:
+                        old_instance = SaleDetail.objects.get(pk=self.pk)
+                        old_quantity = old_instance.quantity
+                    except SaleDetail.DoesNotExist:
+                        pass
+                
+                quantity_diff = self.quantity - old_quantity
+                if quantity_diff > 0:  # Only check if increasing quantity
+                    available_stock = inventory.quantity
+                    if available_stock < quantity_diff:
+                        raise ValidationError({
+                            'quantity': _(f'Insufficient stock. Available: {available_stock}, Requested: {quantity_diff}')
+                        })
+            except Inventory.DoesNotExist:
+                raise ValidationError({
+                    'product': _('This product has no inventory registered for the assigned branch.')
+                })
 
     def save(self, *args, **kwargs):
         # Capture prices from product if not set

@@ -4,15 +4,13 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 from clients.models import Client, CustomerBalanceRecord, CustomerAccount
 from clients.choices import MovementType
+from utils.tests import TenantTestCase
 
-class CustomerBalanceRecordTestCase(TestCase):
+class CustomerBalanceRecordTestCase(TenantTestCase, TestCase):
 
     def setUp(self):
-        self.client_obj = Client.objects.create(
-            name="Juan",
-            last_name="Pérez",
-            dni="12345678",
-            email="juan@example.com",
+        super().setUp()
+        self.client_obj = Client.objects.create(company=self.company, email="test@example.com", 
             address="Falsa 123",
             postal_code="1000"
         )
@@ -55,8 +53,7 @@ class CustomerBalanceRecordTestCase(TestCase):
             record.full_clean()
 
     def test_valid_refund(self):
-        original = CustomerBalanceRecord.objects.create(
-            customer_account=self.account,
+        original = CustomerBalanceRecord.objects.create(company=self.company, customer_account=self.account,
             amount=Decimal("100.00"),
             movement_type=MovementType.DEBIT
         )
@@ -80,8 +77,7 @@ class CustomerBalanceRecordTestCase(TestCase):
         self.assertIn("related_to", cm.exception.message_dict)
 
     def test_valid_reversal(self):
-        original = CustomerBalanceRecord.objects.create(
-            customer_account=self.account,
+        original = CustomerBalanceRecord.objects.create(company=self.company, customer_account=self.account,
             amount=Decimal("300.00"),
             movement_type=MovementType.DEBIT
         )
@@ -94,13 +90,11 @@ class CustomerBalanceRecordTestCase(TestCase):
         reversal.full_clean()
 
     def test_invalid_duplicate_reversal(self):
-        original = CustomerBalanceRecord.objects.create(
-            customer_account=self.account,
+        original = CustomerBalanceRecord.objects.create(company=self.company, customer_account=self.account,
             amount=Decimal("400.00"),
             movement_type=MovementType.DEBIT
         )
-        CustomerBalanceRecord.objects.create(
-            customer_account=self.account,
+        CustomerBalanceRecord.objects.create(company=self.company, customer_account=self.account,
             amount=Decimal("400.00"),
             movement_type=MovementType.REVERSAL,
             related_to=original
@@ -126,8 +120,7 @@ class CustomerBalanceRecordTestCase(TestCase):
         self.assertIn('related_to', cm.exception.message_dict)
         
         # Valid adjustment
-        original = CustomerBalanceRecord.objects.create(
-            customer_account=self.account,
+        original = CustomerBalanceRecord.objects.create(company=self.company, customer_account=self.account,
             amount=Decimal("100.00"),
             movement_type=MovementType.DEBIT
         )
@@ -190,8 +183,7 @@ class CustomerBalanceRecordTestCase(TestCase):
 
     def test_clean_edit_record_recalculates_balance(self):
         # Create initial record
-        record = CustomerBalanceRecord.objects.create(
-            customer_account=self.account,
+        record = CustomerBalanceRecord.objects.create(company=self.company, customer_account=self.account,
             amount=Decimal("50.00"),
             movement_type=MovementType.DEBIT
         )
@@ -211,8 +203,7 @@ class CustomerBalanceRecordTestCase(TestCase):
             record.full_clean()
 
     def test_str_method(self):
-        record = CustomerBalanceRecord.objects.create(
-            customer_account=self.account,
+        record = CustomerBalanceRecord.objects.create(company=self.company, customer_account=self.account,
             amount=Decimal("100.00"),
             movement_type=MovementType.DEBIT
         )
@@ -231,11 +222,10 @@ class CustomerBalanceRecordTestCase(TestCase):
 
     def test_validate_same_account(self):
         # Create another account
-        client2 = Client.objects.create(name="Other", last_name="Client", dni="999", email="o@c.com")
+        client2 = Client.objects.create(company=self.company, name="Other", last_name="Client", dni="999", email="o@c.com")
         account2 = client2.customer_account
         
-        original = CustomerBalanceRecord.objects.create(
-            customer_account=account2,
+        original = CustomerBalanceRecord.objects.create(company=self.company, customer_account=account2,
             amount=Decimal("100.00"),
             movement_type=MovementType.DEBIT
         )
@@ -256,11 +246,10 @@ class CustomerBalanceRecordTestCase(TestCase):
     def test_validate_refund_different_account(self):
         """Test that refund must belong to same account as original"""
         # Create another account
-        client2 = Client.objects.create(name="Refund", last_name="Client", dni="888", email="r@c.com")
+        client2 = Client.objects.create(company=self.company, name="Refund", last_name="Client", dni="888", email="r@c.com")
         account2 = client2.customer_account
         
-        original = CustomerBalanceRecord.objects.create(
-            customer_account=account2,
+        original = CustomerBalanceRecord.objects.create(company=self.company, customer_account=account2,
             amount=Decimal("100.00"),
             movement_type=MovementType.DEBIT
         )
@@ -297,9 +286,10 @@ class CustomerBalanceRecordTestCase(TestCase):
             self.fail("full_clean raised DoesNotExist")
 
 
-class ClientModelTestCase(TestCase):
+class ClientModelTestCase(TenantTestCase, TestCase):
     def setUp(self):
-        self.client = Client.objects.create(
+        super().setUp()
+        self.client = Client.objects.create(company=self.company, 
             name="Test", last_name="User", dni="111", email="test@test.com"
         )
 
@@ -330,9 +320,10 @@ class ClientModelTestCase(TestCase):
             self.client.full_clean()
 
 
-class CustomerAccountTestCase(TestCase):
+class CustomerAccountTestCase(TenantTestCase, TestCase):
     def setUp(self):
-        self.client = Client.objects.create(
+        super().setUp()
+        self.client = Client.objects.create(company=self.company, 
             name="Acc", last_name="Test", dni="222", email="acc@test.com"
         )
         self.account = self.client.customer_account
@@ -355,11 +346,9 @@ class CustomerAccountTestCase(TestCase):
 
     def test_get_movements(self):
         # Create some movements
-        m1 = CustomerBalanceRecord.objects.create(
-            customer_account=self.account, movement_type=MovementType.DEBIT, amount=Decimal('10')
+        m1 = CustomerBalanceRecord.objects.create(company=self.company, customer_account=self.account, movement_type=MovementType.DEBIT, amount=Decimal('10')
         )
-        m2 = CustomerBalanceRecord.objects.create(
-            customer_account=self.account, movement_type=MovementType.CREDIT, amount=Decimal('10')
+        m2 = CustomerBalanceRecord.objects.create(company=self.company, customer_account=self.account, movement_type=MovementType.CREDIT, amount=Decimal('10')
         )
         
         self.assertEqual(self.account.get_movements().count(), 2)
@@ -373,3 +362,42 @@ class CustomerAccountTestCase(TestCase):
         # Use a time even further in the past for end_date to exclude them
         past_end_date = start_time - timezone.timedelta(minutes=1)
         self.assertEqual(self.account.get_movements(end_date=past_end_date).count(), 0)
+
+
+# ============================================================
+# Tests consolidated from test_soft_delete.py
+# ============================================================
+class ClientSoftDeleteTestCase(TenantTestCase, TestCase):
+    """Test soft delete functionality - consolidated from test_soft_delete.py"""
+    
+    def setUp(self):
+        super().setUp()
+        self.client = Client.objects.create(
+            company=self.company, 
+            email="test@example.com", 
+            address="Test Address",
+            postal_code="1234"
+        )
+
+    def test_soft_delete(self):
+        """Test that soft_delete sets is_deleted=True and creates timestamp"""
+        self.assertFalse(self.client.is_deleted)
+        self.assertIsNone(self.client.deleted_at)
+
+        self.client.soft_delete()
+        self.client.refresh_from_db()
+
+        self.assertTrue(self.client.is_deleted)
+        self.assertIsNotNone(self.client.deleted_at)
+
+    def test_restore(self):
+        """Test that restore reverses soft_delete"""
+        self.client.soft_delete()
+        self.client.refresh_from_db()
+        self.assertTrue(self.client.is_deleted)
+
+        self.client.restore()
+        self.client.refresh_from_db()
+
+        self.assertFalse(self.client.is_deleted)
+        self.assertIsNone(self.client.deleted_at)

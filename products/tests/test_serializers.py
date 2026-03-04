@@ -1,15 +1,18 @@
 from django.test import TestCase
 from products.models import Product, Category, Brand, Season, Color, Gender
 from products.serializers import ProductListSerializer, ProductDetailSerializer
+from utils.tests import TenantTestCase
 
-class ProductSerializerTestCase(TestCase):
+class ProductSerializerTestCase(TenantTestCase, TestCase):
     def setUp(self):
-        self.category = Category.objects.create(name="Remeras")
-        self.brand = Brand.objects.create(name="Nike")
+        super().setUp()
+        self.category = Category.objects.create(company=self.company, name="Remeras")
+        self.brand = Brand.objects.create(company=self.company, name="Nike")
         self.season = Season.objects.create(name="Verano")
         self.color = Color.objects.create(name="Rojo", code="#FF0000")
         self.gender = Gender.objects.create(name="Unisex")
         self.product = Product.objects.create(
+            company=self.company,
             name="Remera Nike",
             category=self.category,
             brand=self.brand,

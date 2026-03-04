@@ -26,35 +26,39 @@ def cache_old_quantity(sender, instance, **kwargs):
 @atomic
 def update_stock_save(sender, instance: SaleDetail, created: bool, **kwargs):
     """Update inventory stock when SaleDetail is saved"""
-    if not instance.product:
+    if not instance.product or not instance.order.branch:
         return
     
-    if not hasattr(instance.product, 'inventory'):
-        raise ValidationError(f'Product {instance.product} does not have inventory')
-    
-    # Use select_for_update to prevent race conditions
     from inventory.models import Inventory
-    stock = Inventory.objects.select_for_update().get(pk=instance.product.inventory.pk)
-    
-    quantity_diff = instance.quantity - instance._old_quantity
-    stock.quantity -= quantity_diff
-    
-    # Check for negative stock (should have been prevented by clean(), but double-check)
-    if stock.quantity < 0:
-        raise ValidationError(f'Stock would become negative for product {instance.product}')
-    
-    stock.save()
+    try:
+        # Use select_for_update to prevent race conditions
+        stock = Inventory.objects.select_for_update().get(product=instance.product, branch=instance.order.branch)
+        
+        quantity_diff = instance.quantity - instance._old_quantity
+        stock.quantity -= quantity_diff
+        
+        # Check for negative stock (should have been prevented by clean(), but double-check)
+        if stock.quantity < 0:
+            raise ValidationError(f'Stock would become negative for product {instance.product} in branch {instance.order.branch}')
+        
+        stock.save()
+    except Inventory.DoesNotExist:
+        # If inventory is not set up, raise ValidationError
+        raise ValidationError(f'Product {instance.product} does not have inventory in branch {instance.order.branch}')
 
 
 @receiver(post_delete, sender=SaleDetail)
 @atomic
 def update_stock_delete(sender, instance: SaleDetail, **kwargs):
     """Restore inventory stock when SaleDetail is deleted"""
-    if instance.product and hasattr(instance.product, 'inventory'):
+    if instance.product and instance.order.branch:
         from inventory.models import Inventory
-        stock = Inventory.objects.select_for_update().get(pk=instance.product.inventory.pk)
-        stock.quantity += instance.quantity
-        stock.save()
+        try:
+            stock = Inventory.objects.select_for_update().get(product=instance.product, branch=instance.order.branch)
+            stock.quantity += instance.quantity
+            stock.save()
+        except Inventory.DoesNotExist:
+            pass
 
 @receiver(post_save, sender = SaleDetail)
 @receiver(post_delete, sender = SaleDetail)

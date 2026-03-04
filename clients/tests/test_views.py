@@ -5,14 +5,16 @@ from rest_framework.test import APITestCase
 from django.contrib.auth import get_user_model
 from clients.models import Client, CustomerAccount, CustomerBalanceRecord
 from clients.choices import MovementType
+from utils.tests import TenantTestCase
 
 User = get_user_model()
 
-class ClientViewSetTestCase(APITestCase):
+class ClientViewSetTestCase(TenantTestCase, APITestCase):
     def setUp(self):
-        self.user = User.objects.create_user(username='testuser', password='testpassword')
+        super().setUp()
+        # Already have self.user from TenantTestCase # User.objects.create_user(username='testuser', password='testpassword')
         self.client.force_authenticate(user=self.user)
-        self.client_obj = Client.objects.create(
+        self.client_obj = Client.objects.create(company=self.company, 
             name="Pedro", last_name="Gomez", dni="222", email="p@g.com", chosen_billing_type="C"
         )
         self.url = reverse('client-list')
@@ -53,7 +55,7 @@ class ClientViewSetTestCase(APITestCase):
 
     def test_filter_clients(self):
         # Create another client with different billing type
-        Client.objects.create(
+        Client.objects.create(company=self.company, 
             name="Juan", last_name="Perez", dni="555", email="j@p.com", chosen_billing_type="A"
         )
         
@@ -64,7 +66,7 @@ class ClientViewSetTestCase(APITestCase):
 
     def test_search_clients(self):
         # Create another client
-        Client.objects.create(
+        Client.objects.create(company=self.company, 
             name="Maria", last_name="Lopez", dni="666", email="m@l.com"
         )
 
@@ -80,7 +82,7 @@ class ClientViewSetTestCase(APITestCase):
 
     def test_ordering_clients(self):
         # Create another client
-        Client.objects.create(
+        Client.objects.create(company=self.company, 
             name="Alberto", last_name="Alvarez", dni="777", email="a@a.com"
         )
 
@@ -94,11 +96,12 @@ class ClientViewSetTestCase(APITestCase):
         self.assertEqual(response.data['results'][0]['name'], "Pedro")
         self.assertEqual(response.data['results'][1]['name'], "Alberto")
 
-class CustomerAccountViewSetTestCase(APITestCase):
+class CustomerAccountViewSetTestCase(TenantTestCase, APITestCase):
     def setUp(self):
-        self.user = User.objects.create_user(username='testuser', password='testpassword')
+        super().setUp()
+        # Already have self.user from TenantTestCase # User.objects.create_user(username='testuser', password='testpassword')
         self.client.force_authenticate(user=self.user)
-        self.client_obj = Client.objects.create(
+        self.client_obj = Client.objects.create(company=self.company, 
             name="Luis", last_name="Paz", dni="444", email="l@p.com"
         )
         self.account = CustomerAccount.objects.get(client=self.client_obj)
@@ -117,13 +120,12 @@ class CustomerAccountViewSetTestCase(APITestCase):
         self.account.save()
         
         # Account 2 (active): limit 500. Balance -200 (Debt)
-        client2 = Client.objects.create(name="C2", last_name="L2", dni="999", email="c2@t.com")
+        client2 = Client.objects.create(company=self.company, name="C2", last_name="L2", dni="999", email="c2@t.com")
         acc2 = client2.customer_account
         acc2.credit_limit = Decimal('500.00')
         acc2.save()
         
-        CustomerBalanceRecord.objects.create(
-            customer_account=acc2,
+        CustomerBalanceRecord.objects.create(company=self.company, customer_account=acc2,
             movement_type=MovementType.DEBIT,
             amount=Decimal('200.00'),
             created_by=self.user
@@ -131,12 +133,11 @@ class CustomerAccountViewSetTestCase(APITestCase):
         # acc2 balance is -200.
         
         # Account 3 (active): limit 0. Balance +100 (Credit)
-        client3 = Client.objects.create(name="C3", last_name="L3", dni="888", email="c3@t.com")
+        client3 = Client.objects.create(company=self.company, name="C3", last_name="L3", dni="888", email="c3@t.com")
         acc3 = client3.customer_account
         acc3.save()
         
-        CustomerBalanceRecord.objects.create(
-            customer_account=acc3,
+        CustomerBalanceRecord.objects.create(company=self.company, customer_account=acc3,
             movement_type=MovementType.CREDIT,
             amount=Decimal('100.00'),
             created_by=self.user
@@ -144,7 +145,7 @@ class CustomerAccountViewSetTestCase(APITestCase):
         # acc3 balance is +100.
         
         # Inactive account (should be ignored)
-        client4 = Client.objects.create(name="C4", last_name="L4", dni="777", email="c4@t.com")
+        client4 = Client.objects.create(company=self.company, name="C4", last_name="L4", dni="777", email="c4@t.com")
         acc4 = client4.customer_account
         acc4.active = False
         acc4.save()
@@ -175,11 +176,12 @@ class CustomerAccountViewSetTestCase(APITestCase):
         self.assertEqual(Decimal(response.data['total_credit']), Decimal('100.00'))
 
 
-class CustomerBalanceRecordViewSetTestCase(APITestCase):
+class CustomerBalanceRecordViewSetTestCase(TenantTestCase, APITestCase):
     def setUp(self):
-        self.user = User.objects.create_user(username='testuser', password='testpassword')
+        super().setUp()
+        # Already have self.user from TenantTestCase # User.objects.create_user(username='testuser', password='testpassword')
         self.client.force_authenticate(user=self.user)
-        self.client_obj = Client.objects.create(
+        self.client_obj = Client.objects.create(company=self.company, 
             name="Luis", last_name="Paz", dni="444", email="l@p.com"
         )
         self.account = CustomerAccount.objects.get(client=self.client_obj)

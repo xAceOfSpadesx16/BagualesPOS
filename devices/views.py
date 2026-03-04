@@ -12,7 +12,6 @@ from .serializers import (
     DeviceAssignSerializer, DeviceHeartbeatSerializer
 )
 
-
 class DeviceViewSet(viewsets.ModelViewSet):
     """
     ViewSet for managing all devices (polymorphic)
@@ -24,7 +23,7 @@ class DeviceViewSet(viewsets.ModelViewSet):
     filterset_fields = ['is_active', 'is_online', 'assigned_user']
     search_fields = ['code', 'name', 'location', 'serial_number']
     ordering_fields = ['name', 'code', 'created_at', 'last_seen']
-    
+
     def get_serializer_class(self):
         if self.action == 'list':
             return DeviceListSerializer
