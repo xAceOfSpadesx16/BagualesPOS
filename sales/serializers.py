@@ -33,6 +33,7 @@ class SaleSerializer(serializers.ModelSerializer):
     seller_name = serializers.CharField(source='seller.get_full_name', read_only=True)
     is_credit_sale = serializers.ReadOnlyField()
     cash_session_data = serializers.SerializerMethodField()
+    branch_name = serializers.CharField(source='branch.name', read_only=True)
 
     class Meta:
         model = Sale
@@ -40,10 +41,10 @@ class SaleSerializer(serializers.ModelSerializer):
             'id', 'seller', 'seller_name', 'client', 'client_data', 
             'total_amount', 'formatted_total_amount', 'pay_method', 
             'payment_status', 'is_credit_sale', 'account_record_id',
-            'cash_session', 'cash_session_data',
+            'cash_session', 'cash_session_data', 'branch', 'branch_name',
             'canceled', 'closed', 'created_at', 'updated_at', 'details'
         ]
-        read_only_fields = ['total_amount', 'seller', 'account_record_id', 'payment_status', 'cash_session']
+        read_only_fields = ['total_amount', 'seller', 'account_record_id', 'payment_status', 'cash_session', 'branch']
     
     def get_cash_session_data(self, obj):
         """Return basic cash session info"""

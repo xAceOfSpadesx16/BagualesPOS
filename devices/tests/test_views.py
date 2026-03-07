@@ -134,3 +134,145 @@ class DeviceViewSetTestCase(TenantTestCase, APITestCase):
         self.assertEqual(data['by_type']['cash_registers'], 1)
         self.assertEqual(data['by_type']['price_checkers'], 1)
         self.assertEqual(data['by_type']['stock_terminals'], 1)
+
+class DeviceViewSetCoverageTestCase(TenantTestCase, APITestCase):
+    def setUp(self):
+        super().setUp()
+        self.client.force_authenticate(user=self.user)
+    
+    def test_device_viewset_owner_filter(self):
+        from devices.models import CashRegister
+        CashRegister.objects.create(company=self.company, name="Dev1", code="DEV-1")
+        self.user.owned_company = self.company
+        self.user.save()
+        response = self.client.get(reverse('device-list'))
+        self.assertEqual(len(response.data['results']), 1)
+        
+        self.user.owned_company = None
+        self.user.is_superuser = False
+        self.user.save()
+        self.user.company = None
+        response2 = self.client.get(reverse('device-list'))
+        self.assertEqual(len(response2.data['results']), 0)
+    
+    def test_device_viewset_swagger_fake_view(self):
+        """Test line 39: swagger_fake_view in get_queryset"""
+        from rest_framework.test import APIRequestFactory
+        from devices.views import DeviceViewSet
+        
+        factory = APIRequestFactory()
+        request = factory.get('/api/devices/')
+        request.user = self.user
+        
+        viewset = DeviceViewSet()
+        viewset.request = request
+        viewset.swagger_fake_view = True  # Simulate swagger
+        
+        queryset = viewset.get_queryset()
+        self.assertEqual(queryset.count(), 0)
+    
+    def test_device_viewset_superuser_sees_all(self):
+        """Test line 47: superuser sees all devices"""
+        from rest_framework.test import APIRequestFactory
+        from devices.views import DeviceViewSet
+        from devices.models import CashRegister
+        
+        # Create devices
+        CashRegister.objects.create(company=self.company, name="Dev1", code="DEV-1-SUPER")
+        
+        # Create superuser
+        superuser = User.objects.create_superuser(
+            username='super_devices',
+            password='pass',
+            email='super_devices@test.com'
+        )
+        
+        factory = APIRequestFactory()
+        request = factory.get('/api/devices/')
+        request.user = superuser
+        
+        viewset = DeviceViewSet()
+        viewset.request = request
+        
+        queryset = viewset.get_queryset()
+        self.assertGreaterEqual(queryset.count(), 1)
+    
+    def test_device_viewset_user_with_branches(self):
+        """Test line 49: user with branches sees only their branch devices"""
+        from rest_framework.test import APIRequestFactory
+        from devices.views import DeviceViewSet
+        from devices.models import CashRegister
+        from core.models import Branch
+        
+        # Create branch and device
+        branch = Branch.objects.create(company=self.company, name="DevBranch", code="DEVBR")
+        CashRegister.objects.create(company=self.company, branch=branch, name="Dev1", code="DEV-1-BR")
+        
+        # Create user with branch
+        user_with_branch = User.objects.create_user(
+            username='withbranch_dev',
+            password='pass',
+            company=self.company
+        )
+        user_with_branch.branch.add(branch)
+        
+        factory = APIRequestFactory()
+        request = factory.get('/api/devices/')
+        request.user = user_with_branch
+        
+        viewset = DeviceViewSet()
+        viewset.request = request
+        
+        queryset = viewset.get_queryset()
+        self.assertEqual(queryset.count(), 1)
+    
+    def test_device_viewset_user_no_branches_fallback(self):
+        """Test lines 50-51: user with company but no branches returns company devices"""
+        from rest_framework.test import APIRequestFactory
+        from devices.views import DeviceViewSet
+        from devices.models import CashRegister
+        
+        # Create device
+        CashRegister.objects.create(company=self.company, name="Dev1", code="DEV-1")
+        
+        # Create user with company but no branches
+        user_no_branch = User.objects.create_user(
+            username='nobranch',
+            password='pass',
+            company=self.company
+        )
+        # Ensure user has no branches
+        user_no_branch.branch.clear()
+        
+        factory = APIRequestFactory()
+        request = factory.get('/api/devices/')
+        request.user = user_no_branch
+        
+        viewset = DeviceViewSet()
+        viewset.request = request
+        
+        queryset = viewset.get_queryset()
+        # Should fall back to all company devices
+        self.assertEqual(queryset.count(), 1)
+    
+    def test_device_viewset_user_no_company_returns_none(self):
+        """Test line 51 (last): user without company returns empty queryset"""
+        from rest_framework.test import APIRequestFactory
+        from devices.views import DeviceViewSet
+        
+        # Create user without company
+        user_no_company = User.objects.create_user(
+            username='nocompany',
+            password='pass',
+            company=None
+        )
+        
+        factory = APIRequestFactory()
+        request = factory.get('/api/devices/')
+        request.user = user_no_company
+        
+        viewset = DeviceViewSet()
+        viewset.request = request
+        
+        queryset = viewset.get_queryset()
+        self.assertEqual(queryset.count(), 0)

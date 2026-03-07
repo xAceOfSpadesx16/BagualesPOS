@@ -37,3 +37,28 @@ class InventoryModelTestCase(TenantTestCase, TestCase):
         from core.models import Branch
         new_branch = Branch.objects.create(company=self.company, name="New Signal Branch", code="NB-SIG")
         self.assertTrue(Inventory.objects.filter(product=self.product, branch=new_branch).exists())
+
+    def test_stock_adjustment_request_str(self):
+        from inventory.models import StockAdjustmentRequest
+        adj = StockAdjustmentRequest.objects.create(
+            company=self.company,
+            branch=self.branch,
+            product=self.product,
+            adjustment_type=StockAdjustmentRequest.AdjustmentType.REDUCTION,
+            quantity=5,
+            reason="Test"
+        )
+        self.assertEqual(str(adj), f"{adj.adjustment_type} - {self.product} - {adj.quantity} ({adj.status})")
+
+    def test_stock_movement_str(self):
+        from inventory.models import StockMovement
+        mov = StockMovement.objects.create(
+            company=self.company,
+            branch=self.branch,
+            product=self.product,
+            movement_type=StockMovement.MovementType.CORRECTION,
+            previous_quantity=10,
+            new_quantity=15,
+            quantity_change=5
+        )
+        self.assertEqual(str(mov), f"{mov.movement_type} - {self.product} - {mov.quantity_change} ({mov.created_at})")

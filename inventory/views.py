@@ -1,12 +1,15 @@
 from rest_framework import viewsets, status
+from rest_framework.exceptions import ValidationError as DRFValidationError
 from django.utils.translation import gettext_lazy as _
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from django.db.models import F
+from django.db.models import F, Sum
+from django.db import transaction
 from rest_framework.filters import OrderingFilter, SearchFilter
 from django_filters.rest_framework import DjangoFilterBackend
-from .models import Inventory
-from .serializers import InventorySerializer
+from .models import Inventory, StockAdjustmentRequest, StockMovement
+from .serializers import InventorySerializer, StockAdjustmentRequestSerializer, StockMovementSerializer
+from .filters import StockAdjustmentRequestFilter, StockMovementFilter
 
 class InventoryViewSet(viewsets.ModelViewSet):
     queryset = Inventory.objects.all()
@@ -17,18 +20,33 @@ class InventoryViewSet(viewsets.ModelViewSet):
     ordering_fields = ['quantity', 'product__name']
 
     def get_queryset(self):
+        """
+        Filter inventory by user's branch unless user is a General Admin.
+        - Superusers: see all inventory
+        - Company owners (General Admins): see all inventory in their company
+        - Branch managers/employees: see only their branch inventory
+        """
         user = self.request.user
         queryset = super().get_queryset()
         
-        # Filter by branch if provided in query params
-        branch_id = self.request.query_params.get('branch')
-        if branch_id:
-            queryset = queryset.filter(branch_id=branch_id)
-        # Otherwise filter by user's assigned branches
-        elif hasattr(user, 'branch') and user.branch.exists():
-            queryset = queryset.filter(branch__in=user.branch.all())
-            
-        return queryset
+        # Superusers see everything
+        if user.is_superuser:
+            return queryset
+        
+        # Check if user is company owner (General Admin)
+        if hasattr(user, 'owned_company'):
+            return queryset.filter(company=user.owned_company)
+        
+        # Regular users (Branch Managers/Employees) see only their branch inventory
+        if user.company:
+            user_branches = user.branch.all()
+            if user_branches.exists():
+                return queryset.filter(branch__in=user_branches)
+            # If user has no branches assigned, show all company inventory (fallback)
+            return queryset.filter(company=user.company)
+        
+        # Users without company shouldn't see anything
+        return queryset.none()
 
     @action(detail=True, methods=['post'])
     def update_quantity(self, request, pk=None):
@@ -101,3 +119,289 @@ class InventoryViewSet(viewsets.ModelViewSet):
         # Serialize and return
         serializer = self.get_serializer(qs, many=True)
         return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'], url_path='stock-breakdown')
+    def stock_breakdown(self, request):
+        """
+        Returns aggregated stock breakdown per product across all branches.
+        Only available for General Admins (company owners or superusers).
+        
+        Query parameters:
+        - product: Filter by product ID
+        - branch: Filter by branch ID
+        - low_stock: Show only products with total stock below threshold (default: 10)
+        """
+        user = request.user
+        
+        # Check if user is General Admin
+        if not (user.is_superuser or hasattr(user, 'owned_company')):
+            return Response(
+                {'error': 'This endpoint is only available for General Administrators.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Start with base queryset (already filtered by company via get_queryset)
+        queryset = self.get_queryset()
+        
+        # Apply filters
+        product_id = request.query_params.get('product')
+        branch_id = request.query_params.get('branch')
+        low_stock_threshold = request.query_params.get('low_stock')
+        
+        if product_id:
+            queryset = queryset.filter(product_id=product_id)
+        if branch_id:
+            queryset = queryset.filter(branch_id=branch_id)
+        
+        # Aggregate by product
+        from django.db.models import Count
+        stock_data = queryset.values(
+            'product__id',
+            'product__name',
+            'product__internal_code',
+            'product__sale_price',
+            'product__cost_price'
+        ).annotate(
+            total_stock=Sum('quantity'),
+            branches_count=Count('branch', distinct=True)
+        ).order_by('-total_stock')
+        
+        # Build detailed response with per-branch breakdown
+        results = []
+        for item in stock_data:
+            product_id = item['product__id']
+            
+            # Get branch breakdown for this product
+            branch_breakdown = queryset.filter(product_id=product_id).values(
+                'branch__id',
+                'branch__name',
+                'branch__code',
+                'quantity'
+            ).order_by('branch__name')
+            
+            product_data = {
+                'product_id': product_id,
+                'product_name': item['product__name'],
+                'product_code': item['product__internal_code'],
+                'sale_price': float(item['product__sale_price']) if item['product__sale_price'] else 0,
+                'cost_price': float(item['product__cost_price']) if item['product__cost_price'] else 0,
+                'total_stock': item['total_stock'],
+                'branches_count': item['branches_count'],
+                'branches': list(branch_breakdown)
+            }
+            
+            # Filter by low stock if requested
+            if low_stock_threshold:
+                try:
+                    threshold = int(low_stock_threshold)
+                    if item['total_stock'] <= threshold:
+                        results.append(product_data)
+                except ValueError:
+                    pass
+            else:
+                results.append(product_data)
+        
+        return Response(results)
+
+
+class StockAdjustmentRequestViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for Stock Adjustment Requests.
+    Branch managers can create requests, General Admins can approve/reject.
+    """
+    queryset = StockAdjustmentRequest.objects.all()
+    serializer_class = StockAdjustmentRequestSerializer
+    filterset_class = StockAdjustmentRequestFilter
+    ordering = ['-created_at']
+    
+    def get_queryset(self):
+        """
+        Filter adjustment requests by user's branch unless user is a General Admin.
+        """
+        user = self.request.user
+        queryset = super().get_queryset()
+        
+        # Superusers see everything
+        if user.is_superuser:
+            return queryset
+        
+        # Company owners (General Admins) see all requests in their company
+        if hasattr(user, 'owned_company'):
+            return queryset.filter(company=user.owned_company)
+        
+        # Branch managers see only their branch requests
+        if user.company:
+            user_branches = user.branch.all()
+            if user_branches.exists():
+                return queryset.filter(branch__in=user_branches)
+            return queryset.filter(company=user.company)
+        
+        return queryset.none()
+    
+    def perform_create(self, serializer):
+        """Auto-assign company, branch, user, and set status to PENDING"""
+        user = self.request.user
+        
+        # Get user's first branch (assumes user has at least one)
+        user_branch = user.branch.first() if user.branch.exists() else None
+        
+        if not user_branch:
+            raise DRFValidationError({
+                'detail': 'You must be assigned to a branch to create stock adjustment requests.'
+            })
+        
+        serializer.save(
+            company=user.company,
+            branch=user_branch,
+            requested_by=user,
+            status=StockAdjustmentRequest.Status.PENDING
+        )
+    
+    @action(detail=True, methods=['post'])
+    @transaction.atomic
+    def approve(self, request, pk=None):
+        """
+        Approve a stock adjustment request.
+        Only General Admins can approve.
+        """
+        user = request.user
+        
+        # Check if user is General Admin
+        if not (user.is_superuser or hasattr(user, 'owned_company')):
+            return Response(
+                {'error': 'Only General Administrators can approve stock adjustment requests.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        adjustment = self.get_object()
+        
+        # Validate status
+        if adjustment.status != StockAdjustmentRequest.Status.PENDING:
+            return Response(
+                {'error': f'Cannot approve request with status: {adjustment.status}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Get or create inventory
+        try:
+            inventory = Inventory.objects.select_for_update().get(
+                product=adjustment.product,
+                branch=adjustment.branch
+            )
+        except Inventory.DoesNotExist:
+            return Response(
+                {'error': 'Inventory record not found for this product and branch.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Validate quantity for reductions
+        if adjustment.adjustment_type == StockAdjustmentRequest.AdjustmentType.REDUCTION:
+            if inventory.quantity < abs(adjustment.quantity):
+                return Response(
+                    {'error': f'Insufficient stock. Available: {inventory.quantity}, Requested: {abs(adjustment.quantity)}'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        # Store previous quantity
+        previous_quantity = inventory.quantity
+        
+        # Apply adjustment based on type
+        if adjustment.adjustment_type == StockAdjustmentRequest.AdjustmentType.REDUCTION:
+            inventory.quantity -= abs(adjustment.quantity)
+        elif adjustment.adjustment_type == StockAdjustmentRequest.AdjustmentType.ADDITION:
+            inventory.quantity += abs(adjustment.quantity)
+        elif adjustment.adjustment_type == StockAdjustmentRequest.AdjustmentType.CORRECTION:
+            inventory.quantity = adjustment.quantity
+        
+        inventory.save()
+        
+        # Create StockMovement record
+        StockMovement.objects.create(
+            company=adjustment.company,
+            branch=adjustment.branch,
+            product=adjustment.product,
+            movement_type=StockMovement.MovementType.ADJUSTMENT,
+            previous_quantity=previous_quantity,
+            new_quantity=inventory.quantity,
+            quantity_change=inventory.quantity - previous_quantity,
+            reference_id=adjustment.id,
+            reference_model='StockAdjustmentRequest',
+            notes=f'Approved adjustment: {adjustment.reason}',
+            created_by=user
+        )
+        
+        # Update adjustment status
+        adjustment.status = StockAdjustmentRequest.Status.APPROVED
+        adjustment.approved_by = user
+        adjustment.save()
+        
+        return Response(self.get_serializer(adjustment).data)
+    
+    @action(detail=True, methods=['post'])
+    def reject(self, request, pk=None):
+        """
+        Reject a stock adjustment request.
+        Only General Admins can reject.
+        """
+        user = request.user
+        
+        # Check if user is General Admin
+        if not (user.is_superuser or hasattr(user, 'owned_company')):
+            return Response(
+                {'error': 'Only General Administrators can reject stock adjustment requests.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        adjustment = self.get_object()
+        
+        # Validate status
+        if adjustment.status != StockAdjustmentRequest.Status.PENDING:
+            return Response(
+                {'error': f'Cannot reject request with status: {adjustment.status}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Get rejection note from request data
+        rejection_note = request.data.get('rejection_note', '')
+        
+        # Update adjustment status
+        adjustment.status = StockAdjustmentRequest.Status.REJECTED
+        adjustment.approved_by = user
+        adjustment.rejection_note = rejection_note
+        adjustment.save()
+        
+        return Response(self.get_serializer(adjustment).data)
+
+
+class StockMovementViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Read-only ViewSet for Stock Movements (audit log).
+    """
+    queryset = StockMovement.objects.all()
+    serializer_class = StockMovementSerializer
+    filterset_class = StockMovementFilter
+    ordering = ['-created_at']
+    
+    def get_queryset(self):
+        """
+        Filter stock movements by user's branch unless user is a General Admin.
+        """
+        user = self.request.user
+        queryset = super().get_queryset()
+        
+        # Superusers see everything
+        if user.is_superuser:
+            return queryset
+        
+        # Company owners (General Admins) see all movements in their company
+        if hasattr(user, 'owned_company'):
+            return queryset.filter(company=user.owned_company)
+        
+        # Branch managers see only their branch movements
+        if user.company:
+            user_branches = user.branch.all()
+            if user_branches.exists():
+                return queryset.filter(branch__in=user_branches)
+            return queryset.filter(company=user.company)
+        
+        return queryset.none()

@@ -25,7 +25,10 @@ class CompanySerializer(serializers.ModelSerializer):
 
 class BranchSerializer(serializers.ModelSerializer):
     """
-    Serializer for Branch model
+    Serializer for Branch model.
+    
+    The company field is read-only and automatically assigned from the
+    authenticated user's company in the view.
     """
     company_name = serializers.CharField(source='company.name', read_only=True)
     
@@ -42,7 +45,7 @@ class BranchSerializer(serializers.ModelSerializer):
             'created_at',
             'updated_at'
         ]
-        read_only_fields = ['created_at', 'updated_at']
+        read_only_fields = ['company', 'created_at', 'updated_at']
     
     def validate_code(self, value):
         """

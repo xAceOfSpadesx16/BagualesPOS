@@ -10,14 +10,15 @@ Documentación completa y precisa de todos los endpoints de la API REST de Bagua
 ## Tabla de Contenidos
 
 1. [Autenticación](#autenticación)
-2. [Productos](#productos)
-3. [Clientes](#clientes)
-4. [Inventario](#inventario)
-5. [Ventas](#ventas)
-6. [Caja](#caja)
-7. [Dispositivos](#dispositivos)
-8. [Usuarios](#usuarios)
-9. [Registros](#registros)
+2. [Sucursales](#sucursales)
+3. [Productos](#productos)
+4. [Clientes](#clientes)
+5. [Inventario](#inventario)
+6. [Ventas](#ventas)
+7. [Caja](#caja)
+8. [Dispositivos](#dispositivos)
+9. [Usuarios](#usuarios)
+10. [Registros](#registros)
 
 ---
 
@@ -81,6 +82,76 @@ Documentación completa y precisa de todos los endpoints de la API REST de Bagua
   "refresh": "eyJ0eXAiOiJKV1QiLCJhbGc..."
 }
 ```
+
+---
+
+## Sucursales
+
+### Listar Sucursales
+**Método**: `GET`  
+**Endpoint**: `/api/branches/`  
+**Descripción**: Lista las sucursales de la empresa del usuario autenticado  
+**Filtros**: `?is_active=true`  
+**Búsqueda**: `?search=nombre`
+
+**Response**:
+```json
+[
+  {
+    "id": 1,
+    "name": "Sucursal Centro",
+    "code": "MAIN001",
+    "address": "Av. San Martín 123",
+    "is_active": true,
+    "company": 1
+  }
+]
+```
+
+### Crear Sucursal
+**Método**: `POST`  
+**Endpoint**: `/api/branches/`  
+**Descripción**: Crear nueva sucursal. La `company` se asigna automáticamente del usuario autenticado.
+
+**Request**:
+```json
+{
+  "name": "Sucursal Norte",
+  "code": "NORTE01",
+  "address": "Av. Colón 456"
+}
+```
+
+**Response** `201`:
+```json
+{
+  "id": 2,
+  "name": "Sucursal Norte",
+  "code": "NORTE01",
+  "address": "Av. Colón 456",
+  "is_active": true,
+  "company": 1
+}
+```
+
+**Errores comunes**:
+- `400 Bad Request` – Si el usuario no tiene compañía asignada.
+- `400 Bad Request` – Código de sucursal duplicado.
+
+### Obtener Sucursal
+**Método**: `GET`  
+**Endpoint**: `/api/branches/<int:pk>/`  
+**Ejemplo**: `/api/branches/1/`
+
+### Actualizar Sucursal
+**Método**: `PUT/PATCH`  
+**Endpoint**: `/api/branches/<int:pk>/`  
+**Ejemplo**: `/api/branches/1/`
+
+### Eliminar Sucursal
+**Método**: `DELETE`  
+**Endpoint**: `/api/branches/<int:pk>/`  
+**Ejemplo**: `/api/branches/1/`
 
 ---
 
@@ -551,7 +622,222 @@ Todos estos recursos usan el patrón List/Write serializers:
 **Ejemplo**: `/api/inventory/inventory/1/other-branches/`  
 **Descripción**: Retorna la disponibilidad del mismo producto (asociado al registro de inventario solicitado) en todas las demás sucursales del sistema, excluyendo el inventario de la(s) sucursal(es) asignadas al cajero/usuario actual.
 
-**Response**: Array de objetos de Inventario correspondientes a las demás sucursales.
+**Response**: Array de objetos de Inventario correspondientes a las dem\u00e1s sucursales.
+
+### Actualizar Cantidad de Stock
+**M\u00e9todo**: `POST`  
+**Endpoint**: `/api/inventory/inventory/<int:pk>/update_quantity/`  
+**Ejemplo**: `/api/inventory/inventory/1/update_quantity/`  
+**Descripci\u00f3n**: Suma o resta unidades del stock de un item de inventario.
+
+**Request**:
+```json
+{
+  "operation": "addition",
+  "quantity": 10
+}
+```
+
+> `operation` puede ser `addition` (sumar) o `subtraction` (restar).  
+> `quantity` debe ser un entero positivo mayor a 0.
+
+**Errores comunes**:
+- `400 Bad Request` &ndash; Cantidad inv\u00e1lida (no num\u00e9rica, negativa o cero).
+- `400 Bad Request` &ndash; Operaci\u00f3n inv\u00e1lida (distinta a `addition` o `subtraction`).
+
+**Response**: Objeto de Inventario actualizado.
+
+### Stock Bajo
+**M\u00e9todo**: `GET`  
+**Endpoint**: `/api/inventory/inventory/low-stock/`  
+**Filtro**: `?threshold=5` (por defecto: 5)  
+**Descripci\u00f3n**: Lista items cuyo stock es menor o igual al umbral.
+
+**Response**:
+```json
+[
+  {
+    "id": 1,
+    "name": "Camisa Slim Fit",
+    "stock": 3,
+    "min": 5
+  }
+]
+```
+
+### Resumen de Stock por Sucursal
+**M\u00e9todo**: `GET`  
+**Endpoint**: `/api/inventory/inventory/stock-breakdown/`  
+**Descripci\u00f3n**: Resumen agregado de stock por producto entre sucursales. **Solo disponible para Administradores Generales.**  
+**Filtros**: `?product=1&branch=1&low_stock=10`
+
+**Response**:
+```json
+[
+  {
+    "product_id": 1,
+    "product_name": "Camisa Slim Fit",
+    "product_code": "PROD-00001",
+    "sale_price": 100.0,
+    "cost_price": 50.0,
+    "total_stock": 150,
+    "branches_count": 3,
+    "branches": [
+      { "branch__id": 1, "branch__name": "Centro", "branch__code": "MAIN01", "quantity": 50 },
+      { "branch__id": 2, "branch__name": "Norte", "branch__code": "NORTE01", "quantity": 100 }
+    ]
+  }
+]
+```
+
+**Error 403**: Si el usuario no es Administrador General.
+
+---
+
+## Solicitudes de Ajuste de Stock
+
+### Listar Solicitudes
+**M\u00e9todo**: `GET`  
+**Endpoint**: `/api/stock-adjustments/`  
+**Filtros**: `?status=PENDING&branch=1&adjustment_type=ADDITION`  
+**Ordenamiento**: `?ordering=-created_at`
+
+**Response**:
+```json
+[
+  {
+    "id": 1,
+    "company": 1,
+    "branch": 1,
+    "branch_name": "Sucursal Centro",
+    "product": 1,
+    "product_data": {
+      "id": 1,
+      "name": "Camisa Slim Fit",
+      "brand": { "id": 2, "name": "Nike" },
+      "category": { "id": 1, "name": "Ropa" },
+      "sale_price": "$100.00",
+      "is_active": true
+    },
+    "adjustment_type": "ADDITION",
+    "quantity": 10,
+    "reason": "Ingreso de mercanc\u00eda",
+    "status": "PENDING",
+    "requested_by": 2,
+    "requested_by_name": "Juan P\u00e9rez",
+    "approved_by": null,
+    "approved_by_name": "",
+    "rejection_note": "",
+    "created_at": "2025-01-15T10:00:00Z",
+    "updated_at": "2025-01-15T10:00:00Z"
+  }
+]
+```
+
+### Crear Solicitud de Ajuste
+**M\u00e9todo**: `POST`  
+**Endpoint**: `/api/stock-adjustments/`  
+**Descripci\u00f3n**: Crea una solicitud PENDIENTE de ajuste de stock. El `company`, `branch`, `requested_by` y `status=PENDING` se asignan autom\u00e1ticamente.
+
+**Request**:
+```json
+{
+  "product": 1,
+  "adjustment_type": "ADDITION",
+  "quantity": 10,
+  "reason": "Ingreso de mercanc\u00eda nueva"
+}
+```
+
+> `adjustment_type` puede ser:
+> - `ADDITION` &ndash; Suma al stock
+> - `REDUCTION` &ndash; Resta del stock
+> - `CORRECTION` &ndash; Corrige al valor exacto indicado
+
+**Errores comunes**:
+- `400 Bad Request` &ndash; Si el usuario no tiene sucursal asignada.
+
+### Obtener Solicitud
+**M\u00e9todo**: `GET`  
+**Endpoint**: `/api/stock-adjustments/<int:pk>/`  
+**Ejemplo**: `/api/stock-adjustments/1/`
+
+### Aprobar Solicitud (Solo Admin General)
+**M\u00e9todo**: `POST`  
+**Endpoint**: `/api/stock-adjustments/<int:pk>/approve/`  
+**Ejemplo**: `/api/stock-adjustments/1/approve/`  
+**Descripci\u00f3n**: Aprueba la solicitud, aplica el ajuste al inventario y crea un `StockMovement` de auditor\u00eda.
+
+**Errores comunes**:
+- `403 Forbidden` &ndash; El usuario no es Administrador General.
+- `400 Bad Request` &ndash; La solicitud no est\u00e1 en estado `PENDING`.
+- `400 Bad Request` &ndash; No existe registro de inventario para ese producto y sucursal.
+- `400 Bad Request` &ndash; Stock insuficiente para una reducci\u00f3n.
+
+**Response**: Objeto `StockAdjustmentRequest` con `status: "APPROVED"`.
+
+### Rechazar Solicitud (Solo Admin General)
+**M\u00e9todo**: `POST`  
+**Endpoint**: `/api/stock-adjustments/<int:pk>/reject/`  
+**Ejemplo**: `/api/stock-adjustments/1/reject/`
+
+**Request**:
+```json
+{
+  "rejection_note": "El stock ya fue verificado manualmente."
+}
+```
+
+**Response**: Objeto `StockAdjustmentRequest` con `status: "REJECTED"`.
+
+---
+
+## Movimientos de Stock (Auditor\u00eda)
+
+### Listar Movimientos
+**M\u00e9todo**: `GET`  
+**Endpoint**: `/api/stock-movements/`  
+**Descripci\u00f3n**: Solo lectura. Registro de auditor\u00eda de todos los cambios de stock.  
+**Filtros**: `?branch=1&movement_type=ADJUSTMENT&product=1`  
+**Ordenamiento**: `?ordering=-created_at`
+
+**Response**:
+```json
+[
+  {
+    "id": 1,
+    "company": 1,
+    "branch": 1,
+    "branch_name": "Sucursal Centro",
+    "product": 1,
+    "product_data": {
+      "id": 1,
+      "name": "Camisa Slim Fit",
+      "brand": { "id": 2, "name": "Nike" },
+      "category": { "id": 1, "name": "Ropa" },
+      "sale_price": "$100.00",
+      "is_active": true
+    },
+    "movement_type": "ADJUSTMENT",
+    "previous_quantity": 40,
+    "new_quantity": 50,
+    "quantity_change": 10,
+    "reference_id": 3,
+    "reference_model": "StockAdjustmentRequest",
+    "notes": "Approved adjustment: Ingreso de mercanc\u00eda",
+    "created_by": 1,
+    "created_by_name": "Admin General",
+    "created_at": "2025-01-15T11:00:00Z"
+  }
+]
+```
+
+> Los tipos de movimiento (`movement_type`) son: `SALE`, `ADJUSTMENT`, `TRANSFER`, `INITIAL`.
+
+### Obtener Movimiento
+**M\u00e9todo**: `GET`  
+**Endpoint**: `/api/stock-movements/<int:pk>/`  
+**Ejemplo**: `/api/stock-movements/1/`
 
 ---
 
@@ -657,29 +943,54 @@ Todos estos recursos usan el patrón List/Write serializers:
 ### Resumen de Ventas
 **Método**: `GET`  
 **Endpoint**: `/api/sales/sales/summary/`  
-**Descripción**: Métricas generales de ventas
+**Descripción**: Métricas generales de ventas  
+**Filtros**: `?branch=1&date_from=2025-01-01&date_to=2025-03-01`
 
 **Response**:
 ```json
 {
-  "total_sales": "50000.00",
-  "total_count": 150,
-  "average_sale": "333.33",
-  "today_sales": "5000.00",
-  "today_count": 15
+  "total_sales": 15000.00,
+  "total_transactions": 45,
+  "average_ticket": 333.33,
+  "total_products_sold": 120,
+  "total_profit": 7500.00
 }
 ```
 
+### Resumen por Sucursal (Solo Admin General)
+**Método**: `GET`  
+**Endpoint**: `/api/sales/sales/summary-by-branch/`  
+**Descripción**: Métricas agrupadas por sucursal. Solo disponible para Administradores Generales.  
+**Filtros**: `?date_from=2025-01-01&date_to=2025-03-01`
+
+**Response**:
+```json
+[
+  {
+    "branch_id": 1,
+    "branch_name": "Sucursal Centro",
+    "branch_code": "MAIN01",
+    "total_sales": 10000.00,
+    "total_transactions": 30,
+    "average_ticket": 333.33,
+    "total_profit": 5000.00
+  }
+]
+```
+
+**Error 403**: Si el usuario no es Administrador General.
+
 ### Top Productos
 **Método**: `GET`  
-**Endpoint**: `/api/sales/sales/top_products/`  
+**Endpoint**: `/api/sales/sales/top-products/`  
+**Filtro**: `?limit=5` (por defecto: 5)  
 **Descripción**: Productos más vendidos
 
 **Response**:
 ```json
 [
   {
-    "product_id": 1,
+    "product__name": "Camisa Slim Fit",
     "product_name": "Camisa Slim Fit",
     "total_quantity": 50,
     "total_revenue": "5000.00"
@@ -689,48 +1000,49 @@ Todos estos recursos usan el patrón List/Write serializers:
 
 ### Ventas por Categoría
 **Método**: `GET`  
-**Endpoint**: `/api/sales/sales/sales_by_category/`
+**Endpoint**: `/api/sales/sales/by-category/`
 
 **Response**:
 ```json
 [
   {
-    "category_id": 1,
-    "category_name": "Ropa",
-    "total": "25000.00",
-    "count": 75
+    "product__category__name": "Ropa",
+    "name": "Ropa",
+    "value": "25000.00"
   }
 ]
 ```
 
 ### Ventas por Día
 **Método**: `GET`  
-**Endpoint**: `/api/sales/sales/sales_by_day/`  
+**Endpoint**: `/api/sales/sales/by-day/`  
 **Descripción**: Últimos 7 días
 
 **Response**:
 ```json
 [
   {
-    "date": "2025-01-15",
-    "total": "5000.00",
-    "count": 15
+    "day": "Mon",
+    "full_date": "2025-01-13",
+    "ventas": "5000.00",
+    "productos": 15
   }
 ]
 ```
 
 ### Ventas por Mes
 **Método**: `GET`  
-**Endpoint**: `/api/sales/sales/sales_by_month/`  
+**Endpoint**: `/api/sales/sales/by-month/`  
 **Descripción**: Últimos 6 meses
 
 **Response**:
 ```json
 [
   {
-    "month": "2025-01",
-    "total": "50000.00",
-    "count": 150
+    "month": "Jan",
+    "full_date": "2025-01",
+    "ventas": "50000.00",
+    "transacciones": 150
   }
 ]
 ```
@@ -830,7 +1142,7 @@ Todos estos recursos usan el patrón List/Write serializers:
 
 #### Listar Sesiones
 **Método**: `GET`  
-**Endpoint**: `/api/cash/cash-sessions/`  
+**Endpoint**: `/api/cash/sessions/`  
 **Filtros**: `?status=OPEN&cash_register=1&user=2`  
 **Ordenamiento**: `?ordering=-opening_date`
 
@@ -854,8 +1166,8 @@ Todos estos recursos usan el patrón List/Write serializers:
 
 #### Obtener Sesión (Detalle completo)
 **Método**: `GET`  
-**Endpoint**: `/api/cash/cash-sessions/<int:pk>/`  
-**Ejemplo**: `/api/cash/cash-sessions/5/`
+**Endpoint**: `/api/cash/sessions/<int:pk>/`  
+**Ejemplo**: `/api/cash/sessions/5/`
 
 **Response (Detail - completo)**:
 ```json
@@ -895,7 +1207,7 @@ Todos estos recursos usan el patrón List/Write serializers:
 
 #### Abrir Sesión
 **Método**: `POST`  
-**Endpoint**: `/api/cash/cash-sessions/open/`  
+**Endpoint**: `/api/cash/sessions/open/`  
 **Descripción**: Abrir nueva sesión (automáticamente asigna user=usuario actual)
 
 **Request**:
@@ -915,8 +1227,8 @@ Todos estos recursos usan el patrón List/Write serializers:
 
 #### Cerrar Sesión
 **Método**: `POST`  
-**Endpoint**: `/api/cash/cash-sessions/<int:pk>/close/`  
-**Ejemplo**: `/api/cash/cash-sessions/5/close/`  
+**Endpoint**: `/api/cash/sessions/<int:pk>/close/`  
+**Ejemplo**: `/api/cash/sessions/5/close/`  
 **Descripción**: Cerrar sesión de caja
 
 **Request**:
@@ -935,23 +1247,23 @@ Todos estos recursos usan el patrón List/Write serializers:
 
 #### Mi Sesión Activa
 **Método**: `GET`  
-**Endpoint**: `/api/cash/cash-sessions/my_active/`  
+**Endpoint**: `/api/cash/sessions/my_active/`  
 **Descripción**: Obtener sesión abierta del usuario actual
 
 **Response**: Sesión completa o 404 si no tiene sesión abierta
 
 #### Ventas de Sesión
 **Método**: `GET`  
-**Endpoint**: `/api/cash/cash-sessions/<int:pk>/sales/`  
-**Ejemplo**: `/api/cash/cash-sessions/5/sales/`  
+**Endpoint**: `/api/cash/sessions/<int:pk>/sales/`  
+**Ejemplo**: `/api/cash/sessions/5/sales/`  
 **Descripción**: Ventas cerradas y no canceladas de esta sesión
 
 **Response**: Array de ventas (formato `SaleSerializer`)
 
 #### Movimientos de Sesión
 **Método**: `GET`  
-**Endpoint**: `/api/cash/cash-sessions/<int:pk>/movements/`  
-**Ejemplo**: `/api/cash/cash-sessions/5/movements/`
+**Endpoint**: `/api/cash/sessions/<int:pk>/movements/`  
+**Ejemplo**: `/api/cash/sessions/5/movements/`
 
 **Response**:
 ```json
@@ -985,8 +1297,8 @@ Todos estos recursos usan el patrón List/Write serializers:
 
 #### Resumen de Sesión
 **Método**: `GET`  
-**Endpoint**: `/api/cash/cash-sessions/<int:pk>/summary/`  
-**Ejemplo**: `/api/cash/cash-sessions/5/summary/`
+**Endpoint**: `/api/cash/sessions/<int:pk>/summary/`  
+**Ejemplo**: `/api/cash/sessions/5/summary/`
 
 **Response**:
 ```json
@@ -1016,13 +1328,13 @@ Todos estos recursos usan el patrón List/Write serializers:
 
 #### Listar Movimientos
 **Método**: `GET`  
-**Endpoint**: `/api/cash/cash-movements/`  
+**Endpoint**: `/api/cash/movements/`  
 **Filtros**: `?cash_session=5&type=CASH_IN`  
 **Ordenamiento**: `?ordering=-created_at`
 
 #### Crear Movimiento
 **Método**: `POST`  
-**Endpoint**: `/api/cash/cash-movements/`  
+**Endpoint**: `/api/cash/movements/`  
 **Descripción**: Registrar entrada/salida de efectivo (created_by se asigna automáticamente)
 
 **Request**:
@@ -1315,9 +1627,33 @@ Todos estos recursos usan el patrón List/Write serializers:
 
 ## Usuarios
 
+### Roles Existentes (Grupos)
+**Método**: `GET`  
+**Endpoint**: `/api/users/roles/`  
+**Descripción**: Retorna la lista de roles (grupos) disponibles para asignar a un empleado (útil para llenar listas desplegables en el Frontend). Si el usuario autenticado no tiene rol `Administrador General`, se ocultará dicha opción de la lista para evitar que eleve privilegios.
+
+**Response**:
+```json
+[
+  {
+    "id": 2,
+    "name": "Gerente"
+  },
+  {
+    "id": 3,
+    "name": "Administrativo"
+  },
+  {
+    "id": 4,
+    "name": "Cajero"
+  }
+]
+```
+
 ### Listar Usuarios
 **Método**: `GET`  
-**Endpoint**: `/api/users/users/`
+**Endpoint**: `/api/users/users/`  
+**Filtros**: `?search=nombre&ordering=date_joined`
 
 **Response**:
 ```json
@@ -1329,28 +1665,136 @@ Todos estos recursos usan el patrón List/Write serializers:
     "first_name": "Admin",
     "last_name": "User",
     "is_active": true,
-    "is_staff": true,
+    "is_staff": false,
     "date_joined": "2025-01-01T00:00:00Z",
-    "profile": null
+    "profile": {
+      "id": 1,
+      "user": 1,
+      "phone_number": "+54 351 1234567",
+      "dni": "12345678",
+      "address": "Calle Falsa 123",
+      "city": "Córdoba",
+      "province": "Córdoba",
+      "postal_code": "5000",
+      "country": "Argentina",
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    },
+    "company": 1,
+    "groups_names": ["Administrador General"],
+    "branches_names": ["Sucursal Centro"]
   }
 ]
 ```
 
-### Crear Usuario
+### Registrar Empresa y Administrador
 **Método**: `POST`  
-**Endpoint**: `/api/users/users/`
+**Endpoint**: `/api/users/register/`  
+**Autenticación**: No requerida  
+**Descripción**: Crea un nuevo usuario Administrador General y su correspondiente Empresa (tenant).
 
 **Request**:
 ```json
 {
-  "username": "nuevo_usuario",
-  "email": "nuevo@example.com",
-  "password": "contraseña123",
-  "first_name": "Nuevo",
-  "last_name": "Usuario",
-  "is_active": true
+  "username": "admin_empresa",
+  "email": "contacto@miempresa.com",
+  "password": "password123",
+  "password_confirm": "password123",
+  "first_name": "Juan",
+  "last_name": "Pérez",
+  "company_name": "Mi Empresa S.A.",
+  "company_tax_id": "30-12345678-9"
 }
 ```
+
+**Response** `201`:
+```json
+{
+  "id": 1,
+  "username": "admin_empresa",
+  "email": "contacto@miempresa.com",
+  "company_id": 1,
+  "company_name": "Mi Empresa S.A.",
+  "message": "User registered successfully"
+}
+```
+
+**Errores comunes**:
+- `400 Bad Request` – Las contraseñas no coinciden.
+- `400 Bad Request` – El username o email ya está en uso.
+
+### Crear Empleado (Usuario Dependiente)
+**Método**: `POST`  
+**Endpoint**: `/api/users/users/employees/`  
+**Descripción**: Crea un empleado para la empresa actual. Asigna roles y sucursales.  
+**Requiere rol**: `Administrador General` o `Gerente`
+
+**Request**:
+```json
+{
+  "username": "cajero_01",
+  "email": "cajero@miempresa.com",
+  "password": "password123",
+  "password_confirm": "password123",
+  "first_name": "Carlos",
+  "last_name": "López",
+  "groups_ids": [2],
+  "branches_ids": [1]
+}
+```
+
+**Response** `201`:
+```json
+{
+  "id": 3,
+  "username": "cajero_01",
+  "email": "cajero@miempresa.com",
+  "first_name": "Carlos",
+  "last_name": "López",
+  "company_id": 1,
+  "groups": ["Gerente"],
+  "branches": ["Sucursal Centro"],
+  "message": "Employee created successfully"
+}
+```
+
+**Errores comunes**:
+- `400 Bad Request` – El usuario solicitante no tiene compañía asignada.
+- `400 Bad Request` – `groups_ids` o `branches_ids` contienen IDs inválidos.
+- `400 Bad Request` – Se intenta asignar el rol `Administrador General` sin tenerlo.
+
+### Actualizar Empleado
+**Método**: `PUT` / `PATCH`  
+**Endpoint**: `/api/users/users/<int:pk>/employee/`  
+**Ejemplo**: `/api/users/users/3/employee/`  
+**Requiere rol**: `Administrador General` o `Gerente`
+
+**Request**:
+```json
+{
+  "first_name": "Carlos Andrés",
+  "groups_ids": [2],
+  "branches_ids": [1, 2]
+}
+```
+
+**Response** `200`:
+```json
+{
+  "id": 3,
+  "username": "cajero_01",
+  "email": "cajero@miempresa.com",
+  "first_name": "Carlos Andrés",
+  "last_name": "López",
+  "groups": ["Gerente"],
+  "branches": ["Sucursal Centro", "Sucursal Norte"],
+  "message": "Employee updated successfully"
+}
+```
+
+**Errores comunes**:
+- `400 Bad Request` – El usuario solicitante no tiene compañía asignada.
+- `403 Forbidden` – El empleado no pertenece a la misma compañía.
 
 ### Obtener Usuario
 **Método**: `GET`  

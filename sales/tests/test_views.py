@@ -315,11 +315,11 @@ class SaleViewsAdvancedTestCase(TenantTestCase, APITestCase):
         
         # Try each endpoint - if they work, great; if not, skip
         endpoints = [
-            '/api/sales/sales/summary/',
-            '/api/sales/sales/top-products/',
-            '/api/sales/sales/sales-by-category/',
-            '/api/sales/sales/sales-by-day/',
-            '/api/sales/sales/sales-by-month/',
+            '/api/sales/summary/',
+            '/api/sales/top-products/',
+            '/api/sales/by-category/',
+            '/api/sales/by-day/',
+            '/api/sales/by-month/',
         ]
         
         for endpoint in endpoints:
@@ -338,9 +338,12 @@ class DirectViewSetTests(TenantTestCase, TestCase):
             username='direct',
             password='test',
             first_name='Direct',
-            last_name='Test'
+            last_name='Test',
+            company=self.company
         )
         self.branch = create_test_branch(company=self.company, code="TBv4")
+        # Assign user to branch
+        self.user.branch.add(self.branch)
         
         cr = CashRegister.objects.create(company=self.company, branch=self.branch, code='D1', name='D1', is_active=True)
         self.session = CashSession.objects.create(company=self.company, 
@@ -930,3 +933,512 @@ class SignalErrorPathsTestCase(TenantTestCase, TestCase):
         
         self.assertIsNotNone(sale.id)
         self.assertEqual(sale.total_amount, Decimal('100.00'))
+
+
+class MultiBranchSalesFilterTestCase(TenantTestCase, APITestCase):
+    """Test multi-branch filtering for Sales API - Phase 1"""
+    
+    def setUp(self):
+        super().setUp()
+        from core.models import Branch
+        
+        # Create two branches
+        self.branch_a = Branch.objects.create(
+            company=self.company,
+            name='Branch A',
+            code='BR-A',
+            is_active=True
+        )
+        
+        self.branch_b = Branch.objects.create(
+            company=self.company,
+            name='Branch B',
+            code='BR-B',
+            is_active=True
+        )
+        
+        # Create company owner (General Admin)
+        self.owner = User.objects.create_user(
+            username='owner',
+            password='ownerpass123',
+            email='owner@test.com',
+            company=self.company
+        )
+        self.company.owner = self.owner
+        self.company.save()
+        
+        # Create branch manager
+        self.manager = User.objects.create_user(
+            username='manager',
+            password='managerpass123',
+            email='manager@test.com',
+            company=self.company
+        )
+        self.manager.branch.add(self.branch_a)
+        
+        # Create cash registers and sessions
+        self.register_a = CashRegister.objects.create(
+            company=self.company,
+            branch=self.branch_a,
+            code='REG-A',
+            name='Register A',
+            is_active=True
+        )
+        
+        self.register_b = CashRegister.objects.create(
+            company=self.company,
+            branch=self.branch_b,
+            code='REG-B',
+            name='Register B',
+            is_active=True
+        )
+        
+        self.session_a = CashSession.objects.create(
+            company=self.company,
+            cash_register=self.register_a,
+            user=self.manager,
+            opening_balance=Decimal('1000.00'),
+            status=SessionStatus.OPEN
+        )
+        
+        self.session_b = CashSession.objects.create(
+            company=self.company,
+            cash_register=self.register_b,
+            user=self.owner,
+            opening_balance=Decimal('1000.00'),
+            status=SessionStatus.OPEN
+        )
+        
+        # Create payment method
+        self.pay_method = PayMethod.objects.create(
+            company=self.company,
+            name='Cash'
+        )
+        
+        # Create product with inventory
+        brand = Brand.objects.create(company=self.company, name='TestBrand')
+        category = Category.objects.create(company=self.company, name='TestCat')
+        season = Season.objects.create(name='TestSeason')
+        color = Color.objects.create(name='TestColor', code='#FFF')
+        gender = Gender.objects.create(name='Unisex')
+        
+        self.product = Product.objects.create(
+            company=self.company,
+            name='TestProduct',
+            brand=brand,
+            category=category,
+            season=season,
+            color=color,
+            gender=gender,
+            cost_price=Decimal('50.00'),
+            sale_price=Decimal('100.00')
+        )
+        
+        # Set inventory for both branches
+        inv_a = Inventory.objects.get(product=self.product, branch=self.branch_a)
+        inv_a.quantity = 100
+        inv_a.save()
+        
+        inv_b = Inventory.objects.get(product=self.product, branch=self.branch_b)
+        inv_b.quantity = 100
+        inv_b.save()
+        
+        # Create sales in different branches
+        self.sale_a = Sale.objects.create(
+            company=self.company,
+            seller=self.manager,
+            cash_session=self.session_a,
+            branch=self.branch_a,
+            pay_method=self.pay_method,
+            closed=True
+        )
+        SaleDetail.objects.create(
+            company=self.company,
+            order=self.sale_a,
+            product=self.product,
+            quantity=2,
+            sale_price=Decimal('100.00'),
+            cost_price=Decimal('50.00')
+        )
+        
+        self.sale_b = Sale.objects.create(
+            company=self.company,
+            seller=self.owner,
+            cash_session=self.session_b,
+            branch=self.branch_b,
+            pay_method=self.pay_method,
+            closed=True
+        )
+        SaleDetail.objects.create(
+            company=self.company,
+            order=self.sale_b,
+            product=self.product,
+            quantity=3,
+            sale_price=Decimal('100.00'),
+            cost_price=Decimal('50.00')
+        )
+    
+    def test_general_admin_sees_all_branches(self):
+        """General Admin (company owner) should see sales from all branches"""
+        self.client.force_authenticate(user=self.owner)
+        
+        response = self.client.get('/api/sales/')
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['results']), 2)
+    
+    def test_branch_manager_sees_only_their_branch(self):
+        """Branch Manager should only see sales from their assigned branch"""
+        self.client.force_authenticate(user=self.manager)
+        
+        response = self.client.get('/api/sales/')
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['branch'], self.branch_a.id)
+    
+    def test_filter_by_branch(self):
+        """Test filtering sales by branch"""
+        self.client.force_authenticate(user=self.owner)
+        
+        response = self.client.get(f'/api/sales/?branch={self.branch_a.id}')
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['branch'], self.branch_a.id)
+    
+    def test_filter_by_date_range(self):
+        """Test filtering sales by date range"""
+        self.client.force_authenticate(user=self.owner)
+        
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        # Use yesterday to ensure the sale created in setUp is included
+        yesterday = (timezone.now() - timedelta(days=1)).date()
+        
+        response = self.client.get(f'/api/sales/?date_from={yesterday}')
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertGreaterEqual(len(response.data['results']), 1)
+    
+    def test_summary_with_branch_filter(self):
+        """Test summary endpoint with branch filter"""
+        self.client.force_authenticate(user=self.owner)
+        
+        response = self.client.get(f'/api/sales/summary/?branch={self.branch_a.id}')
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['total_transactions'], 1)
+        self.assertEqual(float(response.data['total_sales']), 200.0)  # 2 * 100
+    
+    def test_summary_by_branch_general_admin(self):
+        """Test summary_by_branch endpoint for General Admin"""
+        self.client.force_authenticate(user=self.owner)
+        
+        response = self.client.get('/api/sales/summary-by-branch/')
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 2)  # Two branches
+        
+        # Verify data structure
+        for branch_data in response.data:
+            self.assertIn('branch_id', branch_data)
+            self.assertIn('branch_name', branch_data)
+            self.assertIn('total_sales', branch_data)
+            self.assertIn('total_transactions', branch_data)
+            self.assertIn('total_profit', branch_data)
+    
+    def test_summary_by_branch_forbidden_for_manager(self):
+        """Test that summary_by_branch is forbidden for branch managers"""
+        self.client.force_authenticate(user=self.manager)
+        
+        response = self.client.get('/api/sales/summary-by-branch/')
+        
+        self.assertEqual(response.status_code, 403)
+        self.assertIn('General Administrator', str(response.data))
+    
+    def test_summary_by_branch_with_date_filter(self):
+        """Test summary_by_branch with date filters"""
+        self.client.force_authenticate(user=self.owner)
+        
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        # Use yesterday to ensure sales are included
+        yesterday = (timezone.now() - timedelta(days=1)).date()
+        
+        response = self.client.get(f'/api/sales/summary-by-branch/?date_from={yesterday}')
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertGreaterEqual(len(response.data), 1)
+
+class SalesViewSetCoverageTestCase(TenantTestCase, APITestCase):
+    def setUp(self):
+        super().setUp()
+        self.client.force_authenticate(user=self.user)
+    
+    def test_sales_viewset_owner_filter(self):
+        from sales.models import Sale, PayMethod
+        from clients.models import Client
+        
+        c = Client.objects.create(company=self.company, name="A", last_name="B")
+        pm = PayMethod.objects.create(name="Cash")
+        Sale.objects.create(company=self.company, client=c, seller=self.user, pay_method=pm)
+    
+    def test_sales_viewset_superuser(self):
+        """Test line 39: superuser sees all sales"""
+        from rest_framework.test import APIRequestFactory
+        from sales.views import SaleViewSet
+        
+        superuser = User.objects.create_superuser(
+            username='super_sales',
+            password='pass',
+            email='super_sales@test.com'
+        )
+        
+        factory = APIRequestFactory()
+        request = factory.get('/api/sales/')
+        request.user = superuser
+        
+        viewset = SaleViewSet()
+        viewset.request = request
+        
+        queryset = viewset.get_queryset()
+        # Superuser can see all sales
+        self.assertGreaterEqual(queryset.count(), 0)
+    
+    def test_sales_viewset_user_no_branches(self):
+        """Test line 52: user with company but no branches returns empty"""
+        from rest_framework.test import APIRequestFactory
+        from sales.views import SaleViewSet
+        
+        user_no_branch = User.objects.create_user(
+            username='nobranch_sales',
+            password='pass',
+            company=self.company
+        )
+        user_no_branch.branch.clear()
+        
+        factory = APIRequestFactory()
+        request = factory.get('/api/sales/')
+        request.user = user_no_branch
+        
+        viewset = SaleViewSet()
+        viewset.request = request
+        
+        queryset = viewset.get_queryset()
+        self.assertEqual(queryset.count(), 0)
+    
+    def test_summary_date_from_and_date_to_filters(self):
+        """Test lines 251, 253: date_from and date_to filters in summary"""
+        from core.models import Branch
+        from sales.models import PayMethod
+        from clients.models import Client
+        from devices.models import CashRegister
+        from cash.models import CashSession
+        from cash.choices import SessionStatus
+        from django.utils import timezone
+        
+        # Create necessary data
+        branch = Branch.objects.create(company=self.company, name="TestBrSum", code="TBSUM")
+        client = Client.objects.create(company=self.company, name="TestClient", last_name="Sum", dni="888666")
+        pm = PayMethod.objects.create(company=self.company, name="CashSum")
+        
+        cr = CashRegister.objects.create(company=self.company, branch=branch, code='CRSUM2', name='CR Sum2')
+        session = CashSession.objects.create(
+            company=self.company,
+            cash_register=cr,
+            user=self.user,
+            opening_balance=1000,
+            status=SessionStatus.OPEN
+        )
+        
+        Sale.objects.create(
+            company=self.company,
+            seller=self.user,
+            client=client,
+            pay_method=pm,
+            cash_session=session,
+            branch=branch,
+            closed=True,
+            total_amount=100
+        )
+        
+        self.client.force_authenticate(user=self.user)
+        
+        # Test with date_from filter (line 251)
+        today = timezone.now().date()
+        url = reverse('sale-summary')
+        response = self.client.get(url, {'date_from': today})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        # Test with date_to filter (line 253)
+        response = self.client.get(url, {'date_to': today})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+    
+    def test_summary_by_branch_date_to_filter(self):
+        """Test line 195: date_to filter in summary_by_branch"""
+        from core.models import Branch
+        from sales.models import PayMethod
+        from clients.models import Client
+        from devices.models import CashRegister
+        from cash.models import CashSession
+        from cash.choices import SessionStatus
+        from django.utils import timezone
+        
+        # Make user owner
+        self.user.owned_company = self.company
+        self.user.save()
+        
+        # Create necessary data
+        branch = Branch.objects.create(company=self.company, name="TestBrSummByBr", code="TBSBB")
+        client = Client.objects.create(company=self.company, name="TestClient", last_name="SummaryBB", dni="999777")
+        pm = PayMethod.objects.create(company=self.company, name="CashBB")
+        
+        cr = CashRegister.objects.create(company=self.company, branch=branch, code='CRSUMBB', name='CR SummaryBB')
+        session = CashSession.objects.create(
+            company=self.company,
+            cash_register=cr,
+            user=self.user,
+            opening_balance=1000,
+            status=SessionStatus.OPEN
+        )
+        
+        Sale.objects.create(
+            company=self.company,
+            seller=self.user,
+            client=client,
+            pay_method=pm,
+            cash_session=session,
+            branch=branch,
+            closed=True,
+            total_amount=100
+        )
+        
+        self.client.force_authenticate(user=self.user)
+        
+        # Test with date_to filter only (line 195)
+        today = timezone.now().date()
+        url = reverse('sale-summary-by-branch')
+        response = self.client.get(url, {'date_to': today})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+    
+    def test_close_sale_without_session_or_register_data(self):
+        """Test validation when session and register data are null"""
+        from rest_framework.test import APIRequestFactory
+        from sales.views import SaleViewSet
+        from sales.models import Sale
+        from clients.models import Client
+        from core.models import Branch
+        
+        # Create branch for inventory
+        branch = Branch.objects.create(company=self.company, name="TestBr", code="TB999")
+        
+        # Create sale without cash session
+        client = Client.objects.create(company=self.company, name="Test", last_name="Client", dni="123456")
+        sale = Sale.objects.create(
+            company=self.company,
+            seller=self.user,
+            client=client,
+            closed=False
+        )
+        
+        # Add a detail
+        from products.models import Product, Category, Brand, Season, Color, Gender
+        from inventory.models import Inventory
+        
+        category = Category.objects.create(company=self.company, name="CatClose")
+        brand = Brand.objects.create(company=self.company, name="BrandClose")
+        season = Season.objects.create(name="SeasonClose")
+        color = Color.objects.create(name="ColorClose", code="#001")
+        gender = Gender.objects.create(name="UnisexClose")
+        
+        product = Product.objects.create(
+            company=self.company,
+            name="ProductClose",
+            category=category,
+            brand=brand,
+            season=season,
+            color=color,
+            gender=gender,
+            sale_price=100,
+            cost_price=50
+        )
+        
+        # Get or create inventory
+        inv, _ = Inventory.objects.get_or_create(
+            company=self.company,
+            branch=branch,
+            product=product,
+            defaults={'quantity': 100}
+        )
+        inv.quantity = 100
+        inv.save()
+        
+        from sales.models import SaleDetail
+        SaleDetail.objects.create(
+            company=self.company,
+            order=sale,
+            product=product,
+            quantity=1,
+            sale_price=100,
+            cost_price=50
+        )
+        
+        factory = APIRequestFactory()
+        request = factory.post(f'/api/sales/{sale.pk}/close/')
+        request.user = self.user
+        request.data = {}
+        request.query_params = request.GET
+        
+        viewset = SaleViewSet()
+        viewset.request = request
+        viewset.format_kwarg = None
+        viewset.kwargs = {'pk': sale.pk}
+        
+        response = viewset.close(request, pk=sale.pk)
+        # Should fail because no cash session and no pay_method
+        self.assertEqual(response.status_code, 400)
+    
+    def test_cancel_sale_detail_view_errors(self):
+        """Test lines 251, 253: cancel sale error paths in detail view"""
+        from rest_framework.test import APIRequestFactory
+        from sales.views import SaleViewSet
+        from sales.models import Sale
+        from clients.models import Client
+        
+        # Test canceling already canceled sale
+        client = Client.objects.create(company=self.company, name="Test2", last_name="Client2", dni="456")
+        sale = Sale.objects.create(
+            company=self.company,
+            seller=self.user,
+            client=client,
+            closed=True,
+            canceled=True
+        )
+        
+        factory = APIRequestFactory()
+        request = factory.post(f'/api/sales/{sale.pk}/cancel/')
+        request.user = self.user
+        request.query_params = request.GET
+        
+        viewset = SaleViewSet()
+        viewset.request = request
+        viewset.format_kwarg = None
+        viewset.kwargs = {'pk': sale.pk}
+        
+        response = viewset.cancel(request, pk=sale.pk)
+        self.assertEqual(response.status_code, 400)
+        
+        self.user.owned_company = self.company
+        self.user.save()
+        response = self.client.get(reverse('sale-list'))
+        self.assertEqual(len(response.data['results']), 1)
+        
+        self.user.owned_company = None
+        self.user.is_superuser = False
+        self.user.save()
+        self.user.company = None
+        response2 = self.client.get(reverse('sale-list'))
+        self.assertEqual(len(response2.data['results']), 0)

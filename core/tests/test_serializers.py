@@ -114,9 +114,12 @@ class BranchSerializerTest(TestCase):
         self.assertIn('updated_at', data)
     
     def test_deserialize_branch(self):
-        """Test deserializing and creating a branch"""
+        """Test deserializing and creating a branch
+        
+        Note: The company field is read-only and must be provided via save()
+        to match the ViewSet behavior where company is set automatically.
+        """
         data = {
-            'company': self.company.id,
             'name': 'New Branch',
             'code': 'NEW-001',
             'address': '456 New Street',
@@ -124,7 +127,8 @@ class BranchSerializerTest(TestCase):
         }
         serializer = BranchSerializer(data=data)
         self.assertTrue(serializer.is_valid())
-        branch = serializer.save()
+        # Company must be provided in save() since it's read-only in serializer
+        branch = serializer.save(company=self.company)
         
         self.assertEqual(branch.name, 'New Branch')
         self.assertEqual(branch.code, 'NEW-001')
@@ -146,7 +150,6 @@ class BranchSerializerTest(TestCase):
     def test_validate_code_unique_on_create(self):
         """Test that code validation prevents duplicate codes on create"""
         data = {
-            'company': self.company.id,
             'name': 'Another Branch',
             'code': 'MAIN-001',  # Same code as existing branch
             'is_active': True
@@ -185,6 +188,7 @@ class BranchSerializerTest(TestCase):
     def test_read_only_fields(self):
         """Test that certain fields are read-only"""
         serializer = BranchSerializer(instance=self.branch)
+        self.assertTrue(serializer.fields['company'].read_only)
         self.assertTrue(serializer.fields['company_name'].read_only)
         self.assertTrue(serializer.fields['created_at'].read_only)
         self.assertTrue(serializer.fields['updated_at'].read_only)

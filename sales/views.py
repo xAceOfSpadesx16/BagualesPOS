@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError as DRFValidationError
 from django.shortcuts import get_object_or_404
 from django.db import transaction
-from django.db.models import Sum, Count, Avg, F
+from django.db.models import Sum, Count, Avg, F, Q
 from django.db.models.functions import TruncMonth, TruncDate
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils import timezone
@@ -15,6 +15,7 @@ from cash.models import CashSession
 from cash.choices import SessionStatus
 from .models import Sale, SaleDetail, PayMethod
 from .serializers import SaleSerializer, SaleDetailSerializer, PayMethodSerializer
+from .filters import SaleFilter
 
 class PayMethodViewSet(viewsets.ModelViewSet):
     queryset = PayMethod.objects.all()
@@ -23,6 +24,35 @@ class PayMethodViewSet(viewsets.ModelViewSet):
 class SaleViewSet(viewsets.ModelViewSet):
     queryset = Sale.objects.all()
     serializer_class = SaleSerializer
+    filterset_class = SaleFilter
+    
+    def get_queryset(self):
+        """
+        Filter sales by user's branch unless user is a General Admin (superuser or company owner).
+        General Admins can see all sales from their company.
+        """
+        queryset = super().get_queryset()
+        user = self.request.user
+        
+        # Superusers see everything (for admin purposes)
+        if user.is_superuser:
+            return queryset
+        
+        # Check if user is company owner (General Admin)
+        if hasattr(user, 'owned_company'):
+            # User is a company owner, show all sales from their company
+            return queryset.filter(company=user.owned_company)
+        
+        # Regular users (Branch Managers/Employees) see only their branch sales
+        if user.company:
+            user_branches = user.branch.all()
+            if user_branches.exists():
+                return queryset.filter(branch__in=user_branches)
+            # If user has no branches assigned, return empty queryset
+            return queryset.none()
+        
+        # Users without company shouldn't see anything
+        return queryset.none()
 
     def perform_create(self, serializer):
         """Create sale and auto-assign to active cash session"""
@@ -35,7 +65,7 @@ class SaleViewSet(viewsets.ModelViewSet):
         if not active_session:
             raise DRFValidationError({
                 'detail': 'Debe abrir una sesión de caja antes de crear ventas. '
-                         'Use POST /api/cash/cash-sessions/open/ para abrir una sesión.'
+                         'Use POST /api/cash/sessions/open/ para abrir una sesión.'
             })
         
         # Auto-assign session and seller
@@ -133,25 +163,117 @@ class SaleViewSet(viewsets.ModelViewSet):
 
         return Response(self.get_serializer(sale).data)
 
-    filterset_fields = ['closed', 'pay_method', 'seller', 'payment_status', 'canceled']
     search_fields = ['client__name', 'client__last_name', 'client__dni']
     ordering_fields = ['created_at', 'total_amount']
+    
+    @action(detail=False, methods=['get'], url_path='summary-by-branch')
+    def summary_by_branch(self, request):
+        """
+        Returns sales summary aggregated by branch.
+        Supports date_from and date_to filters.
+        Only available for General Admins (company owners or superusers).
+        """
+        user = request.user
+        
+        # Check if user is General Admin
+        if not (user.is_superuser or hasattr(user, 'owned_company')):
+            return Response(
+                {'error': 'This endpoint is only available for General Administrators.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Start with the filtered queryset
+        queryset = self.filter_queryset(self.get_queryset())
+        
+        # Apply date filters
+        date_from = request.query_params.get('date_from')
+        date_to = request.query_params.get('date_to')
+        
+        if date_from:
+            queryset = queryset.filter(created_at__gte=date_from)
+        if date_to:
+            queryset = queryset.filter(created_at__lte=date_to)
+        
+        # Filter only closed and non-canceled sales
+        queryset = queryset.filter(closed=True, canceled=False)
+        
+        # Aggregate by branch
+        branch_data = queryset.values(
+            'branch__id', 'branch__name', 'branch__code'
+        ).annotate(
+            total_sales=Sum('total_amount'),
+            total_transactions=Count('id'),
+            average_ticket=Avg('total_amount')
+        ).order_by('-total_sales')
+        
+        # Calculate profit per branch
+        results = []
+        for branch in branch_data:
+            branch_sales = queryset.filter(branch_id=branch['branch__id'])
+            sale_ids = branch_sales.values_list('id', flat=True)
+            details = SaleDetail.objects.filter(order_id__in=sale_ids)
+            total_profit = sum(detail.profit for detail in details)
+            
+            results.append({
+                'branch_id': branch['branch__id'],
+                'branch_name': branch['branch__name'],
+                'branch_code': branch['branch__code'],
+                'total_sales': float(branch['total_sales'] or 0),
+                'total_transactions': branch['total_transactions'],
+                'average_ticket': float(branch['average_ticket'] or 0),
+                'total_profit': float(total_profit),
+            })
+        
+        return Response(results)
 
     @action(detail=False, methods=['get'])
     def summary(self, request):
         """
-        Returns a summary of sales metrics.
+        Returns a summary of sales metrics with support for filters:
+        - branch: Filter by branch ID
+        - date_from: Filter sales from this date (ISO format)
+        - date_to: Filter sales until this date (ISO format)
         """
-        total_sales = Sale.objects.filter(closed=True, canceled=False).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
-        total_transactions = Sale.objects.filter(closed=True, canceled=False).count()
-        average_ticket = Sale.objects.filter(closed=True, canceled=False).aggregate(Avg('total_amount'))['total_amount__avg'] or 0
-        total_products_sold = SaleDetail.objects.filter(order__closed=True, order__canceled=False).aggregate(Sum('quantity'))['quantity__sum'] or 0
+        # Start with the base queryset (respects user permissions)
+        queryset = self.get_queryset()
+        
+        # Get query params (handle both DRF and regular requests)
+        query_params = getattr(request, 'query_params', request.GET)
+        
+        # Apply additional filters from query params
+        branch = query_params.get('branch')
+        date_from = query_params.get('date_from')
+        date_to = query_params.get('date_to')
+        
+        if branch:
+            queryset = queryset.filter(branch_id=branch)
+        if date_from:
+            queryset = queryset.filter(created_at__gte=date_from)
+        if date_to:
+            queryset = queryset.filter(created_at__lte=date_to)
+        
+        # Filter only closed and non-canceled sales
+        queryset = queryset.filter(closed=True, canceled=False)
+        
+        # Calculate metrics
+        total_sales = queryset.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+        total_transactions = queryset.count()
+        average_ticket = queryset.aggregate(Avg('total_amount'))['total_amount__avg'] or 0
+        
+        # Calculate total products sold and profit
+        sale_ids = queryset.values_list('id', flat=True)
+        details_queryset = SaleDetail.objects.filter(order_id__in=sale_ids)
+        total_products_sold = details_queryset.aggregate(Sum('quantity'))['quantity__sum'] or 0
+        
+        # Calculate total profit (sum of all detail profits)
+        total_profit = sum(detail.profit for detail in details_queryset)
 
         return Response({
-            'total_sales': total_sales,
+            'total_sales': float(total_sales),
             'total_transactions': total_transactions,
-            'average_ticket': average_ticket,
-            'total_products_sold': total_products_sold
+            'average_ticket': float(average_ticket) if average_ticket else 0,
+            'total_products_sold': total_products_sold,
+            'total_profit': float(total_profit),
         })
 
     @action(detail=False, methods=['get'], url_path='top-products')
@@ -171,7 +293,7 @@ class SaleViewSet(viewsets.ModelViewSet):
 
         return Response(top_products)
 
-    @action(detail=False, methods=['get'], url_path='sales-by-category')
+    @action(detail=False, methods=['get'], url_path='by-category')
     def sales_by_category(self, request):
         """
         Returns sales grouped by category.
@@ -187,7 +309,7 @@ class SaleViewSet(viewsets.ModelViewSet):
         # For now just return name and value
         return Response(data)
 
-    @action(detail=False, methods=['get'], url_path='sales-by-day')
+    @action(detail=False, methods=['get'], url_path='by-day')
     def sales_by_day(self, request):
         """
         Returns sales grouped by day for the last 7 days.
@@ -223,7 +345,7 @@ class SaleViewSet(viewsets.ModelViewSet):
 
         return Response(formatted_data)
 
-    @action(detail=False, methods=['get'], url_path='sales-by-month')
+    @action(detail=False, methods=['get'], url_path='by-month')
     def sales_by_month(self, request):
         """
         Returns sales grouped by month for the last 6 months.

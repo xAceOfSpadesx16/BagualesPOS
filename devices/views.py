@@ -24,6 +24,35 @@ class DeviceViewSet(viewsets.ModelViewSet):
     search_fields = ['code', 'name', 'location', 'serial_number']
     ordering_fields = ['name', 'code', 'created_at', 'last_seen']
 
+    def get_queryset(self):
+        """
+        Filter devices by user's branch unless user is a General Admin.
+        - Superusers: see all devices
+        - Company owners (General Admins): see all devices in their company
+        - Branch managers/employees: see only devices in their branches
+        """
+        queryset = super().get_queryset()
+        user = self.request.user
+        
+        # Superusers see everything
+        if user.is_superuser:
+            return queryset
+        
+        # Check if user is company owner (General Admin)
+        if hasattr(user, 'owned_company'):
+            return queryset.filter(company=user.owned_company)
+        
+        # Regular users (Branch Managers/Employees) see only their branch devices
+        if user.company:
+            user_branches = user.branch.all()
+            if user_branches.exists():
+                return queryset.filter(branch__in=user_branches)
+            # If user has no branches assigned, show all company devices (fallback)
+            return queryset.filter(company=user.company)
+        
+        # Users without company shouldn't see anything
+        return queryset.none()
+
     def get_serializer_class(self):
         if self.action == 'list':
             return DeviceListSerializer

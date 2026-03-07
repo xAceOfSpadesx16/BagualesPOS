@@ -70,13 +70,13 @@ class CashSessionAPITestCase(TenantTestCase, APITestCase):
     
     def test_list_sessions_unauthenticated(self):
         """Test that listing sessions requires authentication"""
-        response = self.client.get('/api/cash/cash-sessions/')
+        response = self.client.get('/api/cash/sessions/')
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
     
     def test_list_sessions_empty(self):
         """Test listing sessions when there are none"""
         self.authenticate(self.user1)
-        response = self.client.get('/api/cash/cash-sessions/')
+        response = self.client.get('/api/cash/sessions/')
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data['results'] if 'results' in response.data else response.data), 0)
@@ -90,7 +90,7 @@ class CashSessionAPITestCase(TenantTestCase, APITestCase):
             'opening_balance': '1000.00'
         }
         
-        response = self.client.post('/api/cash/cash-sessions/open/', data)
+        response = self.client.post('/api/cash/sessions/open/', data)
         
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data['status'], SessionStatus.OPEN)
@@ -115,7 +115,7 @@ class CashSessionAPITestCase(TenantTestCase, APITestCase):
             'opening_balance': '1000.00'
         }
         
-        response = self.client.post('/api/cash/cash-sessions/open/', data)
+        response = self.client.post('/api/cash/sessions/open/', data)
         
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('error', response.data)
@@ -129,7 +129,7 @@ class CashSessionAPITestCase(TenantTestCase, APITestCase):
             'opening_balance': '-100.00'
         }
         
-        response = self.client.post('/api/cash/cash-sessions/open/', data)
+        response = self.client.post('/api/cash/sessions/open/', data)
         
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
     
@@ -142,7 +142,7 @@ class CashSessionAPITestCase(TenantTestCase, APITestCase):
             'cash_register': self.cash_register1.id,
             'opening_balance': '1000.00'
         }
-        response1 = self.client.post('/api/cash/cash-sessions/open/', data1)
+        response1 = self.client.post('/api/cash/sessions/open/', data1)
         self.assertEqual(response1.status_code, status.HTTP_201_CREATED)
         
         # Try to open second session
@@ -150,7 +150,7 @@ class CashSessionAPITestCase(TenantTestCase, APITestCase):
             'cash_register': self.cash_register2.id,
             'opening_balance': '500.00'
         }
-        response2 = self.client.post('/api/cash/cash-sessions/open/', data2)
+        response2 = self.client.post('/api/cash/sessions/open/', data2)
         
         self.assertEqual(response2.status_code, status.HTTP_400_BAD_REQUEST)
     
@@ -162,7 +162,7 @@ class CashSessionAPITestCase(TenantTestCase, APITestCase):
             'cash_register': self.cash_register1.id,
             'opening_balance': '1000.00'
         }
-        response1 = self.client.post('/api/cash/cash-sessions/open/', data1)
+        response1 = self.client.post('/api/cash/sessions/open/', data1)
         self.assertEqual(response1.status_code, status.HTTP_201_CREATED)
         
         # User2 tries to open session on same register
@@ -171,7 +171,7 @@ class CashSessionAPITestCase(TenantTestCase, APITestCase):
             'cash_register': self.cash_register1.id,
             'opening_balance': '500.00'
         }
-        response2 = self.client.post('/api/cash/cash-sessions/open/', data2)
+        response2 = self.client.post('/api/cash/sessions/open/', data2)
         
         self.assertEqual(response2.status_code, status.HTTP_400_BAD_REQUEST)
     
@@ -184,7 +184,7 @@ class CashSessionAPITestCase(TenantTestCase, APITestCase):
             'cash_register': self.cash_register1.id,
             'opening_balance': '1000.00'
         }
-        response_open = self.client.post('/api/cash/cash-sessions/open/', data_open)
+        response_open = self.client.post('/api/cash/sessions/open/', data_open)
         session_id = response_open.data['id']
         
         # Close session
@@ -193,7 +193,7 @@ class CashSessionAPITestCase(TenantTestCase, APITestCase):
             'notes': 'Cierre normal'
         }
         response_close = self.client.post(
-            f'/api/cash/cash-sessions/{session_id}/close/',
+            f'/api/cash/sessions/{session_id}/close/',
             data_close
         )
         
@@ -218,17 +218,17 @@ class CashSessionAPITestCase(TenantTestCase, APITestCase):
             'cash_register': self.cash_register1.id,
             'opening_balance': '1000.00'
         }
-        response_open = self.client.post('/api/cash/cash-sessions/open/', data_open)
+        response_open = self.client.post('/api/cash/sessions/open/', data_open)
         session_id = response_open.data['id']
         
         data_close = {
             'closing_balance': '5500.00'
         }
-        self.client.post(f'/api/cash/cash-sessions/{session_id}/close/', data_close)
+        self.client.post(f'/api/cash/sessions/{session_id}/close/', data_close)
         
         # Try to close again
         response_close2 = self.client.post(
-            f'/api/cash/cash-sessions/{session_id}/close/',
+            f'/api/cash/sessions/{session_id}/close/',
             data_close
         )
         
@@ -244,7 +244,7 @@ class CashSessionAPITestCase(TenantTestCase, APITestCase):
             'cash_register': self.cash_register1.id,
             'opening_balance': '1000.00'
         }
-        response_open = self.client.post('/api/cash/cash-sessions/open/', data_open)
+        response_open = self.client.post('/api/cash/sessions/open/', data_open)
         session_id = response_open.data['id']
         
         # User2 tries to close
@@ -253,7 +253,7 @@ class CashSessionAPITestCase(TenantTestCase, APITestCase):
             'closing_balance': '5500.00'
         }
         response_close = self.client.post(
-            f'/api/cash/cash-sessions/{session_id}/close/',
+            f'/api/cash/sessions/{session_id}/close/',
             data_close
         )
         
@@ -268,7 +268,7 @@ class CashSessionAPITestCase(TenantTestCase, APITestCase):
             'cash_register': self.cash_register1.id,
             'opening_balance': '1000.00'
         }
-        response_open = self.client.post('/api/cash/cash-sessions/open/', data_open)
+        response_open = self.client.post('/api/cash/sessions/open/', data_open)
         session_id = response_open.data['id']
         
         # Admin closes
@@ -278,7 +278,7 @@ class CashSessionAPITestCase(TenantTestCase, APITestCase):
             'notes': 'Cierre administrativo'
         }
         response_close = self.client.post(
-            f'/api/cash/cash-sessions/{session_id}/close/',
+            f'/api/cash/sessions/{session_id}/close/',
             data_close
         )
         
@@ -293,7 +293,7 @@ class CashSessionAPITestCase(TenantTestCase, APITestCase):
             'cash_register': self.cash_register1.id,
             'opening_balance': '1000.00'
         }
-        response_open = self.client.post('/api/cash/cash-sessions/open/', data_open)
+        response_open = self.client.post('/api/cash/sessions/open/', data_open)
         session_id = response_open.data['id']
         
         # Try to close with negative balance
@@ -301,7 +301,7 @@ class CashSessionAPITestCase(TenantTestCase, APITestCase):
             'closing_balance': '-100.00'
         }
         response_close = self.client.post(
-            f'/api/cash/cash-sessions/{session_id}/close/',
+            f'/api/cash/sessions/{session_id}/close/',
             data_close
         )
         
@@ -316,10 +316,10 @@ class CashSessionAPITestCase(TenantTestCase, APITestCase):
             'cash_register': self.cash_register1.id,
             'opening_balance': '1000.00'
         }
-        self.client.post('/api/cash/cash-sessions/open/', data_open)
+        self.client.post('/api/cash/sessions/open/', data_open)
         
         # Get active session
-        response = self.client.get('/api/cash/cash-sessions/my_active/')
+        response = self.client.get('/api/cash/sessions/my_active/')
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['user'], self.user1.id)
@@ -329,7 +329,7 @@ class CashSessionAPITestCase(TenantTestCase, APITestCase):
         """Test getting active session when user has none"""
         self.authenticate(self.user1)
         
-        response = self.client.get('/api/cash/cash-sessions/my_active/')
+        response = self.client.get('/api/cash/sessions/my_active/')
         
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
     
@@ -342,11 +342,11 @@ class CashSessionAPITestCase(TenantTestCase, APITestCase):
             'cash_register': self.cash_register1.id,
             'opening_balance': '1000.00'
         }
-        response_open = self.client.post('/api/cash/cash-sessions/open/', data_open)
+        response_open = self.client.post('/api/cash/sessions/open/', data_open)
         session_id = response_open.data['id']
         
         # Get sales
-        response = self.client.get(f'/api/cash/cash-sessions/{session_id}/sales/')
+        response = self.client.get(f'/api/cash/sessions/{session_id}/sales/')
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIsInstance(response.data, list)
@@ -360,11 +360,11 @@ class CashSessionAPITestCase(TenantTestCase, APITestCase):
             'cash_register': self.cash_register1.id,
             'opening_balance': '1000.00'
         }
-        response_open = self.client.post('/api/cash/cash-sessions/open/', data_open)
+        response_open = self.client.post('/api/cash/sessions/open/', data_open)
         session_id = response_open.data['id']
         
         # Get movements
-        response = self.client.get(f'/api/cash/cash-sessions/{session_id}/movements/')
+        response = self.client.get(f'/api/cash/sessions/{session_id}/movements/')
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIsInstance(response.data, list)
@@ -380,11 +380,11 @@ class CashSessionAPITestCase(TenantTestCase, APITestCase):
             'cash_register': self.cash_register1.id,
             'opening_balance': '1000.00'
         }
-        response_open = self.client.post('/api/cash/cash-sessions/open/', data_open)
+        response_open = self.client.post('/api/cash/sessions/open/', data_open)
         session_id = response_open.data['id']
         
         # Get summary
-        response = self.client.get(f'/api/cash/cash-sessions/{session_id}/summary/')
+        response = self.client.get(f'/api/cash/sessions/{session_id}/summary/')
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn('session', response.data)
@@ -405,7 +405,7 @@ class CashSessionAPITestCase(TenantTestCase, APITestCase):
             'cash_register': self.cash_register1.id,
             'opening_balance': '1000.00'
         }
-        self.client.post('/api/cash/cash-sessions/open/', data1)
+        self.client.post('/api/cash/sessions/open/', data1)
         
         # Create and close session for user2
         self.authenticate(self.user2)
@@ -413,17 +413,17 @@ class CashSessionAPITestCase(TenantTestCase, APITestCase):
             'cash_register': self.cash_register2.id,
             'opening_balance': '500.00'
         }
-        response2 = self.client.post('/api/cash/cash-sessions/open/', data2)
+        response2 = self.client.post('/api/cash/sessions/open/', data2)
         session2_id = response2.data['id']
         
         self.client.post(
-            f'/api/cash/cash-sessions/{session2_id}/close/',
+            f'/api/cash/sessions/{session2_id}/close/',
             {'closing_balance': '1000.00'}
         )
         
         # Filter by status OPEN
         self.authenticate(self.admin)
-        response = self.client.get('/api/cash/cash-sessions/?status=OPEN')
+        response = self.client.get('/api/cash/sessions/?status=OPEN')
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         results = response.data['results'] if 'results' in response.data else response.data
@@ -431,7 +431,7 @@ class CashSessionAPITestCase(TenantTestCase, APITestCase):
         self.assertEqual(results[0]['status'], SessionStatus.OPEN)
         
         # Filter by user
-        response_user = self.client.get(f'/api/cash/cash-sessions/?user={self.user2.id}')
+        response_user = self.client.get(f'/api/cash/sessions/?user={self.user2.id}')
         results_user = response_user.data['results'] if 'results' in response_user.data else response_user.data
         self.assertEqual(len(results_user), 1)
         self.assertEqual(results_user[0]['user'], self.user2.id)
@@ -445,11 +445,11 @@ class CashSessionAPITestCase(TenantTestCase, APITestCase):
             'cash_register': self.cash_register1.id,
             'opening_balance': '1000.00'
         }
-        response_open = self.client.post('/api/cash/cash-sessions/open/', data_open)
+        response_open = self.client.post('/api/cash/sessions/open/', data_open)
         session_id = response_open.data['id']
         
         # Retrieve detail
-        response = self.client.get(f'/api/cash/cash-sessions/{session_id}/')
+        response = self.client.get(f'/api/cash/sessions/{session_id}/')
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         # Full serializer includes nested data
@@ -520,7 +520,7 @@ class CashMovementAPITestCase(TenantTestCase, APITestCase):
             'description': 'Cambio para turno'
         }
         
-        response = self.client.post('/api/cash/cash-movements/', data)
+        response = self.client.post('/api/cash/movements/', data)
         
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data['type'], MovementType.CASH_IN)
@@ -539,7 +539,7 @@ class CashMovementAPITestCase(TenantTestCase, APITestCase):
             'description': 'Compra de suministros'
         }
         
-        response = self.client.post('/api/cash/cash-movements/', data)
+        response = self.client.post('/api/cash/movements/', data)
         
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data['type'], MovementType.CASH_OUT)
@@ -553,7 +553,7 @@ class CashMovementAPITestCase(TenantTestCase, APITestCase):
             'reason': 'Test'
         }
         
-        response = self.client.post('/api/cash/cash-movements/', data)
+        response = self.client.post('/api/cash/movements/', data)
         
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
     
@@ -568,7 +568,7 @@ class CashMovementAPITestCase(TenantTestCase, APITestCase):
             created_by=self.user
         )
         
-        response = self.client.get('/api/cash/cash-movements/')
+        response = self.client.get('/api/cash/movements/')
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         results = response.data['results'] if 'results' in response.data else response.data
@@ -577,7 +577,7 @@ class CashMovementAPITestCase(TenantTestCase, APITestCase):
     def test_filter_movements_by_session(self):
         """Test filtering movements by session"""
         response = self.client.get(
-            f'/api/cash/cash-movements/?cash_session={self.open_session.id}'
+            f'/api/cash/movements/?cash_session={self.open_session.id}'
         )
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -603,7 +603,7 @@ class CashMovementAPITestCase(TenantTestCase, APITestCase):
             created_by=self.user
         )
         
-        response = self.client.get('/api/cash/cash-movements/?type=CASH_IN')
+        response = self.client.get('/api/cash/movements/?type=CASH_IN')
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         results = response.data['results'] if 'results' in response.data else response.data
@@ -619,7 +619,7 @@ class CashMovementAPITestCase(TenantTestCase, APITestCase):
             'reason': 'Test'
         }
         
-        response = self.client.post('/api/cash/cash-movements/', data)
+        response = self.client.post('/api/cash/movements/', data)
         
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertIn('type_display', response.data)
@@ -636,7 +636,7 @@ class CashMovementAPITestCase(TenantTestCase, APITestCase):
             'reason': 'Test'
         }
         
-        response = self.client.post('/api/cash/cash-movements/', data)
+        response = self.client.post('/api/cash/movements/', data)
         
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
@@ -669,7 +669,7 @@ class ViewEdgeCasesTestCase(TenantTestCase, APITestCase):
         )
         
         # List sessions (should use CashSessionListSerializer)
-        response = self.client.get('/api/cash/cash-sessions/')
+        response = self.client.get('/api/cash/sessions/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         
         # Response should have simplified fields from list serializer
@@ -698,7 +698,7 @@ class ViewEdgeCasesTestCase(TenantTestCase, APITestCase):
             'reason': 'Test'
         }
         
-        response = self.client.post('/api/cash/cash-movements/', data)
+        response = self.client.post('/api/cash/movements/', data)
         
         # Should fail with validation error
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -707,7 +707,7 @@ class ViewEdgeCasesTestCase(TenantTestCase, APITestCase):
     def test_cash_register_list(self):
         """Test listing cash registers"""
         
-        response = self.client.get('/api/cash/cash-registers/')
+        response = self.client.get('/api/cash/registers/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         # Response might be paginated or a list
         if isinstance(response.data, dict):
@@ -721,7 +721,7 @@ class ViewEdgeCasesTestCase(TenantTestCase, APITestCase):
     def test_cash_register_retrieve(self):
         """Test retrieving cash register detail"""
         
-        response = self.client.get(f'/api/cash/cash-registers/{self.cash_register.id}/')
+        response = self.client.get(f'/api/cash/registers/{self.cash_register.id}/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['name'], 'Edge Test Register')
     
@@ -729,7 +729,7 @@ class ViewEdgeCasesTestCase(TenantTestCase, APITestCase):
         """Test current_session endpoint when no session exists"""
         
         response = self.client.get(
-            f'/api/cash/cash-registers/{self.cash_register.id}/current_session/'
+            f'/api/cash/registers/{self.cash_register.id}/current_session/'
         )
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         self.assertIn('No open session', response.data['detail'])
@@ -746,7 +746,7 @@ class ViewEdgeCasesTestCase(TenantTestCase, APITestCase):
         )
         
         response = self.client.get(
-            f'/api/cash/cash-registers/{self.cash_register.id}/current_session/'
+            f'/api/cash/registers/{self.cash_register.id}/current_session/'
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['id'], session.id)
@@ -767,7 +767,7 @@ class ViewEdgeCasesTestCase(TenantTestCase, APITestCase):
              })
              
              response = self.client.post(
-                 f'/api/cash/cash-sessions/{session.id}/close/',
+                 f'/api/cash/sessions/{session.id}/close/',
                  {'closing_balance': '1500.00', 'notes': 'Test'},
                  format='json'
              )
@@ -858,7 +858,7 @@ class CashIntegrationTestCase(TenantTestCase, APITestCase):
     def test_complete_session_workflow(self):
         """Test complete workflow: open -> movements -> close"""
         # 1. Open session
-        response_open = self.client.post('/api/cash/cash-sessions/open/', {
+        response_open = self.client.post('/api/cash/sessions/open/', {
             'cash_register': self.cash_register.id,
             'opening_balance': '1000.00'
         })
@@ -867,7 +867,7 @@ class CashIntegrationTestCase(TenantTestCase, APITestCase):
         session_id = response_open.data['id']
         
         # 2. Add cash in movement
-        response_in = self.client.post('/api/cash/cash-movements/', {
+        response_in = self.client.post('/api/cash/movements/', {
             'cash_session': session_id,
             'type': MovementType.CASH_IN,
             'amount': '500.00',
@@ -877,7 +877,7 @@ class CashIntegrationTestCase(TenantTestCase, APITestCase):
         self.assertEqual(response_in.status_code, status.HTTP_201_CREATED)
         
         # 3. Add cash out movement
-        response_out = self.client.post('/api/cash/cash-movements/', {
+        response_out = self.client.post('/api/cash/movements/', {
             'cash_session': session_id,
             'type': MovementType.CASH_OUT,
             'amount': '100.00',
@@ -887,7 +887,7 @@ class CashIntegrationTestCase(TenantTestCase, APITestCase):
         self.assertEqual(response_out.status_code, status.HTTP_201_CREATED)
         
         # 4. Check summary
-        response_summary = self.client.get(f'/api/cash/cash-sessions/{session_id}/summary/')
+        response_summary = self.client.get(f'/api/cash/sessions/{session_id}/summary/')
         
         self.assertEqual(response_summary.status_code, status.HTTP_200_OK)
         totals = response_summary.data['totals']
@@ -899,7 +899,7 @@ class CashIntegrationTestCase(TenantTestCase, APITestCase):
         self.assertEqual(Decimal(totals['expected_balance']), Decimal('1400.00'))
         
         # 5. Close session
-        response_close = self.client.post(f'/api/cash/cash-sessions/{session_id}/close/', {
+        response_close = self.client.post(f'/api/cash/sessions/{session_id}/close/', {
             'closing_balance': '1450.00',
             'notes': 'Cierre de turno'
         })
@@ -913,7 +913,7 @@ class CashIntegrationTestCase(TenantTestCase, APITestCase):
     def test_cannot_open_two_sessions_same_time(self):
         """Test that user cannot have multiple open sessions"""
         # Open first session
-        response1 = self.client.post('/api/cash/cash-sessions/open/', {
+        response1 = self.client.post('/api/cash/sessions/open/', {
             'cash_register': self.cash_register.id,
             'opening_balance': '1000.00'
         })
@@ -927,7 +927,7 @@ class CashIntegrationTestCase(TenantTestCase, APITestCase):
             is_active=True
         )
         
-        response2 = self.client.post('/api/cash/cash-sessions/open/', {
+        response2 = self.client.post('/api/cash/sessions/open/', {
             'cash_register': cash_register2.id,
             'opening_balance': '500.00'
         })
