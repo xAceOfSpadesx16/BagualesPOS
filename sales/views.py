@@ -11,48 +11,27 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils import timezone
 import datetime
 
+from rest_framework.filters import SearchFilter, OrderingFilter
+from django_filters.rest_framework import DjangoFilterBackend
+from utils.mixins import TenantViewSetMixin
+
 from cash.models import CashSession
 from cash.choices import SessionStatus
-from .models import Sale, SaleDetail, PayMethod
-from .serializers import SaleSerializer, SaleDetailSerializer, PayMethodSerializer
-from .filters import SaleFilter
+from .models import Sale, SaleDetail, PayMethod, Return
+from .serializers import (
+    SaleSerializer, SaleDetailSerializer, PayMethodSerializer,
+    ReturnListSerializer, ReturnDetailResponseSerializer, ReturnCreateSerializer,
+)
+from .filters import SaleFilter, ReturnFilter
 
 class PayMethodViewSet(viewsets.ModelViewSet):
     queryset = PayMethod.objects.all()
     serializer_class = PayMethodSerializer
 
-class SaleViewSet(viewsets.ModelViewSet):
+class SaleViewSet(TenantViewSetMixin, viewsets.ModelViewSet):
     queryset = Sale.objects.all()
     serializer_class = SaleSerializer
     filterset_class = SaleFilter
-    
-    def get_queryset(self):
-        """
-        Filter sales by user's branch unless user is a General Admin (superuser or company owner).
-        General Admins can see all sales from their company.
-        """
-        queryset = super().get_queryset()
-        user = self.request.user
-        
-        # Superusers see everything (for admin purposes)
-        if user.is_superuser:
-            return queryset
-        
-        # Check if user is company owner (General Admin)
-        if hasattr(user, 'owned_company'):
-            # User is a company owner, show all sales from their company
-            return queryset.filter(company=user.owned_company)
-        
-        # Regular users (Branch Managers/Employees) see only their branch sales
-        if user.company:
-            user_branches = user.branch.all()
-            if user_branches.exists():
-                return queryset.filter(branch__in=user_branches)
-            # If user has no branches assigned, return empty queryset
-            return queryset.none()
-        
-        # Users without company shouldn't see anything
-        return queryset.none()
 
     def perform_create(self, serializer):
         """Create sale and auto-assign to active cash session"""
@@ -414,3 +393,124 @@ class SaleDetailViewSet(viewsets.ModelViewSet):
         self.perform_create(serializer)
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+
+class ReturnViewSet(TenantViewSetMixin, viewsets.ModelViewSet):
+    """ViewSet para gestionar devoluciones."""
+    queryset = Return.objects.select_related(
+        'sale__client', 'branch', 'processed_by', 'authorized_by'
+    ).prefetch_related('details', 'refunds').order_by('-created_at')
+
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_class = ReturnFilter
+    search_fields = ['reason_notes', 'sale__client__name', 'sale__client__last_name']
+    ordering_fields = ['created_at', 'total_refund_amount']
+
+    def get_serializer_class(self):
+        if self.action == 'retrieve':
+            return ReturnDetailResponseSerializer
+        if self.action == 'create':
+            return ReturnCreateSerializer
+        return ReturnListSerializer
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        active_session = CashSession.objects.filter(
+            user=user, status=SessionStatus.OPEN
+        ).first()
+
+        serializer.save(
+            company=self.get_user_company(),
+            branch=self.get_user_branch(),
+            cash_session=active_session,
+            processed_by=user,
+        )
+
+    @action(detail=True, methods=['post'])
+    @transaction.atomic
+    def cancel(self, request, pk=None):
+        """Revierte una devolución completada: restaura stock y revierte accounting."""
+        ret = self.get_object()
+
+        if ret.status != 'COMPLETED':
+            return Response(
+                {'status': 400, 'message': 'Only completed returns can be canceled.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        from inventory.models import Inventory, StockMovement
+        for detail in ret.details.select_related('product'):
+            if detail.restock:
+                try:
+                    inventory = Inventory.objects.select_for_update().get(
+                        product=detail.product, branch=ret.branch
+                    )
+                    previous_qty = inventory.quantity
+                    inventory.quantity -= detail.quantity
+                    inventory.save()
+
+                    StockMovement.objects.create(
+                        company=ret.company,
+                        branch=ret.branch,
+                        product=detail.product,
+                        movement_type=StockMovement.MovementType.RETURN,
+                        previous_quantity=previous_qty,
+                        new_quantity=inventory.quantity,
+                        quantity_change=-detail.quantity,
+                        reference_id=ret.id,
+                        reference_model='Return',
+                        notes=f'Reversal of Return #{ret.id}',
+                        created_by=request.user,
+                    )
+                except Inventory.DoesNotExist:
+                    pass
+
+        ret.status = 'CANCELED'
+        ret.save()
+        return Response(ReturnDetailResponseSerializer(ret).data)
+
+    @action(detail=False, methods=['get'])
+    def summary(self, request):
+        """Resumen agregado de devoluciones."""
+        queryset = self.filter_queryset(self.get_queryset())
+
+        date_from = request.query_params.get('date_from')
+        date_to = request.query_params.get('date_to')
+        if date_from:
+            queryset = queryset.filter(created_at__gte=date_from)
+        if date_to:
+            queryset = queryset.filter(created_at__lte=date_to)
+
+        from sales.choices import ReturnReasonType, RefundMethod
+        from sales.models import ReturnDetail, ReturnRefund
+
+        total_returns = queryset.count()
+        total_refund = queryset.aggregate(total=Sum('total_refund_amount'))['total'] or Decimal('0')
+
+        detail_ids = ReturnDetail.objects.filter(return_obj__in=queryset)
+        total_items = detail_ids.aggregate(total=Sum('quantity'))['total'] or 0
+        total_restocked = detail_ids.filter(restock=True).aggregate(total=Sum('quantity'))['total'] or 0
+
+        by_reason = detail_ids.values('return_obj__reason_type').annotate(
+            count=Count('id')
+        )
+
+        refunds_qs = ReturnRefund.objects.filter(return_obj__in=queryset)
+        by_refund_method = refunds_qs.values('refund_method').annotate(
+            total=Sum('amount')
+        )
+
+        return Response({
+            'total_returns': total_returns,
+            'total_refund_amount': str(total_refund),
+            'total_items_returned': total_items,
+            'total_restocked': total_restocked,
+            'by_reason': [
+                {'reason': item['return_obj__reason_type'], 'count': item['count']}
+                for item in by_reason
+            ],
+            'by_refund_method': [
+                {'method': item['refund_method'], 'total': str(item['total'])}
+                for item in by_refund_method
+            ],
+        })

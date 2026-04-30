@@ -3,9 +3,10 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.db.models import Model, CASCADE, ManyToManyField
-from django.db.models.fields import CharField, EmailField, DateTimeField
-from django.db.models.fields.related import OneToOneField
+from django.db.models.fields import BooleanField, CharField, EmailField, DateTimeField
+from django.db.models.fields.related import OneToOneField, ForeignKey
 from django.utils.translation import gettext_lazy as _
+from django_multitenant.models import TenantModel
 
 from utils import PhoneNumberField
 
@@ -74,3 +75,41 @@ class Profile(Model):
     class Meta:
         verbose_name = _('profile')
         verbose_name_plural = _('profiles')
+
+
+class AuthorizationCode(TenantModel):
+    """Codigos de autorizacion (escaneo de codigo de barras) para supervisores."""
+    tenant_id = 'company_id'
+
+    company = ForeignKey(
+        'core.Company',
+        on_delete=CASCADE,
+        related_name='authorization_codes',
+        verbose_name=_('company'),
+        null=True,
+        blank=True
+    )
+    user = ForeignKey(
+        get_user_model(),
+        on_delete=CASCADE,
+        related_name='authorization_codes',
+        verbose_name=_('user')
+    )
+    code = CharField(max_length=50, verbose_name=_('code'))
+    label = CharField(max_length=100, verbose_name=_('label'))
+    is_active = BooleanField(default=True, verbose_name=_('active'))
+    created_at = DateTimeField(auto_now_add=True, verbose_name=_('created at'))
+    updated_at = DateTimeField(auto_now=True, verbose_name=_('updated at'))
+
+    class Meta:
+        verbose_name = _('authorization code')
+        verbose_name_plural = _('authorization codes')
+        constraints = [
+            models.UniqueConstraint(
+                fields=['company', 'code'],
+                name='unique_authorization_code_per_company'
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f'{self.code} - {self.label}'

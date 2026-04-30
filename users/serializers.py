@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.db import transaction
-from .models import Profile
+from .models import Profile, AuthorizationCode
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from core.models import Company, Branch
 
@@ -271,3 +271,55 @@ class EmployeeSerializer(serializers.ModelSerializer):
             instance.branch.set(branches)
         
         return instance
+
+
+# --- Authorization Code Serializers ---
+
+class ApiUserBriefSerializer(serializers.ModelSerializer):
+    """Datos minimos del usuario para nested responses."""
+    class Meta:
+        model = User
+        fields = ['id', 'first_name', 'last_name', 'username', 'email']
+        read_only_fields = fields
+
+
+class AuthorizationCodeSerializer(serializers.ModelSerializer):
+    """Serializer de lectura para codigos de autorizacion."""
+    user_data = ApiUserBriefSerializer(source='user', read_only=True)
+
+    class Meta:
+        model = AuthorizationCode
+        fields = ['id', 'user', 'user_data', 'code', 'label', 'is_active', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class AuthorizationCodeCreateSerializer(serializers.ModelSerializer):
+    """Serializer de escritura para crear codigos de autorizacion."""
+
+    class Meta:
+        model = AuthorizationCode
+        fields = ['user', 'code', 'label', 'is_active']
+
+    def validate_code(self, value: str) -> str:
+        """Valida que el codigo no exista para la misma empresa."""
+        company = self.context.get('company')
+        if company and AuthorizationCode.objects.filter(company=company, code=value).exists():
+            raise serializers.ValidationError('Ya existe un codigo de autorizacion con ese valor en esta empresa.')
+        return value
+
+    def validate_user(self, value) -> object:
+        """Valida que el usuario pertenezca a la misma empresa."""
+        company = self.context.get('company')
+        if company and value.company != company:
+            raise serializers.ValidationError('El usuario no pertenece a la misma empresa.')
+        return value
+
+    def create(self, validated_data: dict) -> AuthorizationCode:
+        company = self.context.get('company')
+        validated_data['company'] = company
+        return super().create(validated_data)
+
+
+class ValidateAuthorizationCodeSerializer(serializers.Serializer):
+    """Serializer para validar un codigo de autorizacion via escaneo."""
+    code = serializers.CharField(required=True, max_length=50)

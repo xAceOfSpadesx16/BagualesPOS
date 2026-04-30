@@ -1,6 +1,6 @@
 from django.db import models
-from django.db.models import Model, CASCADE, SET_NULL
-from django.db.models.fields import IntegerField, CharField, DateTimeField, TextField
+from django.db.models import Model, CASCADE, SET_NULL, Sum, TextChoices
+from django.db.models.fields import IntegerField, CharField, DateTimeField, TextField, PositiveIntegerField
 from django.db.models.fields.related import OneToOneField, ForeignKey
 from django.utils.translation import gettext_lazy as _
 from django_multitenant.models import TenantModel
@@ -109,3 +109,59 @@ class StockMovement(TenantModel):
     
     def __str__(self):
         return f'{self.movement_type} - {self.product} - {self.quantity_change} ({self.created_at})'
+
+
+class StockTransfer(TenantModel):
+    """Transferencia de stock entre sucursales."""
+    tenant_id = 'company_id'
+
+    class Status(TextChoices):
+        PENDING = 'PENDING', _('Pending')
+        IN_TRANSIT = 'IN_TRANSIT', _('In Transit')
+        COMPLETED = 'COMPLETED', _('Completed')
+        REJECTED = 'REJECTED', _('Rejected')
+
+    company = ForeignKey('core.Company', on_delete=CASCADE, related_name='stock_transfers', verbose_name=_('company'))
+    origin_branch = ForeignKey('core.Branch', on_delete=CASCADE, related_name='outgoing_transfers', verbose_name=_('origin branch'))
+    destination_branch = ForeignKey('core.Branch', on_delete=CASCADE, related_name='incoming_transfers', verbose_name=_('destination branch'))
+    status = CharField(max_length=20, choices=Status.choices, default=Status.PENDING, verbose_name=_('status'))
+    requested_by = ForeignKey(User, on_delete=SET_NULL, null=True, related_name='transfers_requested', verbose_name=_('requested by'))
+    approved_by = ForeignKey(User, on_delete=SET_NULL, null=True, blank=True, related_name='transfers_approved', verbose_name=_('approved by'))
+    rejection_note = TextField(blank=True, default='', verbose_name=_('rejection note'))
+    notes = TextField(blank=True, default='', verbose_name=_('notes'))
+    created_at = DateTimeField(auto_now_add=True, verbose_name=_('created at'))
+    updated_at = DateTimeField(auto_now=True, verbose_name=_('updated at'))
+
+    class Meta:
+        verbose_name = _('stock transfer')
+        verbose_name_plural = _('stock transfers')
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'Transfer #{self.pk} - {self.origin_branch} → {self.destination_branch} ({self.status})'
+
+    @property
+    def total_items(self) -> int:
+        return self.details.count()
+
+    @property
+    def total_units(self) -> int:
+        return self.details.aggregate(total=Sum('quantity'))['total'] or 0
+
+
+class StockTransferDetail(TenantModel):
+    """Línea de producto en una transferencia de stock."""
+    tenant_id = 'company_id'
+
+    transfer = ForeignKey(StockTransfer, on_delete=CASCADE, related_name='details', verbose_name=_('transfer'))
+    product = ForeignKey(Product, on_delete=CASCADE, verbose_name=_('product'))
+    quantity = PositiveIntegerField(verbose_name=_('quantity'))
+    origin_stock_before = IntegerField(null=True, blank=True, verbose_name=_('origin stock before'))
+    origin_stock_after = IntegerField(null=True, blank=True, verbose_name=_('origin stock after'))
+
+    class Meta:
+        verbose_name = _('stock transfer detail')
+        verbose_name_plural = _('stock transfer details')
+
+    def __str__(self):
+        return f'{self.product} x{self.quantity}'

@@ -4,6 +4,7 @@ from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
 from django.http import HttpResponseForbidden
 from django.db import models
+from rest_framework.viewsets import ViewSetMixin
 
 # VIEWS MIXINS
 class PatchMethodMixin(object):
@@ -45,6 +46,61 @@ class SoftDeleteMixin(models.Model):
         self.is_deleted = False
         self.deleted_at = None
         super().save()
+
+# DRF VIEWSET MIXINS
+
+class TenantViewSetMixin:
+    """
+    Mixin que implementa el patrón estándar de filtrado multi-tenant
+    para todos los ViewSets del proyecto.
+    Jerarquía: superuser → owner (Admin General) → branch user.
+    """
+    company_field: str = 'company'
+    branch_field: str = 'branch'
+
+    def get_queryset(self):
+        user = self.request.user
+        queryset = super().get_queryset()
+
+        if getattr(self, 'swagger_fake_view', False):
+            return queryset.model.objects.none()
+
+        if not user.is_authenticated:
+            return queryset.model.objects.none()
+
+        if user.is_superuser:
+            return queryset
+
+        if hasattr(user, 'owned_company') and user.owned_company:
+            return queryset.filter(**{self.company_field: user.owned_company})
+
+        if hasattr(user, 'company') and user.company:
+            user_branches = user.branch.all()
+            if user_branches.exists():
+                lookup = f'{self.branch_field}__in'
+                return queryset.filter(**{lookup: user_branches})
+            return queryset.filter(**{self.company_field: user.company})
+
+        return queryset.model.objects.none()
+
+    def get_user_company(self):
+        """Retorna la company del usuario actual."""
+        user = self.request.user
+        if hasattr(user, 'owned_company') and user.owned_company:
+            return user.owned_company
+        if hasattr(user, 'company') and user.company:
+            return user.company
+        return None
+
+    def get_user_branch(self):
+        """Retorna la primera branch del usuario actual."""
+        return self.request.user.branch.first()
+
+    def is_admin(self):
+        """Retorna True si el usuario es superuser o owner."""
+        user = self.request.user
+        return user.is_superuser or hasattr(user, 'owned_company')
+
 
 # FORM MIXINS
 class CustomBoundField(BoundField):

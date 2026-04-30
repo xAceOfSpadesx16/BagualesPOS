@@ -1,7 +1,12 @@
 from rest_framework import viewsets
 from rest_framework.permissions import AllowAny, IsAdminUser, BasePermission
 from django.contrib.auth import get_user_model
-from .serializers import UserSerializer, CustomTokenObtainPairSerializer, UserRegistrationSerializer, EmployeeSerializer, RoleSerializer
+from .serializers import (
+    UserSerializer, CustomTokenObtainPairSerializer, UserRegistrationSerializer,
+    EmployeeSerializer, RoleSerializer, AuthorizationCodeSerializer,
+    AuthorizationCodeCreateSerializer, ValidateAuthorizationCodeSerializer
+)
+from .models import AuthorizationCode
 from django.contrib.auth.models import Group
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework.views import APIView
@@ -10,6 +15,8 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.decorators import action
+from django_filters.rest_framework import DjangoFilterBackend
+from utils.mixins import TenantViewSetMixin
 
 User = get_user_model()
 
@@ -242,6 +249,85 @@ class UserViewSet(viewsets.ModelViewSet):
             
         serializer = RoleSerializer(groups, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class AuthorizationCodeViewSet(TenantViewSetMixin, viewsets.ModelViewSet):
+    """
+    CRUD de codigos de autorizacion (escaneo codigo de barras).
+    Filtra por company del usuario autenticado (tenant).
+    """
+    queryset = AuthorizationCode.objects.select_related('user', 'company').all()
+    serializer_class = AuthorizationCodeSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['is_active']
+
+    def get_permissions(self):
+        """Write ops requieren rol Administrador General o Gerente."""
+        if self.action in ('create', 'update', 'partial_update', 'destroy'):
+            return [IsAuthenticated(), IsAdminOrManager()]
+        if self.action == 'validate_code':
+            return [IsAuthenticated()]
+        return super().get_permissions()
+
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return AuthorizationCodeCreateSerializer
+        if self.action == 'validate_code':
+            return ValidateAuthorizationCodeSerializer
+        return AuthorizationCodeSerializer
+
+    def get_serializer_context(self) -> dict:
+        context = super().get_serializer_context()
+        context['company'] = self.get_user_company()
+        return context
+
+    def perform_create(self, serializer):
+        serializer.save()
+
+    @action(detail=False, methods=['post'], url_path='validate-code')
+    def validate_code(self, request):
+        """
+        Valida un codigo de autorizacion (escaneo de barras).
+
+        POST /api/users/authorization-codes/validate-code/
+        {"code": "SUP-001"}
+        """
+        serializer = ValidateAuthorizationCodeSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        company = self.get_user_company()
+        code_value = serializer.validated_data['code']
+
+        auth_code = AuthorizationCode.objects.select_related('user').filter(
+            company=company,
+            code=code_value,
+            is_active=True
+        ).first()
+
+        if not auth_code:
+            return Response({
+                'valid': False,
+                'user': None,
+                'role_display': None,
+                'error': 'Codigo no encontrado o inactivo'
+            }, status=status.HTTP_200_OK)
+
+        # Obtener el primer grupo del usuario como role_display
+        first_group = auth_code.user.groups.first()
+        role_display = first_group.name if first_group else None
+
+        return Response({
+            'valid': True,
+            'user': {
+                'id': auth_code.user.id,
+                'first_name': auth_code.user.first_name,
+                'last_name': auth_code.user.last_name,
+                'username': auth_code.user.username,
+                'email': auth_code.user.email
+            },
+            'role_display': role_display
+        }, status=status.HTTP_200_OK)
 
 
 class LogoutView(APIView):

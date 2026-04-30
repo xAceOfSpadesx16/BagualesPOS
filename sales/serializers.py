@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Sale, SaleDetail, PayMethod
+from .models import Sale, SaleDetail, PayMethod, Return, ReturnDetail, ReturnRefund
 from products.serializers import ProductListSerializer
 from clients.serializers import ClientSerializer
 
@@ -56,4 +56,109 @@ class SaleSerializer(serializers.ModelSerializer):
                 'status': obj.cash_session.status
             }
         return None
+
+
+# Return Serializers
+
+class ReturnDetailItemSerializer(serializers.ModelSerializer):
+    product_name = serializers.CharField(source='product.name', read_only=True)
+
+    class Meta:
+        model = ReturnDetail
+        fields = [
+            'id', 'return_obj', 'sale_detail', 'product', 'product_name',
+            'quantity', 'unit_price', 'subtotal', 'condition', 'restock',
+        ]
+
+
+class ReturnRefundItemSerializer(serializers.ModelSerializer):
+    pay_method_name = serializers.CharField(source='pay_method.name', read_only=True, default='')
+
+    class Meta:
+        model = ReturnRefund
+        fields = [
+            'id', 'return_obj', 'refund_method', 'pay_method',
+            'pay_method_name', 'amount', 'account_record',
+        ]
+
+
+class ReturnListSerializer(serializers.ModelSerializer):
+    sale_client_name = serializers.SerializerMethodField()
+    branch_name = serializers.CharField(source='branch.name', read_only=True)
+    reason_display = serializers.CharField(source='get_reason_type_display', read_only=True)
+    processed_by_name = serializers.CharField(source='processed_by.get_full_name', read_only=True, default='')
+    authorized_by_name = serializers.CharField(source='authorized_by.get_full_name', read_only=True, default='')
+
+    class Meta:
+        model = Return
+        fields = [
+            'id', 'sale', 'sale_client_name', 'branch', 'branch_name',
+            'cash_session', 'status', 'reason_display', 'reason_type',
+            'reason_notes', 'total_refund_amount', 'processed_by',
+            'processed_by_name', 'authorized_by', 'authorized_by_name',
+            'created_at', 'updated_at',
+        ]
+
+    def get_sale_client_name(self, obj) -> str:
+        client = obj.sale.client
+        return f'{client.name} {client.last_name}' if client else ''
+
+
+class ReturnDetailResponseSerializer(ReturnListSerializer):
+    details = ReturnDetailItemSerializer(many=True, read_only=True)
+    refunds = ReturnRefundItemSerializer(many=True, read_only=True)
+
+    class Meta(ReturnListSerializer.Meta):
+        fields = ReturnListSerializer.Meta.fields + ['details', 'refunds']
+
+
+class ReturnCreateSerializer(serializers.ModelSerializer):
+    """Serializer de escritura para crear devoluciones."""
+    details = ReturnDetailItemSerializer(many=True)
+    refunds = ReturnRefundItemSerializer(many=True)
+
+    class Meta:
+        model = Return
+        fields = ['sale', 'reason_type', 'reason_notes', 'details', 'refunds']
+
+    def validate(self, data):
+        sale = data['sale']
+        if not sale.closed:
+            raise serializers.ValidationError({'sale': 'Sale must be closed to process a return.'})
+        if sale.canceled:
+            raise serializers.ValidationError({'sale': 'Cannot return items from a canceled sale.'})
+
+        details = data.get('details', [])
+        refunds = data.get('refunds', [])
+
+        if not details:
+            raise serializers.ValidationError({'details': 'At least one detail is required.'})
+
+        # Validar que la suma de refunds coincida con la de details
+        total_detail = sum(d['subtotal'] for d in details)
+        total_refund = sum(r['amount'] for r in refunds)
+        if refunds and total_refund != total_detail:
+            raise serializers.ValidationError({
+                'refunds': f'Refund total ({total_refund}) must equal detail total ({total_detail}).'
+            })
+
+        return data
+
+    def create(self, validated_data):
+        details_data = validated_data.pop('details')
+        refunds_data = validated_data.pop('refunds')
+
+        ret = Return.objects.create(**validated_data)
+
+        for detail_data in details_data:
+            ReturnDetail.objects.create(return_obj=ret, **detail_data)
+
+        for refund_data in refunds_data:
+            ReturnRefund.objects.create(return_obj=ret, **refund_data)
+
+        # Calcular total
+        ret.total_refund_amount = sum(d.subtotal for d in ret.details.all())
+        ret.save()
+
+        return ret
 

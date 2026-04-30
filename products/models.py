@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
-from django.db.models import Model
+from django.db.models import Model, TextChoices
 from django.db.models.fields import CharField, IntegerField, BooleanField, DateTimeField, EmailField, DecimalField
 from django.db.models.fields.files import ImageField
 from django.db.models.fields.related import ForeignKey, ManyToManyField
@@ -12,6 +12,8 @@ from django_multitenant.models import TenantModel
 
 from utils import PhoneNumberField
 from utils.formats import formatted_integer
+
+from django.conf import settings
 
 if TYPE_CHECKING:
     from inventory.models import Inventory
@@ -256,3 +258,35 @@ class Product(TenantModel):
             Index(fields=['internal_code'], name='product_internal_code_idx'),
             Index(fields=['details'], name='product_details_idx'),
         ]
+
+
+class PriceHistory(TenantModel):
+    """Registro inmutable de cambios de precio en productos."""
+    tenant_id = 'company_id'
+
+    class PriceField(TextChoices):
+        SALE_PRICE = 'sale_price', _('Sale Price')
+        COST_PRICE = 'cost_price', _('Cost Price')
+
+    class Source(TextChoices):
+        MANUAL = 'MANUAL', _('Manual')
+        BULK_UPDATE = 'BULK_UPDATE', _('Bulk Update')
+
+    company = ForeignKey('core.Company', on_delete=CASCADE, related_name='price_histories', verbose_name=_('company'))
+    product = ForeignKey(Product, on_delete=CASCADE, related_name='price_history', verbose_name=_('product'))
+    field = CharField(max_length=20, choices=PriceField.choices, verbose_name=_('field'))
+    old_value = DecimalField(max_digits=12, decimal_places=2, verbose_name=_('old value'))
+    new_value = DecimalField(max_digits=12, decimal_places=2, verbose_name=_('new value'))
+    change_percentage = DecimalField(max_digits=6, decimal_places=2, null=True, blank=True, verbose_name=_('change percentage'))
+    reason = CharField(max_length=255, blank=True, default='', verbose_name=_('reason'))
+    source = CharField(max_length=20, choices=Source.choices, default=Source.MANUAL, verbose_name=_('source'))
+    changed_by = ForeignKey(settings.AUTH_USER_MODEL, on_delete=SET_NULL, null=True, verbose_name=_('changed by'))
+    created_at = DateTimeField(auto_now_add=True, verbose_name=_('created at'))
+
+    class Meta:
+        verbose_name = _('price history')
+        verbose_name_plural = _('price histories')
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.product} - {self.field}: {self.old_value} → {self.new_value}'

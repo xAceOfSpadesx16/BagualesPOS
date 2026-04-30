@@ -17,7 +17,7 @@ services:
     depends_on:
       - db
     ports:
-      - "80:8000"
+      - "8000:8000"
       - "35729:35729"
     volumes:
       - .:/app:delegated

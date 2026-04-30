@@ -10,15 +10,22 @@ Documentación completa y precisa de todos los endpoints de la API REST de Bagua
 ## Tabla de Contenidos
 
 1. [Autenticación](#autenticación)
-2. [Sucursales](#sucursales)
-3. [Productos](#productos)
-4. [Clientes](#clientes)
-5. [Inventario](#inventario)
-6. [Ventas](#ventas)
-7. [Caja](#caja)
-8. [Dispositivos](#dispositivos)
-9. [Usuarios](#usuarios)
-10. [Registros](#registros)
+2. [Perfil de Empresa](#perfil-de-empresa)
+3. [Configuración de Empresa](#configuración-de-empresa)
+4. [Sucursales](#sucursales)
+5. [Productos](#productos)
+6. [Historial de Precios](#historial-de-precios)
+7. [Actualización Masiva de Precios](#actualización-masiva-de-precios)
+8. [Clientes](#clientes)
+9. [Inventario](#inventario)
+10. [Transferencias de Stock](#transferencias-de-stock)
+11. [Ventas](#ventas)
+12. [Devoluciones](#devoluciones)
+13. [Caja](#caja)
+14. [Dispositivos](#dispositivos)
+15. [Usuarios](#usuarios)
+16. [Codigos de Autorizacion](#codigos-de-autorizacion)
+17. [Registros de Auditoría](#registros-de-auditoría)
 
 ---
 
@@ -26,7 +33,7 @@ Documentación completa y precisa de todos los endpoints de la API REST de Bagua
 
 ### Obtener Token de Acceso
 **Método**: `POST`  
-**Endpoint**: `/api/users/token/`  
+**Endpoint**: `/api/token/`  
 **Descripción**: Autenticarse y obtener tokens JWT (access y refresh)
 
 **Request**:
@@ -54,7 +61,7 @@ Documentación completa y precisa de todos los endpoints de la API REST de Bagua
 
 ### Refrescar Token
 **Método**: `POST`  
-**Endpoint**: `/api/users/token/refresh/`  
+**Endpoint**: `/api/token/refresh/`  
 **Descripción**: Renovar token de acceso usando refresh token
 
 **Request**:
@@ -73,7 +80,7 @@ Documentación completa y precisa de todos los endpoints de la API REST de Bagua
 
 ### Cerrar Sesión
 **Método**: `POST`  
-**Endpoint**: `/api/users/token/logout/`  
+**Endpoint**: `/api/token/logout/`  
 **Descripción**: Invalidar refresh token
 
 **Request**:
@@ -82,6 +89,78 @@ Documentación completa y precisa de todos los endpoints de la API REST de Bagua
   "refresh": "eyJ0eXAiOiJKV1QiLCJhbGc..."
 }
 ```
+
+---
+
+## Perfil de Empresa
+
+### Obtener Perfil
+**Método**: `GET`
+**Endpoint**: `/api/company/me/`
+**Descripción**: Retorna los datos de la empresa del usuario autenticado
+
+**Response**:
+```json
+{
+  "id": 1,
+  "name": "Mi Empresa S.A.",
+  "legal_name": "Mi Empresa Sociedad Anónima",
+  "tax_id": "30-12345678-9",
+  "logo": "/media/companies/logos/logo.png",
+  "address": "Av. San Martín 123",
+  "phone": "+54 351 1234567",
+  "email": "contacto@miempresa.com",
+  "is_active": true
+}
+```
+
+**Error 404**: Si el usuario no tiene empresa asociada.
+
+---
+
+## Configuración de Empresa
+
+### Obtener Configuración
+**Método**: `GET`
+**Endpoint**: `/api/company/settings/`
+**Descripción**: Retorna la configuración de la empresa. Si no existe, se crea con valores por defecto.
+
+**Response**:
+```json
+{
+  "id": 1,
+  "company": 1,
+  "tax_name": "IVA",
+  "tax_rate": "21.00",
+  "tax_enabled": true,
+  "currency_code": "ARS",
+  "currency_symbol": "$",
+  "currency_decimals": 2,
+  "receipt_header": "",
+  "receipt_footer": "",
+  "receipt_show_tax": true,
+  "allow_negative_stock": false,
+  "low_stock_threshold": 5
+}
+```
+
+### Actualizar Configuración
+**Método**: `PATCH`
+**Endpoint**: `/api/company/settings/`
+**Descripción**: Actualizar la configuración de la empresa (campos parciales)
+
+**Request**:
+```json
+{
+  "tax_rate": "10.50",
+  "currency_code": "USD",
+  "currency_symbol": "US$",
+  "low_stock_threshold": 10,
+  "receipt_footer": "Gracias por su compra"
+}
+```
+
+**Response**: Objeto `CompanySettings` completo actualizado.
 
 ---
 
@@ -164,7 +243,7 @@ Documentación completa y precisa de todos los endpoints de la API REST de Bagua
 
 ### Listar Productos
 **Método**: `GET`  
-**Endpoint**: `/api/products/products/`  
+**Endpoint**: `/api/products/`  
 **Descripción**: Obtener lista simplificada de productos  
 **Filtros**: `?category=1&brand=2&gender=1&season=1`  
 **Búsqueda**: `?search=camisa`  
@@ -192,8 +271,8 @@ Documentación completa y precisa de todos los endpoints de la API REST de Bagua
 
 ### Obtener Producto (Detalle)
 **Método**: `GET`  
-**Endpoint**: `/api/products/products/<int:pk>/`  
-**Ejemplo**: `/api/products/products/1/`  
+**Endpoint**: `/api/products/<int:pk>/`  
+**Ejemplo**: `/api/products/1/`  
 **Descripción**: Obtener detalles completos de un producto
 
 **Response**:
@@ -251,7 +330,7 @@ Documentación completa y precisa de todos los endpoints de la API REST de Bagua
 
 ### Crear Producto
 **Método**: `POST`  
-**Endpoint**: `/api/products/products/`  
+**Endpoint**: `/api/products/`  
 **Descripción**: Crear un nuevo producto
 
 **Request**:
@@ -282,15 +361,98 @@ Documentación completa y precisa de todos los endpoints de la API REST de Bagua
 
 ### Actualizar Producto
 **Método**: `PUT/PATCH`  
-**Endpoint**: `/api/products/products/<int:pk>/`  
-**Ejemplo**: `/api/products/products/1/`  
+**Endpoint**: `/api/products/<int:pk>/`  
+**Ejemplo**: `/api/products/1/`  
 **Descripción**: Actualizar un producto
 
 ### Eliminar Producto (Soft Delete)
-**Método**: `DELETE`  
-**Endpoint**: `/api/products/products/<int:pk>/`  
-**Ejemplo**: `/api/products/products/1/`  
+**Método**: `DELETE`
+**Endpoint**: `/api/products/<int:pk>/`
+**Ejemplo**: `/api/products/1/`
 **Descripción**: Eliminar lógicamente un producto
+
+---
+
+## Historial de Precios
+
+### Obtener Historial de Precios de un Producto
+**Método**: `GET`
+**Endpoint**: `/api/products/<int:pk>/price-history/`
+**Ejemplo**: `/api/products/1/price-history/`
+**Descripción**: Historial de cambios de precio de un producto (inmutable)
+**Filtros**: `?date_from=2025-01-01&date_to=2025-03-01&limit=50`
+
+**Response**:
+```json
+[
+  {
+    "id": 1,
+    "product": 1,
+    "field": "sale_price",
+    "old_value": "100.00",
+    "new_value": "110.00",
+    "change_percentage": "10.00",
+    "reason": "",
+    "source": "MANUAL",
+    "changed_by": 1,
+    "changed_by_name": "Admin General",
+    "created_at": "2025-01-15T10:00:00Z"
+  }
+]
+```
+
+> `field` puede ser `sale_price` o `cost_price`. `source` puede ser `MANUAL` o `BULK_UPDATE`.
+> El historial se registra automáticamente vía signal al actualizar precios.
+
+---
+
+## Actualización Masiva de Precios
+
+### Actualización Masiva
+**Método**: `POST`
+**Endpoint**: `/api/products/bulk-update-prices/`
+**Descripción**: Aplica un ajuste de precios (porcentual o absoluto) a múltiples productos
+
+**Request**:
+```json
+{
+  "mode": "percentage",
+  "adjustment": 10.0,
+  "target_field": "sale_price",
+  "product_ids": [1, 2, 3],
+  "filters": {
+    "category": 2,
+    "brand": 1
+  },
+  "round_to": 2,
+  "reason": "Actualización mensual"
+}
+```
+
+> `mode`: `percentage` o `absolute`
+> `target_field`: `sale_price`, `cost_price` o `both`
+> `product_ids`: Array de IDs específicos (opcional)
+> `filters`: Filtrar por categoría/marca (opcional, se combina con product_ids)
+> `round_to`: Decimales de redondeo (default: 2)
+
+**Response** `200`:
+```json
+{
+  "updated_count": 5,
+  "products": [
+    {
+      "id": 1,
+      "name": "Camisa Slim Fit",
+      "old_sale_price": "100.00",
+      "new_sale_price": "110.00",
+      "old_cost_price": "50.00",
+      "new_cost_price": "50.00"
+    }
+  ]
+}
+```
+
+> Se crea un `PriceHistory` por cada producto actualizado con `source: "BULK_UPDATE"`.
 
 ---
 
@@ -302,7 +464,7 @@ Todos estos recursos usan el patrón List/Write serializers:
 
 #### Marcas (Brands)
 **Métodos**: `GET, POST, PUT, PATCH, DELETE`  
-**Endpoint**: `/api/products/brands/`
+**Endpoint**: `/api/brands/`
 
 **Response (GET)**:
 ```json
@@ -316,15 +478,15 @@ Todos estos recursos usan el patrón List/Write serializers:
 
 #### Categorías
 **Métodos**: `GET, POST, PUT, PATCH, DELETE`  
-**Endpoint**: `/api/products/categories/`
+**Endpoint**: `/api/categories/`
 
 #### Subcategorías
 **Métodos**: `GET, POST, PUT, PATCH, DELETE`  
-**Endpoint**: `/api/products/subcategories/`
+**Endpoint**: `/api/subcategories/`
 
 #### Colores
 **Métodos**: `GET, POST, PUT, PATCH, DELETE`  
-**Endpoint**: `/api/products/colors/`
+**Endpoint**: `/api/colors/`
 
 **Response (GET)**:
 ```json
@@ -339,23 +501,23 @@ Todos estos recursos usan el patrón List/Write serializers:
 
 #### Géneros
 **Métodos**: `GET, POST, PUT, PATCH, DELETE`  
-**Endpoint**: `/api/products/genders/`
+**Endpoint**: `/api/genders/`
 
 #### Talles (Letter Sizes)
 **Métodos**: `GET, POST, PUT, PATCH, DELETE`  
-**Endpoint**: `/api/products/letter-sizes/`
+**Endpoint**: `/api/letter-sizes/`
 
 #### Materiales
 **Métodos**: `GET, POST, PUT, PATCH, DELETE`  
-**Endpoint**: `/api/products/materials/`
+**Endpoint**: `/api/materials/`
 
 #### Temporadas (Seasons)
 **Métodos**: `GET, POST, PUT, PATCH, DELETE`  
-**Endpoint**: `/api/products/seasons/`
+**Endpoint**: `/api/seasons/`
 
 #### Proveedores (Suppliers)
 **Métodos**: `GET, POST, PUT, PATCH, DELETE`  
-**Endpoint**: `/api/products/suppliers/`
+**Endpoint**: `/api/suppliers/`
 
 ---
 
@@ -363,7 +525,7 @@ Todos estos recursos usan el patrón List/Write serializers:
 
 ### Listar Clientes
 **Método**: `GET`  
-**Endpoint**: `/api/clients/clients/`  
+**Endpoint**: `/api/clients/`  
 **Descripción**: Obtener lista de clientes  
 **Filtros**: `?is_deleted=false&chosen_billing_type=A`  
 **Búsqueda**: `?search=Juan` (busca en name, last_name, dni, email, cuit)
@@ -402,7 +564,7 @@ Todos estos recursos usan el patrón List/Write serializers:
 
 ### Crear Cliente
 **Método**: `POST`  
-**Endpoint**: `/api/clients/clients/`  
+**Endpoint**: `/api/clients/`  
 **Descripción**: Crear un nuevo cliente
 
 **Request**:
@@ -424,24 +586,24 @@ Todos estos recursos usan el patrón List/Write serializers:
 
 ### Obtener Cliente
 **Método**: `GET`  
-**Endpoint**: `/api/clients/clients/<int:pk>/`  
-**Ejemplo**: `/api/clients/clients/1/`
+**Endpoint**: `/api/clients/<int:pk>/`  
+**Ejemplo**: `/api/clients/1/`
 
 ### Actualizar Cliente
 **Método**: `PUT/PATCH`  
-**Endpoint**: `/api/clients/clients/<int:pk>/`  
-**Ejemplo**: `/api/clients/clients/1/`
+**Endpoint**: `/api/clients/<int:pk>/`  
+**Ejemplo**: `/api/clients/1/`
 
 ### Eliminar Cliente (Soft Delete)
 **Método**: `DELETE`  
-**Endpoint**: `/api/clients/clients/<int:pk>/`  
-**Ejemplo**: `/api/clients/clients/1/`  
+**Endpoint**: `/api/clients/<int:pk>/`  
+**Ejemplo**: `/api/clients/1/`  
 **Descripción**: Elimina lógicamente (is_deleted=true)
 
 ### Restaurar Cliente
 **Método**: `POST`  
-**Endpoint**: `/api/clients/clients/<int:pk>/restore/`  
-**Ejemplo**: `/api/clients/clients/1/restore/`  
+**Endpoint**: `/api/clients/<int:pk>/restore/`  
+**Ejemplo**: `/api/clients/1/restore/`  
 **Descripción**: Restaurar un cliente eliminado
 
 **Response**:
@@ -457,7 +619,7 @@ Todos estos recursos usan el patrón List/Write serializers:
 
 #### Listar Cuentas
 **Método**: `GET`  
-**Endpoint**: `/api/clients/customer-accounts/`
+**Endpoint**: `/api/customer-accounts/`
 
 **Response**:
 ```json
@@ -481,7 +643,7 @@ Todos estos recursos usan el patrón List/Write serializers:
 
 #### Crear Cuenta
 **Método**: `POST`  
-**Endpoint**: `/api/clients/customer-accounts/`
+**Endpoint**: `/api/customer-accounts/`
 
 **Request**:
 ```json
@@ -495,8 +657,8 @@ Todos estos recursos usan el patrón List/Write serializers:
 
 #### Desactivar Cuenta
 **Método**: `POST`  
-**Endpoint**: `/api/clients/customer-accounts/<int:pk>/deactivate/`  
-**Ejemplo**: `/api/clients/customer-accounts/1/deactivate/`
+**Endpoint**: `/api/customer-accounts/<int:pk>/deactivate/`  
+**Ejemplo**: `/api/customer-accounts/1/deactivate/`
 
 **Response**:
 ```json
@@ -507,7 +669,7 @@ Todos estos recursos usan el patrón List/Write serializers:
 
 #### Resumen de Cuentas
 **Método**: `GET`  
-**Endpoint**: `/api/clients/customer-accounts/summary/`  
+**Endpoint**: `/api/customer-accounts/summary/`  
 **Descripción**: Estadísticas de todas las cuentas corrientes
 
 **Response**:
@@ -527,7 +689,7 @@ Todos estos recursos usan el patrón List/Write serializers:
 
 #### Listar Registros
 **Método**: `GET`  
-**Endpoint**: `/api/clients/balance-records/`
+**Endpoint**: `/api/balance-records/`
 
 **Response**:
 ```json
@@ -550,7 +712,7 @@ Todos estos recursos usan el patrón List/Write serializers:
 
 #### Crear Registro
 **Método**: `POST`  
-**Endpoint**: `/api/clients/balance-records/`  
+**Endpoint**: `/api/balance-records/`  
 **Descripción**: Registrar pago o débito en cuenta corriente
 
 **Request**:
@@ -570,7 +732,7 @@ Todos estos recursos usan el patrón List/Write serializers:
 
 ### Listar Inventario
 **Método**: `GET`  
-**Endpoint**: `/api/inventory/inventory/`  
+**Endpoint**: `/api/inventory/`  
 **Descripción**: Obtener stock de todos los productos  
 **Filtros**: `?branch=1`
 
@@ -601,13 +763,13 @@ Todos estos recursos usan el patrón List/Write serializers:
 
 ### Obtener Inventario
 **Método**: `GET`  
-**Endpoint**: `/api/inventory/inventory/<int:pk>/`  
-**Ejemplo**: `/api/inventory/inventory/1/`
+**Endpoint**: `/api/inventory/<int:pk>/`  
+**Ejemplo**: `/api/inventory/1/`
 
 ### Actualizar Inventario
 **Método**: `PUT/PATCH`  
-**Endpoint**: `/api/inventory/inventory/<int:pk>/`  
-**Ejemplo**: `/api/inventory/inventory/1/`
+**Endpoint**: `/api/inventory/<int:pk>/`  
+**Ejemplo**: `/api/inventory/1/`
 
 **Request**:
 ```json
@@ -618,16 +780,16 @@ Todos estos recursos usan el patrón List/Write serializers:
 
 ### Disponibilidad en Otras Sucursales
 **Método**: `GET`  
-**Endpoint**: `/api/inventory/inventory/<int:pk>/other-branches/`  
-**Ejemplo**: `/api/inventory/inventory/1/other-branches/`  
+**Endpoint**: `/api/inventory/<int:pk>/other-branches/`  
+**Ejemplo**: `/api/inventory/1/other-branches/`  
 **Descripción**: Retorna la disponibilidad del mismo producto (asociado al registro de inventario solicitado) en todas las demás sucursales del sistema, excluyendo el inventario de la(s) sucursal(es) asignadas al cajero/usuario actual.
 
 **Response**: Array de objetos de Inventario correspondientes a las dem\u00e1s sucursales.
 
 ### Actualizar Cantidad de Stock
 **M\u00e9todo**: `POST`  
-**Endpoint**: `/api/inventory/inventory/<int:pk>/update_quantity/`  
-**Ejemplo**: `/api/inventory/inventory/1/update_quantity/`  
+**Endpoint**: `/api/inventory/<int:pk>/update_quantity/`  
+**Ejemplo**: `/api/inventory/1/update_quantity/`  
 **Descripci\u00f3n**: Suma o resta unidades del stock de un item de inventario.
 
 **Request**:
@@ -649,7 +811,7 @@ Todos estos recursos usan el patrón List/Write serializers:
 
 ### Stock Bajo
 **M\u00e9todo**: `GET`  
-**Endpoint**: `/api/inventory/inventory/low-stock/`  
+**Endpoint**: `/api/inventory/low-stock/`  
 **Filtro**: `?threshold=5` (por defecto: 5)  
 **Descripci\u00f3n**: Lista items cuyo stock es menor o igual al umbral.
 
@@ -667,7 +829,7 @@ Todos estos recursos usan el patrón List/Write serializers:
 
 ### Resumen de Stock por Sucursal
 **M\u00e9todo**: `GET`  
-**Endpoint**: `/api/inventory/inventory/stock-breakdown/`  
+**Endpoint**: `/api/inventory/stock-breakdown/`  
 **Descripci\u00f3n**: Resumen agregado de stock por producto entre sucursales. **Solo disponible para Administradores Generales.**  
 **Filtros**: `?product=1&branch=1&low_stock=10`
 
@@ -832,12 +994,134 @@ Todos estos recursos usan el patrón List/Write serializers:
 ]
 ```
 
-> Los tipos de movimiento (`movement_type`) son: `SALE`, `ADJUSTMENT`, `TRANSFER`, `INITIAL`.
+> Los tipos de movimiento (`movement_type`) son: `SALE`, `ADJUSTMENT`, `TRANSFER`, `RETURN`, `CORRECTION`.
 
 ### Obtener Movimiento
-**M\u00e9todo**: `GET`  
-**Endpoint**: `/api/stock-movements/<int:pk>/`  
+**M\u00e9todo**: `GET`
+**Endpoint**: `/api/stock-movements/<int:pk>/`
 **Ejemplo**: `/api/stock-movements/1/`
+
+---
+
+## Transferencias de Stock
+
+### Listar Transferencias
+**M\u00e9todo**: `GET`
+**Endpoint**: `/api/stock-transfers/`
+**Filtros**: `?status=PENDING&origin_branch=1&destination_branch=2&date_from=2025-01-01&date_to=2025-03-01`
+**Ordenamiento**: `?ordering=-created_at`
+
+**Response**:
+```json
+[
+  {
+    "id": 1,
+    "company": 1,
+    "origin_branch": 1,
+    "origin_branch_name": "Sucursal Centro",
+    "destination_branch": 2,
+    "destination_branch_name": "Sucursal Norte",
+    "status": "PENDING",
+    "requested_by": 2,
+    "requested_by_name": "Juan P\u00e9rez",
+    "approved_by": null,
+    "approved_by_name": "",
+    "rejection_note": "",
+    "notes": "Reposici\u00f3n de stock",
+    "total_items": 3,
+    "total_units": 15,
+    "created_at": "2025-01-15T10:00:00Z",
+    "updated_at": "2025-01-15T10:00:00Z",
+    "details": [
+      {
+        "id": 1,
+        "transfer": 1,
+        "product": 1,
+        "product_data": {
+          "id": 1,
+          "name": "Camisa Slim Fit",
+          "brand": { "id": 2, "name": "Nike" },
+          "category": { "id": 1, "name": "Ropa" },
+          "sale_price": "$100.00",
+          "is_active": true
+        },
+        "quantity": 5,
+        "origin_stock_before": null,
+        "origin_stock_after": null
+      }
+    ]
+  }
+]
+```
+
+> `status` puede ser: `PENDING`, `IN_TRANSIT`, `COMPLETED`, `REJECTED`
+
+### Crear Transferencia
+**M\u00e9todo**: `POST`
+**Endpoint**: `/api/stock-transfers/`
+**Descripci\u00f3n**: Crear solicitud de transferencia. `company` y `requested_by` se asignan autom\u00e1ticamente.
+
+**Request**:
+```json
+{
+  "origin_branch": 1,
+  "destination_branch": 2,
+  "notes": "Reposici\u00f3n de stock semanal",
+  "details": [
+    { "product": 1, "quantity": 5 },
+    { "product": 3, "quantity": 10 }
+  ]
+}
+```
+
+> **Validaciones**: `origin_branch` y `destination_branch` deben ser diferentes. Al menos un `detail` requerido.
+
+### Obtener Transferencia
+**M\u00e9todo**: `GET`
+**Endpoint**: `/api/stock-transfers/<int:pk>/`
+**Ejemplo**: `/api/stock-transfers/1/`
+
+### Aprobar Transferencia (Solo Admin)
+**M\u00e9todo**: `POST`
+**Endpoint**: `/api/stock-transfers/<int:pk>/approve/`
+**Ejemplo**: `/api/stock-transfers/1/approve/`
+**Descripci\u00f3n**: Aprueba la transferencia, descuenta stock de la sucursal origen y cambia estado a `IN_TRANSIT`.
+
+**Validaciones**:
+- Solo Administradores Generales pueden aprobar
+- La transferencia debe estar en estado `PENDING`
+- Stock suficiente en la sucursal origen para cada producto
+
+**Response**: Objeto `StockTransfer` con `status: "IN_TRANSIT"`
+
+**Errores**:
+- `403 Forbidden` \u2013 El usuario no es Administrador General
+- `400 Bad Request` \u2013 Estado incorrecto o stock insuficiente
+
+### Rechazar Transferencia (Solo Admin)
+**M\u00e9todo**: `POST`
+**Endpoint**: `/api/stock-transfers/<int:pk>/reject/`
+**Ejemplo**: `/api/stock-transfers/1/reject/`
+
+**Request**:
+```json
+{
+  "rejection_note": "Stock no disponible actualmente"
+}
+```
+
+**Response**: Objeto `StockTransfer` con `status: "REJECTED"`
+
+### Completar Transferencia
+**M\u00e9todo**: `POST`
+**Endpoint**: `/api/stock-transfers/<int:pk>/complete/`
+**Ejemplo**: `/api/stock-transfers/1/complete/`
+**Descripci\u00f3n**: Completa la transferencia sumando stock en la sucursal destino.
+
+**Validaciones**:
+- La transferencia debe estar en estado `IN_TRANSIT`
+
+**Response**: Objeto `StockTransfer` con `status: "COMPLETED"`
 
 ---
 
@@ -845,7 +1129,7 @@ Todos estos recursos usan el patrón List/Write serializers:
 
 ### Listar Ventas
 **Método**: `GET`  
-**Endpoint**: `/api/sales/sales/`  
+**Endpoint**: `/api/sales/`  
 **Filtros**: `?closed=true&pay_method=1&seller=2&payment_status=PAID&canceled=false`  
 **Búsqueda**: `?search=Juan` (busca en nombre/apellido/dni del cliente)
 
@@ -906,7 +1190,7 @@ Todos estos recursos usan el patrón List/Write serializers:
 
 ### Crear Venta
 **Método**: `POST`  
-**Endpoint**: `/api/sales/sales/`  
+**Endpoint**: `/api/sales/`  
 **Descripción**: Crear nueva venta (automáticamente asigna seller=usuario actual)
 
 **Request**:
@@ -921,28 +1205,28 @@ Todos estos recursos usan el patrón List/Write serializers:
 
 ### Obtener Venta
 **Método**: `GET`  
-**Endpoint**: `/api/sales/sales/<int:pk>/`  
-**Ejemplo**: `/api/sales/sales/1/`
+**Endpoint**: `/api/sales/<int:pk>/`  
+**Ejemplo**: `/api/sales/1/`
 
 ### Cerrar Venta
 **Método**: `POST`  
-**Endpoint**: `/api/sales/sales/<int:pk>/close/`  
-**Ejemplo**: `/api/sales/sales/1/close/`  
+**Endpoint**: `/api/sales/<int:pk>/close/`  
+**Ejemplo**: `/api/sales/1/close/`  
 **Descripción**: Cerrar y confirmar una venta (actualiza inventario, crea movimientos)
 
 **Response**: Retorna la venta completa con `closed: true`
 
 ### Cancelar Venta
 **Método**: `POST`  
-**Endpoint**: `/api/sales/sales/<int:pk>/cancel/`  
-**Ejemplo**: `/api/sales/sales/1/cancel/`  
+**Endpoint**: `/api/sales/<int:pk>/cancel/`  
+**Ejemplo**: `/api/sales/1/cancel/`  
 **Descripción**: Cancelar una venta y restaurar el stock al inventario de la sucursal correspondiente.
 
 **Response**: Retorna la venta completa con `canceled: true`
 
 ### Resumen de Ventas
 **Método**: `GET`  
-**Endpoint**: `/api/sales/sales/summary/`  
+**Endpoint**: `/api/sales/summary/`  
 **Descripción**: Métricas generales de ventas  
 **Filtros**: `?branch=1&date_from=2025-01-01&date_to=2025-03-01`
 
@@ -959,7 +1243,7 @@ Todos estos recursos usan el patrón List/Write serializers:
 
 ### Resumen por Sucursal (Solo Admin General)
 **Método**: `GET`  
-**Endpoint**: `/api/sales/sales/summary-by-branch/`  
+**Endpoint**: `/api/sales/summary-by-branch/`  
 **Descripción**: Métricas agrupadas por sucursal. Solo disponible para Administradores Generales.  
 **Filtros**: `?date_from=2025-01-01&date_to=2025-03-01`
 
@@ -982,7 +1266,7 @@ Todos estos recursos usan el patrón List/Write serializers:
 
 ### Top Productos
 **Método**: `GET`  
-**Endpoint**: `/api/sales/sales/top-products/`  
+**Endpoint**: `/api/sales/top-products/`  
 **Filtro**: `?limit=5` (por defecto: 5)  
 **Descripción**: Productos más vendidos
 
@@ -1000,7 +1284,7 @@ Todos estos recursos usan el patrón List/Write serializers:
 
 ### Ventas por Categoría
 **Método**: `GET`  
-**Endpoint**: `/api/sales/sales/by-category/`
+**Endpoint**: `/api/sales/by-category/`
 
 **Response**:
 ```json
@@ -1015,7 +1299,7 @@ Todos estos recursos usan el patrón List/Write serializers:
 
 ### Ventas por Día
 **Método**: `GET`  
-**Endpoint**: `/api/sales/sales/by-day/`  
+**Endpoint**: `/api/sales/by-day/`  
 **Descripción**: Últimos 7 días
 
 **Response**:
@@ -1032,7 +1316,7 @@ Todos estos recursos usan el patrón List/Write serializers:
 
 ### Ventas por Mes
 **Método**: `GET`  
-**Endpoint**: `/api/sales/sales/by-month/`  
+**Endpoint**: `/api/sales/by-month/`  
 **Descripción**: Últimos 6 meses
 
 **Response**:
@@ -1053,11 +1337,11 @@ Todos estos recursos usan el patrón List/Write serializers:
 
 #### Listar Detalles
 **Método**: `GET`  
-**Endpoint**: `/api/sales/sale-details/`
+**Endpoint**: `/api/sale-details/`
 
 #### Crear Detalle
 **Método**: `POST`  
-**Endpoint**: `/api/sales/sale-details/`  
+**Endpoint**: `/api/sale-details/`  
 **Descripción**: Agregar producto a una venta
 
 **Request**:
@@ -1076,7 +1360,7 @@ Todos estos recursos usan el patrón List/Write serializers:
 ### Métodos de Pago
 
 **Métodos**: `GET, POST, PUT, PATCH, DELETE`  
-**Endpoint**: `/api/sales/pay-methods/`
+**Endpoint**: `/api/pay-methods/`
 
 **Response (GET)**:
 ```json
@@ -1091,6 +1375,171 @@ Todos estos recursos usan el patrón List/Write serializers:
 
 ---
 
+## Devoluciones
+
+> Los diferentes serializers según la acción:
+> - **Listado** (`GET /returns/`): `ReturnListSerializer` (resumen)
+> - **Detalle** (`GET /returns/{id}/`): `ReturnDetailResponseSerializer` (con details y refunds anidados)
+> - **Crear** (`POST /returns/`): `ReturnCreateSerializer` (escritura con details/refunds inline)
+
+### Listar Devoluciones
+**Método**: `GET`
+**Endpoint**: `/api/returns/`
+**Filtros**: `?status=COMPLETED&branch=1&sale=5&reason_type=DEFECTIVE&cash_session=3&date_from=2025-01-01&date_to=2025-03-01`
+**Búsqueda**: `?search=notas` (busca en reason_notes, nombre/apellido del cliente)
+**Ordenamiento**: `?ordering=-created_at` o `?ordering=total_refund_amount`
+
+**Response**:
+```json
+[
+  {
+    "id": 1,
+    "sale": 5,
+    "sale_client_name": "María González",
+    "branch": 1,
+    "branch_name": "Sucursal Centro",
+    "cash_session": 3,
+    "status": "COMPLETED",
+    "reason_display": "Defective / Damaged",
+    "reason_type": "DEFECTIVE",
+    "reason_notes": "Producto con defecto de fábrica",
+    "total_refund_amount": "150.00",
+    "processed_by": 2,
+    "processed_by_name": "Juan Pérez",
+    "authorized_by": null,
+    "authorized_by_name": "",
+    "created_at": "2025-01-15T14:00:00Z",
+    "updated_at": "2025-01-15T14:00:00Z"
+  }
+]
+```
+
+### Crear Devolución
+**Método**: `POST`
+**Endpoint**: `/api/returns/`
+**Descripción**: Registrar una devolución sobre una venta cerrada. `company`, `branch`, `cash_session` y `processed_by` se asignan automáticamente.
+
+**Request**:
+```json
+{
+  "sale": 5,
+  "reason_type": "DEFECTIVE",
+  "reason_notes": "Producto con defecto de fábrica",
+  "details": [
+    {
+      "sale_detail": 10,
+      "product": 1,
+      "quantity": 1,
+      "unit_price": "100.00",
+      "subtotal": "100.00",
+      "condition": "DAMAGED",
+      "restock": false
+    }
+  ],
+  "refunds": [
+    {
+      "refund_method": "CASH",
+      "amount": "100.00"
+    }
+  ]
+}
+```
+
+> **Validaciones**:
+> - La venta debe estar `closed=True` y `canceled=False`
+> - Cada `quantity` en details no puede exceder lo disponible para devolver
+> - La suma de `refunds[].amount` debe ser igual a la suma de `details[].subtotal`
+> - `reason_type`: `DEFECTIVE`, `WRONG_ITEM`, `NOT_NEEDED`, `OTHER`
+> - `condition`: `RESALEABLE`, `DAMAGED`
+> - `refund_method`: `CASH`, `STORE_CREDIT`, `ORIGINAL_METHOD`
+
+**Response** `201`: Objeto Return con `total_refund_amount` calculado.
+
+### Obtener Devolución (Detalle)
+**Método**: `GET`
+**Endpoint**: `/api/returns/<int:pk>/`
+**Ejemplo**: `/api/returns/1/`
+**Descripción**: Retorna la devolución con `details` y `refunds` anidados.
+
+**Response**:
+```json
+{
+  "id": 1,
+  "sale": 5,
+  "sale_client_name": "María González",
+  "branch": 1,
+  "branch_name": "Sucursal Centro",
+  "status": "COMPLETED",
+  "reason_type": "DEFECTIVE",
+  "reason_notes": "Producto con defecto de fábrica",
+  "total_refund_amount": "100.00",
+  "processed_by_name": "Juan Pérez",
+  "details": [
+    {
+      "id": 1,
+      "return_obj": 1,
+      "sale_detail": 10,
+      "product": 1,
+      "product_name": "Camisa Slim Fit",
+      "quantity": 1,
+      "unit_price": "100.00",
+      "subtotal": "100.00",
+      "condition": "DAMAGED",
+      "restock": false
+    }
+  ],
+  "refunds": [
+    {
+      "id": 1,
+      "return_obj": 1,
+      "refund_method": "CASH",
+      "pay_method": null,
+      "pay_method_name": "",
+      "amount": "100.00",
+      "account_record": null
+    }
+  ],
+  "created_at": "2025-01-15T14:00:00Z",
+  "updated_at": "2025-01-15T14:00:00Z"
+}
+```
+
+### Cancelar Devolución
+**Método**: `POST`
+**Endpoint**: `/api/returns/<int:pk>/cancel/`
+**Ejemplo**: `/api/returns/1/cancel/`
+**Descripción**: Revierte una devolución completada. Si los items tenían `restock=True`, se descuenta el stock restaurado.
+
+**Response**: Objeto Return con `status: "CANCELED"`
+
+**Errores**:
+- `400 Bad Request` – Solo se pueden cancelar devoluciones con estado `COMPLETED`
+
+### Resumen de Devoluciones
+**Método**: `GET`
+**Endpoint**: `/api/returns/summary/`
+**Filtros**: `?date_from=2025-01-01&date_to=2025-03-01`
+
+**Response**:
+```json
+{
+  "total_returns": 12,
+  "total_refund_amount": "3500.00",
+  "total_items_returned": 25,
+  "total_restocked": 20,
+  "by_reason": [
+    { "reason": "DEFECTIVE", "count": 5 },
+    { "reason": "WRONG_ITEM", "count": 4 }
+  ],
+  "by_refund_method": [
+    { "method": "CASH", "total": "2000.00" },
+    { "method": "ORIGINAL_METHOD", "total": "1500.00" }
+  ]
+}
+```
+
+---
+
 ## Caja
 
 ### Cajas Registradoras
@@ -1099,7 +1548,7 @@ Todos estos recursos usan el patrón List/Write serializers:
 
 #### Listar Cajas (desde devices)
 **Método**: `GET`  
-**Endpoint**: `/api/devices/devices/cash_registers/`  
+**Endpoint**: `/api/devices/cash_registers/`  
 **Descripción**: Obtener solo cajas registradoras activas
 
 **Response**:
@@ -1364,7 +1813,7 @@ Todos estos recursos usan el patrón List/Write serializers:
 
 ### Listar Dispositivos
 **Método**: `GET`  
-**Endpoint**: `/api/devices/devices/`  
+**Endpoint**: `/api/devices/`  
 **Descripción**: Lista todos los dispositivos (polimórfico, retorna tipo correcto)  
 **Filtros**: `?is_active=true&is_online=true&assigned_user=2`  
 **Búsqueda**: `?search=CAJA` (busca en code, name, location, serial_number)  
@@ -1400,7 +1849,7 @@ Todos estos recursos usan el patrón List/Write serializers:
 
 ### Crear Dispositivo
 **Método**: `POST`  
-**Endpoint**: `/api/devices/devices/`  
+**Endpoint**: `/api/devices/`  
 **Descripción**: Crear dispositivo (tipo determinado por `resourcetype`)
 
 **Request (CashRegister)**:
@@ -1447,8 +1896,8 @@ Todos estos recursos usan el patrón List/Write serializers:
 
 ### Obtener Dispositivo
 **Método**: `GET`  
-**Endpoint**: `/api/devices/devices/<int:pk>/`  
-**Ejemplo**: `/api/devices/devices/1/`  
+**Endpoint**: `/api/devices/<int:pk>/`  
+**Ejemplo**: `/api/devices/1/`  
 **Descripción**: Retorna el serializer correcto según el tipo
 
 **Response (CashRegister)**:
@@ -1525,18 +1974,18 @@ Todos estos recursos usan el patrón List/Write serializers:
 
 ### Actualizar Dispositivo
 **Método**: `PUT/PATCH`  
-**Endpoint**: `/api/devices/devices/<int:pk>/`  
-**Ejemplo**: `/api/devices/devices/1/`
+**Endpoint**: `/api/devices/<int:pk>/`  
+**Ejemplo**: `/api/devices/1/`
 
 ### Eliminar Dispositivo
 **Método**: `DELETE`  
-**Endpoint**: `/api/devices/devices/<int:pk>/`  
-**Ejemplo**: `/api/devices/devices/1/`
+**Endpoint**: `/api/devices/<int:pk>/`  
+**Ejemplo**: `/api/devices/1/`
 
 ### Heartbeat (Check-in)
 **Método**: `POST`  
-**Endpoint**: `/api/devices/devices/<int:pk>/heartbeat/`  
-**Ejemplo**: `/api/devices/devices/1/heartbeat/`  
+**Endpoint**: `/api/devices/<int:pk>/heartbeat/`  
+**Ejemplo**: `/api/devices/1/heartbeat/`  
 **Descripción**: Registrar que el dispositivo está activo (actualiza `last_seen` e `is_online`)
 
 **Request**: Vacío
@@ -1551,8 +2000,8 @@ Todos estos recursos usan el patrón List/Write serializers:
 
 ### Asignar Usuario
 **Método**: `POST`  
-**Endpoint**: `/api/devices/devices/<int:pk>/assign/`  
-**Ejemplo**: `/api/devices/devices/1/assign/`  
+**Endpoint**: `/api/devices/<int:pk>/assign/`  
+**Ejemplo**: `/api/devices/1/assign/`  
 **Descripción**: Asignar dispositivo a un usuario
 
 **Request**:
@@ -1566,47 +2015,47 @@ Todos estos recursos usan el patrón List/Write serializers:
 
 ### Desasignar Usuario
 **Método**: `POST`  
-**Endpoint**: `/api/devices/devices/<int:pk>/unassign/`  
-**Ejemplo**: `/api/devices/devices/1/unassign/`
+**Endpoint**: `/api/devices/<int:pk>/unassign/`  
+**Ejemplo**: `/api/devices/1/unassign/`
 
 **Response**: Dispositivo completo con `assigned_user: null`
 
 ### Cajas Registradoras
 **Método**: `GET`  
-**Endpoint**: `/api/devices/devices/cash_registers/`  
+**Endpoint**: `/api/devices/cash_registers/`  
 **Descripción**: Solo CashRegister activos
 
 **Response**: Array de `CashRegisterSerializer` (con `current_session_id` y `has_open_session`)
 
 ### Terminales de Precio
 **Método**: `GET`  
-**Endpoint**: `/api/devices/devices/price_checkers/`  
+**Endpoint**: `/api/devices/price_checkers/`  
 **Descripción**: Solo PriceChecker activos
 
 **Response**: Array de `PriceCheckerSerializer` (con `display_promotions` y `timeout_seconds`)
 
 ### Terminales de Stock
 **Método**: `GET`  
-**Endpoint**: `/api/devices/devices/stock_terminals/`  
+**Endpoint**: `/api/devices/stock_terminals/`  
 **Descripción**: Solo StockTerminal activos
 
 **Response**: Array de `StockTerminalSerializer` (con `can_receive_shipments` y `require_photo`)
 
 ### Dispositivos Online
 **Método**: `GET`  
-**Endpoint**: `/api/devices/devices/online/`
+**Endpoint**: `/api/devices/online/`
 
 **Response**: Array de `DeviceListSerializer` donde `is_online=true`
 
 ### Dispositivos Offline
 **Método**: `GET`  
-**Endpoint**: `/api/devices/devices/offline/`
+**Endpoint**: `/api/devices/offline/`
 
 **Response**: Array de `DeviceListSerializer` donde `is_online=false`
 
 ### Resumen de Dispositivos
 **Método**: `GET`  
-**Endpoint**: `/api/devices/devices/summary/`
+**Endpoint**: `/api/devices/summary/`
 
 **Response**:
 ```json
@@ -1652,7 +2101,7 @@ Todos estos recursos usan el patrón List/Write serializers:
 
 ### Listar Usuarios
 **Método**: `GET`  
-**Endpoint**: `/api/users/users/`  
+**Endpoint**: `/api/users/`  
 **Filtros**: `?search=nombre&ordering=date_joined`
 
 **Response**:
@@ -1725,7 +2174,7 @@ Todos estos recursos usan el patrón List/Write serializers:
 
 ### Crear Empleado (Usuario Dependiente)
 **Método**: `POST`  
-**Endpoint**: `/api/users/users/employees/`  
+**Endpoint**: `/api/users/employees/`  
 **Descripción**: Crea un empleado para la empresa actual. Asigna roles y sucursales.  
 **Requiere rol**: `Administrador General` o `Gerente`
 
@@ -1765,8 +2214,8 @@ Todos estos recursos usan el patrón List/Write serializers:
 
 ### Actualizar Empleado
 **Método**: `PUT` / `PATCH`  
-**Endpoint**: `/api/users/users/<int:pk>/employee/`  
-**Ejemplo**: `/api/users/users/3/employee/`  
+**Endpoint**: `/api/users/<int:pk>/employee/`  
+**Ejemplo**: `/api/users/3/employee/`  
 **Requiere rol**: `Administrador General` o `Gerente`
 
 **Request**:
@@ -1798,32 +2247,205 @@ Todos estos recursos usan el patrón List/Write serializers:
 
 ### Obtener Usuario
 **Método**: `GET`  
-**Endpoint**: `/api/users/users/<int:pk>/`  
-**Ejemplo**: `/api/users/users/1/`
+**Endpoint**: `/api/users/<int:pk>/`  
+**Ejemplo**: `/api/users/1/`
 
 ### Actualizar Usuario
 **Método**: `PUT/PATCH`  
-**Endpoint**: `/api/users/users/<int:pk>/`  
-**Ejemplo**: `/api/users/users/1/`
+**Endpoint**: `/api/users/<int:pk>/`  
+**Ejemplo**: `/api/users/1/`
 
 ### Eliminar Usuario
 **Método**: `DELETE`  
-**Endpoint**: `/api/users/users/<int:pk>/`  
-**Ejemplo**: `/api/users/users/1/`
+**Endpoint**: `/api/users/<int:pk>/`  
+**Ejemplo**: `/api/users/1/`
 
 ---
 
-## Registros
+## Codigos de Autorizacion
+
+### Listar Codigos de Autorizacion
+**Metodo**: `GET`
+**Endpoint**: `/api/users/authorization-codes/`
+**Descripcion**: Retorna todos los codigos de autorizacion de la empresa del usuario autenticado.
+**Filtros**: `?is_active=true`
+**Paginacion**: `?page=1&page_size=20`
+
+**Response** `200`:
+```json
+[
+  {
+    "id": 1,
+    "user": 2,
+    "user_data": {
+      "id": 2,
+      "first_name": "Juan",
+      "last_name": "Perez",
+      "username": "jperez",
+      "email": "juan@example.com"
+    },
+    "code": "SUP-001",
+    "label": "Supervisor Turno Manana",
+    "is_active": true,
+    "created_at": "2026-01-15T10:00:00Z",
+    "updated_at": "2026-01-15T10:00:00Z"
+  }
+]
+```
+
+### Crear Codigo de Autorizacion
+**Metodo**: `POST`
+**Endpoint**: `/api/users/authorization-codes/`
+**Requiere rol**: `Administrador General` o `Gerente`
+
+**Request**:
+```json
+{
+  "user": 2,
+  "code": "SUP-001",
+  "label": "Supervisor Turno Manana",
+  "is_active": true
+}
+```
+
+| Campo | Tipo | Requerido | Descripcion |
+|---|---|---|---|
+| `user` | number | Si | ID del usuario supervisor |
+| `code` | string | Si | Codigo de barras del supervisor |
+| `label` | string | Si | Etiqueta descriptiva |
+| `is_active` | boolean | No | Default `true` |
+
+**Response** `201`: Mismo objeto que GET (con `id`, `user_data`, `created_at`, `updated_at`).
+
+**Errores comunes**:
+- `400 Bad Request` – Campos requeridos faltantes.
+- `400 Bad Request` – Codigo duplicado dentro de la empresa.
+- `400 Bad Request` – El usuario no pertenece a la misma empresa.
+
+### Actualizar Codigo de Autorizacion
+**Metodo**: `PATCH`
+**Endpoint**: `/api/users/authorization-codes/<int:pk>/`
+**Requiere rol**: `Administrador General` o `Gerente`
+
+**Request** (todos opcionales):
+```json
+{
+  "user": 2,
+  "code": "SUP-002",
+  "label": "Nuevo label",
+  "is_active": false
+}
+```
+
+**Response** `200`: Objeto completo del codigo actualizado.
+
+### Eliminar Codigo de Autorizacion
+**Metodo**: `DELETE`
+**Endpoint**: `/api/users/authorization-codes/<int:pk>/`
+**Requiere rol**: `Administrador General` o `Gerente`
+
+**Response** `204`: Sin contenido.
+
+### Validar Codigo de Autorizacion
+**Metodo**: `POST`
+**Endpoint**: `/api/users/authorization-codes/validate-code/`
+**Descripcion**: Valida un codigo de autorizacion (escaneo de codigo de barras).
+
+**Request**:
+```json
+{
+  "code": "SUP-001"
+}
+```
+
+**Response** `200` (codigo valido):
+```json
+{
+  "valid": true,
+  "user": {
+    "id": 2,
+    "first_name": "Juan",
+    "last_name": "Perez",
+    "username": "jperez",
+    "email": "juan@example.com"
+  },
+  "role_display": "Gerente"
+}
+```
+
+**Response** `200` (codigo invalido):
+```json
+{
+  "valid": false,
+  "user": null,
+  "role_display": null,
+  "error": "Codigo no encontrado o inactivo"
+}
+```
+
+---
+
+## Registros de Auditoría
 
 ### Listar Registros
-**Método**: `GET`  
-**Endpoint**: `/api/records/records/`  
-**Descripción**: Logs de acciones del sistema
+**Método**: `GET`
+**Endpoint**: `/api/records/`
+**Descripción**: Registros inmutables de auditoría de todas las acciones del sistema
+**Filtros**: `?action=SALE_CREATED&branch=1&user=2`
+**Búsqueda**: `?search=descripción`
+**Ordenamiento**: `?ordering=-created_at`
+
+**Response**:
+```json
+[
+  {
+    "id": 1,
+    "company": 1,
+    "branch": 1,
+    "branch_name": "Sucursal Centro",
+    "user": 2,
+    "user_name": "Juan Pérez",
+    "action": "SALE_CREATED",
+    "action_display": "Sale Created",
+    "ip_address": "192.168.1.50",
+    "description": "Venta #5 creada",
+    "details": {},
+    "created_at": "2025-01-15T10:00:00Z"
+  }
+]
+```
+
+> **Tipos de acción (`action`)**: `SALE_CREATED`, `SALE_CANCELED`, `ADJUSTMENT_CREATED`, `ADJUSTMENT_APPROVED`, `ADJUSTMENT_REJECTED`, `RETURN_PROCESSED`, `RETURN_CANCELED`, `TRANSFER_CREATED`, `TRANSFER_APPROVED`, `TRANSFER_COMPLETED`, `PRICE_CHANGED`, `PRICE_BULK_UPDATE`, `CASH_SESSION_OPENED`, `CASH_SESSION_CLOSED`, `INVENTORY_UPDATED`, `SETTINGS_UPDATED`
 
 ### Obtener Registro
-**Método**: `GET`  
-**Endpoint**: `/api/records/records/<int:pk>/`  
-**Ejemplo**: `/api/records/records/1/`
+**Método**: `GET`
+**Endpoint**: `/api/records/<int:pk>/`
+**Ejemplo**: `/api/records/1/`
+
+### Resumen de Auditoría
+**Método**: `GET`
+**Endpoint**: `/api/records/summary/`
+**Descripción**: Resumen agregado de registros de auditoría
+**Filtros**: `?date_from=2025-01-01&date_to=2025-03-01`
+
+**Response**:
+```json
+{
+  "total_records": 450,
+  "by_action": [
+    { "action": "SALE_CREATED", "count": 120 },
+    { "action": "INVENTORY_UPDATED", "count": 85 }
+  ],
+  "by_user": [
+    { "user_id": 2, "user_name": "Juan Pérez", "count": 200 },
+    { "user_id": 3, "user_name": "María González", "count": 150 }
+  ],
+  "most_active_hours": [
+    { "hour": 10, "count": 75 },
+    { "hour": 11, "count": 68 }
+  ]
+}
+```
 
 ---
 
@@ -1867,6 +2489,11 @@ Muchos serializers tienen campos calculados o automáticos que son read-only:
 - **Sales**: `total_amount`, `seller`, `payment_status`, `formatted_*`
 - **Products**: `internal_code`, `formatted_cost_price`, `formatted_sale_price`
 - **Devices**: `is_online`, `last_seen`, `assigned_date`, `polymorphic_ctype`
+- **Returns**: `company`, `branch`, `cash_session`, `processed_by`, `total_refund_amount`
+- **StockTransfers**: `company`, `status`, `requested_by`, `approved_by`
+- **CompanySettings**: `company` (read-only, auto-asignado)
+- **PriceHistory**: Todos los campos son read-only (registro inmutable)
+- **AuditRecord**: Todos los campos son read-only (registro inmutable)
 
 Estos campos **no** deben incluirse en requests POST/PUT/PATCH.
 
@@ -1887,12 +2514,129 @@ A continuación se documentan los campos y relaciones de los modelos del sistema
 |-------|--------------|-----------------------|-------|
 | `id` | `PrimaryKey` | `number | null` |  (Opcional) |
 | `name` | `CharField` | `string` |  |
+| `legal_name` | `CharField` | `string` | Nombre legal de la empresa |
+| `address` | `CharField` | `string` | Dirección de la empresa |
+| `phone` | `CharField` | `string` | Teléfono de la empresa |
+| `email` | `EmailField` | `string` | Email de la empresa |
 | `tax_id` | `CharField` | `string | null` |  (Opcional) |
 | `logo` | `FileField` | `string | null` |  (Opcional) |
 | `is_active` | `BooleanField` | `boolean` |  |
 | `owner` | `FK -> CustomUser` | `number | CustomUser | null` | Envía ID, recibe Entidad o ID (Opcional) |
 | `created_at` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
 | `updated_at` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+
+### `CompanySettings` (App: `core`)
+| Campo | Tipo Backend | Tipo Sugerido Frontend | Notas/Variaciones |
+|-------|--------------|-----------------------|-------|
+| `id` | `PrimaryKey` | `number | null` | (Opcional) |
+| `company` | `OneToOne -> Company` | `number` | Read-only, auto-asignado |
+| `tax_name` | `CharField` | `string` | Default: `"IVA"` |
+| `tax_rate` | `DecimalField` | `string` | Default: `"21.00"` |
+| `tax_enabled` | `BooleanField` | `boolean` | Default: `true` |
+| `currency_code` | `CharField` | `string` | Default: `"ARS"`, código ISO |
+| `currency_symbol` | `CharField` | `string` | Default: `"$"` |
+| `currency_decimals` | `PositiveSmallIntegerField` | `number` | Default: `2` |
+| `receipt_header` | `TextField` | `string` | Texto superior del ticket |
+| `receipt_footer` | `TextField` | `string` | Texto inferior del ticket |
+| `receipt_show_tax` | `BooleanField` | `boolean` | Default: `true` |
+| `allow_negative_stock` | `BooleanField` | `boolean` | Default: `false` |
+| `low_stock_threshold` | `PositiveIntegerField` | `number` | Default: `5` |
+
+### `PriceHistory` (App: `products`)
+| Campo | Tipo Backend | Tipo Sugerido Frontend | Notas/Variaciones |
+|-------|--------------|-----------------------|-------|
+| `id` | `PrimaryKey` | `number | null` | (Opcional) |
+| `company` | `FK -> Company` | `number` | Auto-asignado |
+| `product` | `FK -> Product` | `number` | Producto asociado |
+| `field` | `CharField` | `string` | `"sale_price"` o `"cost_price"` |
+| `old_value` | `DecimalField` | `string` | Precio anterior |
+| `new_value` | `DecimalField` | `string` | Precio nuevo |
+| `change_percentage` | `DecimalField` | `number | null` | Porcentaje de cambio (Opcional) |
+| `reason` | `CharField` | `string` | Motivo del cambio |
+| `source` | `CharField` | `string` | `"MANUAL"` o `"BULK_UPDATE"` |
+| `changed_by` | `FK -> CustomUser` | `number | null` | Usuario que realizó el cambio (Opcional) |
+| `created_at` | `DateTimeField` | `string` | Formato ISO 8601 |
+
+### `Return` (App: `sales`)
+| Campo | Tipo Backend | Tipo Sugerido Frontend | Notas/Variaciones |
+|-------|--------------|-----------------------|-------|
+| `id` | `PrimaryKey` | `number | null` | (Opcional) |
+| `company` | `FK -> Company` | `number` | Auto-asignado |
+| `sale` | `FK -> Sale` | `number` | Venta asociada |
+| `branch` | `FK -> Branch` | `number` | Auto-asignado |
+| `cash_session` | `FK -> CashSession` | `number | null` | Auto-asignado (Opcional) |
+| `status` | `CharField` | `string` | `"COMPLETED"` o `"CANCELED"` |
+| `reason_type` | `CharField` | `string` | `"DEFECTIVE"`, `"WRONG_ITEM"`, `"NOT_NEEDED"`, `"OTHER"` |
+| `reason_notes` | `TextField` | `string` | Notas del motivo |
+| `total_refund_amount` | `DecimalField` | `string` | Calculado automáticamente |
+| `processed_by` | `FK -> CustomUser` | `number | null` | Auto-asignado (Opcional) |
+| `authorized_by` | `FK -> CustomUser` | `number | null` | (Opcional) |
+| `created_at` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+| `updated_at` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+
+### `ReturnDetail` (App: `sales`)
+| Campo | Tipo Backend | Tipo Sugerido Frontend | Notas/Variaciones |
+|-------|--------------|-----------------------|-------|
+| `id` | `PrimaryKey` | `number | null` | (Opcional) |
+| `company` | `FK -> Company` | `number` | Auto-asignado |
+| `return_obj` | `FK -> Return` | `number` | Devolución asociada |
+| `sale_detail` | `FK -> SaleDetail` | `number` | Línea de venta original |
+| `product` | `FK -> Product` | `number` | Producto devuelto |
+| `quantity` | `PositiveIntegerField` | `number` | Cantidad devuelta |
+| `unit_price` | `DecimalField` | `string` | Precio unitario |
+| `subtotal` | `DecimalField` | `string` | Subtotal |
+| `condition` | `CharField` | `string` | `"RESALEABLE"` o `"DAMAGED"` |
+| `restock` | `BooleanField` | `boolean` | Si se restaura al inventario |
+
+### `ReturnRefund` (App: `sales`)
+| Campo | Tipo Backend | Tipo Sugerido Frontend | Notas/Variaciones |
+|-------|--------------|-----------------------|-------|
+| `id` | `PrimaryKey` | `number | null` | (Opcional) |
+| `company` | `FK -> Company` | `number` | Auto-asignado |
+| `return_obj` | `FK -> Return` | `number` | Devolución asociada |
+| `refund_method` | `CharField` | `string` | `"CASH"`, `"STORE_CREDIT"`, `"ORIGINAL_METHOD"` |
+| `pay_method` | `FK -> PayMethod` | `number | null` | (Opcional) |
+| `amount` | `DecimalField` | `string` | Monto del reembolso |
+| `account_record` | `FK -> CustomerBalanceRecord` | `number | null` | (Opcional) |
+
+### `StockTransfer` (App: `inventory`)
+| Campo | Tipo Backend | Tipo Sugerido Frontend | Notas/Variaciones |
+|-------|--------------|-----------------------|-------|
+| `id` | `PrimaryKey` | `number | null` | (Opcional) |
+| `company` | `FK -> Company` | `number` | Auto-asignado |
+| `origin_branch` | `FK -> Branch` | `number` | Sucursal de origen |
+| `destination_branch` | `FK -> Branch` | `number` | Sucursal de destino |
+| `status` | `CharField` | `string` | `"PENDING"`, `"IN_TRANSIT"`, `"COMPLETED"`, `"REJECTED"` |
+| `requested_by` | `FK -> CustomUser` | `number | null` | Auto-asignado (Opcional) |
+| `approved_by` | `FK -> CustomUser` | `number | null` | (Opcional) |
+| `rejection_note` | `TextField` | `string` | Nota de rechazo |
+| `notes` | `TextField` | `string` | Notas generales |
+| `created_at` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+| `updated_at` | `DateTimeField` | `string | null` | Formato ISO 8601 (Opcional) |
+
+### `StockTransferDetail` (App: `inventory`)
+| Campo | Tipo Backend | Tipo Sugerido Frontend | Notas/Variaciones |
+|-------|--------------|-----------------------|-------|
+| `id` | `PrimaryKey` | `number | null` | (Opcional) |
+| `company` | `FK -> Company` | `number` | Auto-asignado |
+| `transfer` | `FK -> StockTransfer` | `number` | Transferencia asociada |
+| `product` | `FK -> Product` | `number` | Producto a transferir |
+| `quantity` | `PositiveIntegerField` | `number` | Cantidad |
+| `origin_stock_before` | `IntegerField` | `number | null` | Stock antes de extraer (Opcional) |
+| `origin_stock_after` | `IntegerField` | `number | null` | Stock después de extraer (Opcional) |
+
+### `AuditRecord` (App: `records`)
+| Campo | Tipo Backend | Tipo Sugerido Frontend | Notas/Variaciones |
+|-------|--------------|-----------------------|-------|
+| `id` | `PrimaryKey` | `number | null` | (Opcional) |
+| `company` | `FK -> Company` | `number` | Empresa asociada |
+| `branch` | `FK -> Branch` | `number | null` | Sucursal (Opcional) |
+| `user` | `FK -> CustomUser` | `number | null` | Usuario que ejecutó la acción (Opcional) |
+| `action` | `CharField` | `string` | Tipo de acción (ver lista en endpoint) |
+| `ip_address` | `GenericIPAddressField` | `string | null` | IP desde donde se ejecutó (Opcional) |
+| `description` | `TextField` | `string` | Descripción de la acción |
+| `details` | `JSONField` | `object` | Datos adicionales de la acción |
+| `created_at` | `DateTimeField` | `string` | Formato ISO 8601 |
 
 ### `Branch` (App: `core`)
 | Campo | Tipo Backend | Tipo Sugerido Frontend | Notas/Variaciones |

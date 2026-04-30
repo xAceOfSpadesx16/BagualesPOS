@@ -6,7 +6,7 @@ from django.db.models.expressions import F
 from django.core.exceptions import ValidationError
 from decimal import Decimal
 
-from sales.models import SaleDetail, Sale
+from sales.models import SaleDetail, Sale, ReturnDetail
 from sales.choices import PaymentStatus
 from clients.models import CustomerBalanceRecord
 from clients.choices import MovementType
@@ -124,10 +124,45 @@ def update_payment_status_on_close(sender, instance: Sale, created: bool, **kwar
     """
     if not instance.closed:
         return
-    
+
     # If it's not a credit sale, mark as paid
     if not instance.is_credit_sale:
         if instance.payment_status != PaymentStatus.PAID:
             Sale.objects.filter(pk=instance.pk).update(payment_status=PaymentStatus.PAID)
+
+
+@receiver(post_save, sender=ReturnDetail)
+@atomic
+def handle_return_stock(sender, instance: ReturnDetail, created: bool, **kwargs):
+    """Restaurar stock cuando se crea un ReturnDetail con restock=True."""
+    if not created or not instance.restock:
+        return
+
+    from inventory.models import Inventory, StockMovement
+
+    try:
+        inventory = Inventory.objects.select_for_update().get(
+            product=instance.product,
+            branch=instance.return_obj.branch,
+        )
+        previous_qty = inventory.quantity
+        inventory.quantity += instance.quantity
+        inventory.save()
+
+        StockMovement.objects.create(
+            company=instance.return_obj.company,
+            branch=instance.return_obj.branch,
+            product=instance.product,
+            movement_type=StockMovement.MovementType.RETURN,
+            previous_quantity=previous_qty,
+            new_quantity=inventory.quantity,
+            quantity_change=instance.quantity,
+            reference_id=instance.return_obj.id,
+            reference_model='Return',
+            notes=f'Return #{instance.return_obj.id}',
+            created_by=instance.return_obj.processed_by,
+        )
+    except Inventory.DoesNotExist:
+        pass
 
 

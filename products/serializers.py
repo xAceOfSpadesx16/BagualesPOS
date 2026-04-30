@@ -11,6 +11,7 @@ from .models import (
     Materials,
     Season,
     Supplier,
+    PriceHistory,
 )
 
 # "List" Serializers for Read-Only Representations (e.g., in list views)
@@ -195,3 +196,16 @@ class ProductCreateUpdateSerializer(serializers.ModelSerializer):
             )
 
         return data
+
+
+class PriceHistorySerializer(serializers.ModelSerializer):
+    changed_by_name = serializers.CharField(source='changed_by.get_full_name', read_only=True, default='')
+
+    class Meta:
+        model = PriceHistory
+        fields = [
+            'id', 'product', 'field', 'old_value', 'new_value',
+            'change_percentage', 'reason', 'source',
+            'changed_by', 'changed_by_name', 'created_at',
+        ]
+        read_only_fields = fields

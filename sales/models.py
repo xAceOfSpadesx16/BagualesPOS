@@ -1,5 +1,5 @@
 from django.db.models import Model
-from django.db.models.fields import DateTimeField, BooleanField, CharField, IntegerField, DecimalField
+from django.db.models.fields import DateTimeField, BooleanField, CharField, IntegerField, DecimalField, TextField, PositiveIntegerField
 from django.db.models.fields.related import ForeignKey
 from django.db.models.deletion import CASCADE, SET_NULL
 from django.contrib.auth import get_user_model
@@ -8,7 +8,7 @@ from django.core.exceptions import ValidationError
 from django_multitenant.models import TenantModel
 
 from sales.managers import SalesManager
-from sales.choices import PaymentStatus
+from sales.choices import PaymentStatus, ReturnStatus, ReturnReasonType, ReturnCondition, RefundMethod
 from products.models import Product
 from clients.models import Client, CustomerBalanceRecord
 
@@ -197,4 +197,71 @@ class SaleDetail(TenantModel):
             if self.cost_price is None:
                 self.cost_price = self.product.cost_price
         super().save(*args, **kwargs)
+
+
+class Return(TenantModel):
+    """Devolución asociada a una venta."""
+    tenant_id = 'company_id'
+
+    company = ForeignKey('core.Company', on_delete=CASCADE, related_name='returns', verbose_name=_('company'))
+    sale = ForeignKey(Sale, on_delete=CASCADE, related_name='returns', verbose_name=_('sale'))
+    branch = ForeignKey('core.Branch', on_delete=CASCADE, related_name='returns', verbose_name=_('branch'))
+    cash_session = ForeignKey('cash.CashSession', on_delete=SET_NULL, null=True, blank=True, related_name='returns', verbose_name=_('cash session'))
+    status = CharField(max_length=20, choices=ReturnStatus.choices, default=ReturnStatus.COMPLETED, verbose_name=_('status'))
+    reason_type = CharField(max_length=20, choices=ReturnReasonType.choices, verbose_name=_('reason type'))
+    reason_notes = TextField(blank=True, default='', verbose_name=_('reason notes'))
+    total_refund_amount = DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'), verbose_name=_('total refund amount'))
+    processed_by = ForeignKey(get_user_model(), on_delete=SET_NULL, null=True, related_name='returns_processed', verbose_name=_('processed by'))
+    authorized_by = ForeignKey(get_user_model(), on_delete=SET_NULL, null=True, blank=True, related_name='returns_authorized', verbose_name=_('authorized by'))
+    created_at = DateTimeField(auto_now_add=True, verbose_name=_('created at'))
+    updated_at = DateTimeField(auto_now=True, verbose_name=_('updated at'))
+
+    class Meta:
+        verbose_name = _('return')
+        verbose_name_plural = _('returns')
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'Return #{self.pk} - Sale #{self.sale_id}'
+
+
+class ReturnDetail(TenantModel):
+    """Línea de producto en una devolución."""
+    tenant_id = 'company_id'
+
+    company = ForeignKey('core.Company', on_delete=CASCADE, related_name='return_details', verbose_name=_('company'))
+    return_obj = ForeignKey(Return, on_delete=CASCADE, related_name='details', verbose_name=_('return'))
+    sale_detail = ForeignKey(SaleDetail, on_delete=CASCADE, verbose_name=_('sale detail'))
+    product = ForeignKey(Product, on_delete=CASCADE, verbose_name=_('product'))
+    quantity = PositiveIntegerField(verbose_name=_('quantity'))
+    unit_price = DecimalField(max_digits=12, decimal_places=2, verbose_name=_('unit price'))
+    subtotal = DecimalField(max_digits=12, decimal_places=2, verbose_name=_('subtotal'))
+    condition = CharField(max_length=20, choices=ReturnCondition.choices, default=ReturnCondition.RESALEABLE, verbose_name=_('condition'))
+    restock = BooleanField(default=True, verbose_name=_('restock'))
+
+    class Meta:
+        verbose_name = _('return detail')
+        verbose_name_plural = _('return details')
+
+    def __str__(self):
+        return f'{self.product} x{self.quantity}'
+
+
+class ReturnRefund(TenantModel):
+    """Registro de reembolso asociado a una devolución."""
+    tenant_id = 'company_id'
+
+    company = ForeignKey('core.Company', on_delete=CASCADE, related_name='return_refunds', verbose_name=_('company'))
+    return_obj = ForeignKey(Return, on_delete=CASCADE, related_name='refunds', verbose_name=_('return'))
+    refund_method = CharField(max_length=20, choices=RefundMethod.choices, verbose_name=_('refund method'))
+    pay_method = ForeignKey(PayMethod, on_delete=SET_NULL, null=True, blank=True, verbose_name=_('pay method'))
+    amount = DecimalField(max_digits=12, decimal_places=2, verbose_name=_('amount'))
+    account_record = ForeignKey(CustomerBalanceRecord, on_delete=SET_NULL, null=True, blank=True, verbose_name=_('account record'))
+
+    class Meta:
+        verbose_name = _('return refund')
+        verbose_name_plural = _('return refunds')
+
+    def __str__(self):
+        return f'Refund {self.refund_method} - {self.amount}'
 

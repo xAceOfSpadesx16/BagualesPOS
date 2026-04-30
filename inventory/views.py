@@ -7,46 +7,21 @@ from django.db.models import F, Sum
 from django.db import transaction
 from rest_framework.filters import OrderingFilter, SearchFilter
 from django_filters.rest_framework import DjangoFilterBackend
-from .models import Inventory, StockAdjustmentRequest, StockMovement
-from .serializers import InventorySerializer, StockAdjustmentRequestSerializer, StockMovementSerializer
-from .filters import StockAdjustmentRequestFilter, StockMovementFilter
+from utils.mixins import TenantViewSetMixin
+from .models import Inventory, StockAdjustmentRequest, StockMovement, StockTransfer, StockTransferDetail
+from .serializers import (
+    InventorySerializer, StockAdjustmentRequestSerializer, StockMovementSerializer,
+    StockTransferListSerializer, StockTransferCreateSerializer,
+)
+from .filters import StockAdjustmentRequestFilter, StockMovementFilter, StockTransferFilter
 
-class InventoryViewSet(viewsets.ModelViewSet):
+class InventoryViewSet(TenantViewSetMixin, viewsets.ModelViewSet):
     queryset = Inventory.objects.all()
     serializer_class = InventorySerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     ordering = ['product__name', 'product__brand__name']
     search_fields = ['product__name', 'product__details', 'product__internal_code']
     ordering_fields = ['quantity', 'product__name']
-
-    def get_queryset(self):
-        """
-        Filter inventory by user's branch unless user is a General Admin.
-        - Superusers: see all inventory
-        - Company owners (General Admins): see all inventory in their company
-        - Branch managers/employees: see only their branch inventory
-        """
-        user = self.request.user
-        queryset = super().get_queryset()
-        
-        # Superusers see everything
-        if user.is_superuser:
-            return queryset
-        
-        # Check if user is company owner (General Admin)
-        if hasattr(user, 'owned_company'):
-            return queryset.filter(company=user.owned_company)
-        
-        # Regular users (Branch Managers/Employees) see only their branch inventory
-        if user.company:
-            user_branches = user.branch.all()
-            if user_branches.exists():
-                return queryset.filter(branch__in=user_branches)
-            # If user has no branches assigned, show all company inventory (fallback)
-            return queryset.filter(company=user.company)
-        
-        # Users without company shouldn't see anything
-        return queryset.none()
 
     @action(detail=True, methods=['post'])
     def update_quantity(self, request, pk=None):
@@ -204,7 +179,7 @@ class InventoryViewSet(viewsets.ModelViewSet):
         return Response(results)
 
 
-class StockAdjustmentRequestViewSet(viewsets.ModelViewSet):
+class StockAdjustmentRequestViewSet(TenantViewSetMixin, viewsets.ModelViewSet):
     """
     ViewSet for Stock Adjustment Requests.
     Branch managers can create requests, General Admins can approve/reject.
@@ -213,31 +188,7 @@ class StockAdjustmentRequestViewSet(viewsets.ModelViewSet):
     serializer_class = StockAdjustmentRequestSerializer
     filterset_class = StockAdjustmentRequestFilter
     ordering = ['-created_at']
-    
-    def get_queryset(self):
-        """
-        Filter adjustment requests by user's branch unless user is a General Admin.
-        """
-        user = self.request.user
-        queryset = super().get_queryset()
-        
-        # Superusers see everything
-        if user.is_superuser:
-            return queryset
-        
-        # Company owners (General Admins) see all requests in their company
-        if hasattr(user, 'owned_company'):
-            return queryset.filter(company=user.owned_company)
-        
-        # Branch managers see only their branch requests
-        if user.company:
-            user_branches = user.branch.all()
-            if user_branches.exists():
-                return queryset.filter(branch__in=user_branches)
-            return queryset.filter(company=user.company)
-        
-        return queryset.none()
-    
+
     def perform_create(self, serializer):
         """Auto-assign company, branch, user, and set status to PENDING"""
         user = self.request.user
@@ -373,35 +324,156 @@ class StockAdjustmentRequestViewSet(viewsets.ModelViewSet):
         return Response(self.get_serializer(adjustment).data)
 
 
-class StockMovementViewSet(viewsets.ReadOnlyModelViewSet):
-    """
-    Read-only ViewSet for Stock Movements (audit log).
-    """
+class StockMovementViewSet(TenantViewSetMixin, viewsets.ReadOnlyModelViewSet):
+    """Read-only ViewSet for Stock Movements (audit log)."""
     queryset = StockMovement.objects.all()
     serializer_class = StockMovementSerializer
     filterset_class = StockMovementFilter
     ordering = ['-created_at']
-    
-    def get_queryset(self):
-        """
-        Filter stock movements by user's branch unless user is a General Admin.
-        """
-        user = self.request.user
-        queryset = super().get_queryset()
-        
-        # Superusers see everything
-        if user.is_superuser:
-            return queryset
-        
-        # Company owners (General Admins) see all movements in their company
-        if hasattr(user, 'owned_company'):
-            return queryset.filter(company=user.owned_company)
-        
-        # Branch managers see only their branch movements
-        if user.company:
-            user_branches = user.branch.all()
-            if user_branches.exists():
-                return queryset.filter(branch__in=user_branches)
-            return queryset.filter(company=user.company)
-        
-        return queryset.none()
+
+
+class StockTransferViewSet(TenantViewSetMixin, viewsets.ModelViewSet):
+    """ViewSet para gestionar transferencias de stock entre sucursales."""
+    queryset = StockTransfer.objects.select_related(
+        'origin_branch', 'destination_branch', 'requested_by', 'approved_by'
+    ).prefetch_related('details').order_by('-created_at')
+
+    filter_backends = [DjangoFilterBackend, OrderingFilter]
+    filterset_class = StockTransferFilter
+    ordering_fields = ['created_at', 'status']
+
+    def get_serializer_class(self):
+        if self.action in ('create', 'update', 'partial_update'):
+            return StockTransferCreateSerializer
+        return StockTransferListSerializer
+
+    def perform_create(self, serializer):
+        serializer.save(
+            company=self.get_user_company(),
+            requested_by=self.request.user,
+        )
+
+    @action(detail=True, methods=['post'])
+    @transaction.atomic
+    def approve(self, request, pk=None):
+        """Aprueba transferencia: extrae stock de origen y pasa a IN_TRANSIT."""
+        user = request.user
+        if not (user.is_superuser or hasattr(user, 'owned_company')):
+            return Response(
+                {'status': 403, 'message': 'Only administrators can approve transfers.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        transfer = self.get_object()
+        if transfer.status != StockTransfer.Status.PENDING:
+            return Response(
+                {'status': 400, 'message': f'Cannot approve transfer with status: {transfer.status}'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        for detail in transfer.details.select_related('product'):
+            try:
+                inventory = Inventory.objects.select_for_update().get(
+                    product=detail.product, branch=transfer.origin_branch
+                )
+            except Inventory.DoesNotExist:
+                return Response(
+                    {'status': 400, 'message': f'No inventory for {detail.product} in origin branch.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            if inventory.quantity < detail.quantity:
+                return Response(
+                    {'status': 400, 'message': f'Insufficient stock for {detail.product}. Available: {inventory.quantity}'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            detail.origin_stock_before = inventory.quantity
+            inventory.quantity -= detail.quantity
+            inventory.save()
+            detail.origin_stock_after = inventory.quantity
+            detail.save()
+
+            StockMovement.objects.create(
+                company=transfer.company,
+                branch=transfer.origin_branch,
+                product=detail.product,
+                movement_type=StockMovement.MovementType.TRANSFER,
+                previous_quantity=detail.origin_stock_before,
+                new_quantity=inventory.quantity,
+                quantity_change=-detail.quantity,
+                reference_id=transfer.id,
+                reference_model='StockTransfer',
+                notes=f'Transfer #{transfer.id} to {transfer.destination_branch.name}',
+                created_by=user,
+            )
+
+        transfer.status = StockTransfer.Status.IN_TRANSIT
+        transfer.approved_by = user
+        transfer.save()
+        return Response(StockTransferListSerializer(transfer).data)
+
+    @action(detail=True, methods=['post'])
+    def reject(self, request, pk=None):
+        """Rechaza transferencia."""
+        user = request.user
+        if not (user.is_superuser or hasattr(user, 'owned_company')):
+            return Response(
+                {'status': 403, 'message': 'Only administrators can reject transfers.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        transfer = self.get_object()
+        if transfer.status != StockTransfer.Status.PENDING:
+            return Response(
+                {'status': 400, 'message': f'Cannot reject transfer with status: {transfer.status}'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        transfer.status = StockTransfer.Status.REJECTED
+        transfer.approved_by = user
+        transfer.rejection_note = request.data.get('rejection_note', '')
+        transfer.save()
+        return Response(StockTransferListSerializer(transfer).data)
+
+    @action(detail=True, methods=['post'])
+    @transaction.atomic
+    def complete(self, request, pk=None):
+        """Completa transferencia: suma stock en destino."""
+        transfer = self.get_object()
+        if transfer.status != StockTransfer.Status.IN_TRANSIT:
+            return Response(
+                {'status': 400, 'message': 'Transfer must be in transit to complete.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        for detail in transfer.details.select_related('product'):
+            inventory, _ = Inventory.objects.select_for_update().get_or_create(
+                product=detail.product,
+                branch=transfer.destination_branch,
+                defaults={
+                    'company': transfer.company,
+                    'quantity': 0,
+                },
+            )
+            previous_qty = inventory.quantity
+            inventory.quantity += detail.quantity
+            inventory.save()
+
+            StockMovement.objects.create(
+                company=transfer.company,
+                branch=transfer.destination_branch,
+                product=detail.product,
+                movement_type=StockMovement.MovementType.TRANSFER,
+                previous_quantity=previous_qty,
+                new_quantity=inventory.quantity,
+                quantity_change=detail.quantity,
+                reference_id=transfer.id,
+                reference_model='StockTransfer',
+                notes=f'Transfer #{transfer.id} from {transfer.origin_branch.name}',
+                created_by=request.user,
+            )
+
+        transfer.status = StockTransfer.Status.COMPLETED
+        transfer.save()
+        return Response(StockTransferListSerializer(transfer).data)
