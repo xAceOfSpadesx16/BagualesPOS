@@ -1,6 +1,10 @@
-from django.urls import path
-from records.views import RecordsIndex
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import AuditRecordViewSet
+
+router = DefaultRouter()
+router.register(r'records', AuditRecordViewSet, basename='auditrecord')
 
 urlpatterns = [
-    path('', RecordsIndex.as_view(), name='records'),
+    path('', include(router.urls)),
 ]

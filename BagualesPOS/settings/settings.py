@@ -58,6 +58,9 @@ INSTALLED_APPS = [
     'clients',
     'administration',
     'users',
+    'polymorphic',
+    'cash',
+    'devices',
 ]
 
 

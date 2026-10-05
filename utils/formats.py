@@ -1,6 +1,4 @@
-from locale import setlocale, format_string, LC_ALL
-
-
 def formatted_integer(integer):
-    setlocale(LC_ALL, 'es_AR.UTF-8')
-    return format_string("%d", integer, grouping=True)
+    # Format with thousands separator (comma) then swap to dot for ES-AR style
+    # 1000 -> "1,000" -> "1.000"
+    return "{:,}".format(int(integer)).replace(",", ".")

@@ -7,7 +7,10 @@ from django.db.models import (
 from django.db.models.functions import Coalesce
 from decimal import Decimal
 from clients.choices import MovementType
-
+from django_multitenant.models import TenantManager
+from django.utils import timezone
+import datetime as dt
+from datetime import date as dt_date, datetime
 
 class BalanceRecordsQueryset(QuerySet):
 
@@ -54,42 +57,59 @@ class BalanceRecordsQueryset(QuerySet):
         """
         return self.prefetch_related('related_records')
 
-    #Filters
     def from_date(self, date):
         """
         Filters records from a given date (inclusive). Raises ValueError if date is not a date/datetime.
         """
-        from datetime import date as dt_date, datetime
         if not isinstance(date, (dt_date, datetime)):
             raise ValueError("date must be a date or datetime object")
-        return self.filter(created_at__gte=date)
+        if isinstance(date, datetime):
+            return self.filter(created_at__gte=date)
+        
+        # Convert date to datetime at 00:00:00 aware of timezone to avoid __date lookup issues on SQLite
+        start_of_day = timezone.make_aware(dt.datetime.combine(date, dt.time.min))
+        return self.filter(created_at__gte=start_of_day)
 
     def to_date(self, date):
         """
         Filters records up to a given date (inclusive). Raises ValueError if date is not a date/datetime.
         """
-        from datetime import date as dt_date, datetime
         if not isinstance(date, (dt_date, datetime)):
             raise ValueError("date must be a date or datetime object")
-        return self.filter(created_at__lte=date)
+        if isinstance(date, datetime):
+            return self.filter(created_at__lte=date)
+            
+        # Convert date to datetime at 23:59:59 aware of timezone to avoid __date lookup issues on SQLite
+        end_of_day = timezone.make_aware(dt.datetime.combine(date, dt.time.max))
+        return self.filter(created_at__lte=end_of_day)
 
     def search(self, query):
         """
         Performs a basic search on reference, client, or amount fields.
         """
-        return self.filter(
-            Q(sale_id=query) |
-            Q(client__name__icontains=query) |
+        base_query = (
+            Q(customer_account__client__name__icontains=query) |
             Q(reference__icontains=query) |
-            Q(notes__icontains=query) |
-            Q(amount=query)
+            Q(notes__icontains=query)
         )
+        
+        # Try to search by amount or ID if query is numeric
+        try:
+            val = float(query)
+            base_query |= Q(amount=query)
+            # Only search sale_id if it's an integer
+            if val.is_integer():
+                base_query |= Q(sale_id=int(val))
+        except ValueError:
+            pass
+            
+        return self.filter(base_query)
     
     def for_client(self, client_id):
         """
         Filters records for a specific client id.
         """
-        return self.filter(current_account__client_id=client_id)
+        return self.filter(customer_account__client_id=client_id)
 
     def newest(self):
         """Returns records ordered from newest to oldest."""
@@ -109,13 +129,13 @@ class BalanceRecordsQueryset(QuerySet):
         """
         Returns the total sum of credit movements.
         """
-        return self.credit().total_amount()
+        return self.by_credit().total_amount()
 
     def debit_total(self):
         """
         Returns the total sum of debit movements.
         """
-        return self.debit().total_amount()
+        return self.by_debit().total_amount()
 
     def effective(self):
         reversals = self.model.objects.filter(
@@ -146,32 +166,39 @@ class BalanceRecordsQueryset(QuerySet):
         return self.aggregate(total=Coalesce(net, Value(Decimal('0.00'))))['total'] or Decimal('0.00')
 
 
-class BalanceRecordsManager(Manager):
+class BalanceRecordsManager(TenantManager):
     def get_queryset(self):
         """
-        Returns the custom queryset for account records.
+        Returns the custom queryset for account records with tenant filtering.
         """
-        return BalanceRecordsQueryset(self.model, using=self._db)
+        # Get the base queryset from TenantManager (which applies tenant filtering)
+        from django_multitenant.utils import get_current_tenant
+        qs = BalanceRecordsQueryset(self.model, using=self._db)
+        # Apply tenant filtering if tenant is set
+        tenant = get_current_tenant()
+        if tenant:
+            qs = qs.filter(company=tenant)
+        return qs
     
     def credit(self):
         """Returns all credit movements."""
-        return self.get_queryset().credit()
+        return self.get_queryset().by_credit()
     
     def debit(self):
         """Returns all debit movements."""
-        return self.get_queryset().debit()
+        return self.get_queryset().by_debit()
     
     def adjustment(self):
         """Returns all adjustment movements."""
-        return self.get_queryset().adjustment()
+        return self.get_queryset().by_adjustment()
     
     def refund(self):
         """Returns all refund movements."""
-        return self.get_queryset().refund()
+        return self.get_queryset().by_refund()
     
     def reversal(self):
         """Returns all reversal movements."""
-        return self.get_queryset().reversal()
+        return self.get_queryset().by_reversal()
     
     def reconciled(self):
         """Returns all reconciled records."""

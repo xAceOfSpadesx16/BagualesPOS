@@ -1,14 +1,14 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 from django.db.models import Manager, QuerySet
+from django_multitenant.models import TenantManager
 from django.utils.timezone import now
 
 if TYPE_CHECKING:
     from users.models import CustomUser
 
 class SalesQueryset(QuerySet):
-    def soft_delete(self):
-        return self.update(is_deleted=True, deleted_at=now())
+    # soft_delete removed - model has no is_deleted field
     
     def select_rel_seller(self):
         return self.select_related('seller')
@@ -23,7 +23,7 @@ class SalesQueryset(QuerySet):
         return self.filter(canceled=False, closed=False, seller = seller)
     
 
-class SalesManager(Manager):
+class SalesManager(TenantManager):
 
     def get_queryset(self):
         return SalesQueryset(self.model, using=self._db)
